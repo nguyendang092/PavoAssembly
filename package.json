@@ -1,0 +1,30 @@
+{
+  "name": "react-vite-tailwind-template",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.9.0",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "firebase": "^11.9.0",
+    "firebase-admin": "^13.4.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.0.0",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.4",
+    "tailwindcss": "^3.4.17",
+    "vite": "^5.0.0"
+  },
+  "description": "",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
