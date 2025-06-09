@@ -4,6 +4,7 @@ import { ref, set, onValue, remove } from 'firebase/database';
 import './styles/animation.css';
 import './styles/notifications.css';
 import './App.css';
+
 const areas = ['IACD/MMFD', 'QPDF05', 'WMRT85', 'M90F32'];
 const statuses = ['Làm việc', 'LINE NGƯNG SẢN XUẤT', 'NGHỈ PHÉP', 'PHỤ LINE KHÁC', 'ĐI VỆ SINH'];
 const timeSlots = ['06:00-08:00', '08:00-10:00', '10:00-12:00', '12:00-14:00', '14:00-16:00', '16:00-18:00'];
