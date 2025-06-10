@@ -1,2 +1,5 @@
 node_modules
 .env
+bfg-1.14.0.jar
+..bfg-report/
+pavoassembly-firebase-adminsdk-fbsvc-b1bb591592.json
