@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { db } from './firebase';
 import { ref, set, onValue, remove } from 'firebase/database';
-import './styles/animation.css';
-import './styles/notifications.css';
-import './App.css';
+import '../styles/animation.css';
+import '../styles/notifications.css';
 
 const areas = ['IACD/MMFD', 'QPDF05', 'WMRT85', 'M90F32'];
 const statuses = ['Làm việc', 'LINE NGƯNG SẢN XUẤT', 'NGHỈ PHÉP', 'PHỤ LINE KHÁC', 'ĐI VỆ SINH'];
