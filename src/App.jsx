@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { db } from "./firebase";
 import { ref, set, onValue, remove } from "firebase/database";
-import InputProductionRow from "./InputProductionRow";
-import InputActualRow from "./InputActualRow";
-import RatioRow from './RatioRow'
 import AreaProductionTable from './AreaProductionTable'
+import Toast from "./Toast";
+import Navbar from "./Navbar";
+
 const areas = ["IACD/MMFD", "QPDF05", "WMRT85", "M90F32"];
 const statuses = [
   "Làm việc",
@@ -12,14 +12,6 @@ const statuses = [
   "NGHỈ PHÉP",
   "PHỤ LINE KHÁC",
   "ĐI VỆ SINH",
-];
-const timeSlots = [
-  "06:00-08:00",
-  "08:00-10:00",
-  "10:00-12:00",
-  "12:00-14:00",
-  "14:00-16:00",
-  "16:00-18:00",
 ];
 
 const employeesMaster = [
@@ -29,25 +21,32 @@ const employeesMaster = [
 
 const App = () => {
   const [assignments, setAssignments] = useState([]);
+  const [actual, setActual] = useState({});
+  const [production, setProduction] = useState({});
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editAreaKey, setEditAreaKey] = useState(null);
   const [formData, setFormData] = useState({ area: "", employees: [] });
   const [newEmployeeName, setNewEmployeeName] = useState("");
   const [newEmployeeStatus, setNewEmployeeStatus] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
-  const [production, setProduction] = useState({});
-  const [actual, setActual] = useState({});
+  const [toastMessage, setToastMessage] = useState("");
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+  };
 
   const updateActual = (type, area, slot, value) => {
-  if (value === undefined) {
-    alert("Giá trị không hợp lệ, không được để trống!");
-    return;
-  }
-  const key = area.replace(/\//g, "_");
-  set(ref(db, `${type}/${key}/${slot}`), value)
-    .then(() => showToast(`Cập nhật ${type === "actual" ? "thực tế" : "sản lượng"}!`))
-    .catch(() => alert("Lỗi cập nhật!"));
-};
+    if (value === undefined) {
+      alert("Giá trị không hợp lệ, không được để trống!");
+      return;
+    }
+    const key = area.replace(/\//g, "_");
+    set(ref(db, `${type}/${key}/${slot}`), value)
+      .then(() => showToast(`Cập nhật ${type === "actual" ? "thực tế" : "sản lượng"}!`))
+      .catch(() => alert("Lỗi cập nhật!"));
+  };
+
   useEffect(() => {
     const assignmentsRef = ref(db, "assignments");
     onValue(assignmentsRef, (snapshot) => {
@@ -90,14 +89,6 @@ const App = () => {
   const closeModal = () => {
     setModalOpen(false);
     setErrorMsg("");
-  };
-  const validateForm = () => {
-    if (!formData.area) return "Vui lòng chọn khu vực.";
-    if (formData.employees.length === 0) return "Vui lòng thêm nhân viên.";
-    for (let emp of formData.employees) {
-      if (!emp.status) return `Chọn trạng thái cho ${emp.name}`;
-    }
-    return "";
   };
 
   const addEmployee = () => {
@@ -144,21 +135,11 @@ const App = () => {
       employees: formData.employees.filter((emp) => emp.name !== name),
     });
   };
-  
 
   const handleSubmit = () => {
-    const mergeEmployees = (existing, incoming) => {
-      return [
-        ...existing,
-        ...incoming.filter(emp => !existing.some(e => e.name === emp.name))
-      ];
-    };
-
-
     const key = formData.area.replace(/\//g, "_");
 
     if (editAreaKey) {
-      // Đang chỉnh sửa → ghi đè dữ liệu
       set(ref(db, `assignments/${key}`), formData)
         .then(() => {
           closeModal();
@@ -166,7 +147,6 @@ const App = () => {
         })
         .catch(() => alert("Lỗi lưu dữ liệu!"));
     } else {
-      // Thêm mới → kiểm tra và hợp nhất nếu khu vực đã có
       const assignmentsRef = ref(db, `assignments/${key}`);
       onValue(
         assignmentsRef,
@@ -196,7 +176,7 @@ const App = () => {
             .catch(() => alert("Lỗi lưu dữ liệu!"));
         },
         { onlyOnce: true }
-      ); // Đảm bảo chỉ lắng nghe 1 lần
+      );
     }
   };
 
@@ -208,24 +188,11 @@ const App = () => {
       .catch(() => alert("Lỗi xóa!"));
   };
 
-  const showToast = (msg) => {
-  let toast = document.getElementById("toast-notification");
-  if (!toast) {
-    toast = document.createElement("div");
-    toast.id = "toast-notification";
-    toast.className = "toast-notification";
-    document.body.appendChild(toast);
-  }
-  toast.innerText = msg;
-  toast.style.display = "block";
-  setTimeout(() => {
-    toast.style.display = "none";
-  }, 3000);
-};
-
-
   return (
+    <>
+    <Navbar />
     <div className="p-6 max-w-6xl mx-auto font-sans bg-gray-50 min-h-screen">
+      
       <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 demo">
         Quản lý phân công và sản lượng
       </h1>
@@ -281,11 +248,12 @@ const App = () => {
               </div>
 
               {/* Bảng sản lượng */}
-              <AreaProductionTable />
+              <AreaProductionTable area={a.area} />
             </div>
           );
         })}
       </div>
+    
 
       {/* Modal */}
       {modalOpen && (
@@ -350,16 +318,16 @@ const App = () => {
               ))}
 
               {/* Thêm nhân viên */}
-              <div className="flex gap-2 mt-3">
+              <div className="mt-3 flex gap-2">
                 <select
                   value={newEmployeeName}
                   onChange={(e) => setNewEmployeeName(e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-md px-2 py-1"
+                  className="flex-1 border border-gray-300 rounded-md px-3 py-2"
                 >
-                  <option value="">-- Nhân viên --</option>
-                  {employeesMaster.map((e) => (
-                    <option key={e.name} value={e.name}>
-                      {e.name}
+                  <option value="">-- Chọn nhân viên --</option>
+                  {employeesMaster.map((emp) => (
+                    <option key={emp.name} value={emp.name}>
+                      {emp.name}
                     </option>
                   ))}
                 </select>
@@ -367,7 +335,7 @@ const App = () => {
                 <select
                   value={newEmployeeStatus}
                   onChange={(e) => setNewEmployeeStatus(e.target.value)}
-                  className="flex-1 border border-gray-300 rounded-md px-2 py-1"
+                  className="flex-1 border border-gray-300 rounded-md px-3 py-2"
                 >
                   <option value="">-- Trạng thái --</option>
                   {statuses.map((s) => (
@@ -379,24 +347,24 @@ const App = () => {
 
                 <button
                   onClick={addEmployee}
-                  className="bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600 transition"
+                  className="bg-green-600 text-white px-2 py-2 rounded"
                 >
                   Thêm
                 </button>
               </div>
             </div>
 
-            {/* Nút hành động */}
-            <div className="flex justify-end gap-3 mt-4">
+            <div className="flex justify-end gap-4">
               <button
                 onClick={closeModal}
-                className="px-4 py-2 rounded-md bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium"
+                className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
               >
                 Hủy
               </button>
               <button
                 onClick={handleSubmit}
-                className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                disabled={!formData.area || formData.employees.length === 0}
+                className="bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
               >
                 Lưu
               </button>
@@ -404,7 +372,10 @@ const App = () => {
           </div>
         </div>
       )}
+
+      <Toast message={toastMessage} onClose={() => setToastMessage("")} />
     </div>
+    </>
   );
 };
 
