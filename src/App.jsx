@@ -221,7 +221,7 @@ const App = () => {
       <div className="text-right mb-4">
         <button
           onClick={openModalForNew}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
+          className="bg-blue-500 text-white px-4 py-2 rounded font-semibold  hover:bg-blue-600"
         >
           + Thêm phân công
         </button>
@@ -253,11 +253,11 @@ const App = () => {
                 {a.employees.map((emp) => (
                   <div
                     key={emp.name}
-                    className="flex items-center border p-2 rounded"
+                    className="w-48 h-20 flex items-center border p-2 rounded shadow-sm bg-white"
                   >
                     <img
                       src={`/employees/${emp.image}`}
-                      className="w-10 h-10 rounded-full mr-2"
+                      className="w-10 h-10 rounded-full mr-3 object-cover"
                       alt={emp.name}
                     />
                     <div>
