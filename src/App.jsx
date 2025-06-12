@@ -15,8 +15,29 @@ const statuses = [
 ];
 
 const employeesMaster = [
-  { name: "Nguyễn Văn A", image: "nguyenvana.jpg" },
-  { name: "Trần Thị B", image: "tranthib.jpg" },
+  { name: "Trần Thị Kim Thủy", image: "nguyenvana.jpg" },
+  { name: "Nguyễn Thị Khánh Linh", image: "tranthib.jpg" },
+  { name: "Hoàng Thị Minh Thư", image: "tranthib.jpg" },
+  { name: "Nguyễn Thị Hoàng Hiếu", image: "tranthib.jpg" },
+  { name: "Nguyễn Thị Mỹ Nhân", image: "tranthib.jpg" },
+  { name: "Nguyễn Thị Ngọc Nga", image: "tranthib.jpg" },
+  { name: "Trần Thị Út Hiệp", image: "tranthib.jpg" },
+  { name: "Nguyễn Thị Mỹ Linh", image: "tranthib.jpg" },
+  { name: "Trần Thị Phương Dung", image: "tranthib.jpg" },
+  { name: "Nguyễn Thanh Thúy", image: "tranthib.jpg" },
+  { name: "Đào Thị Tú Anh", image: "tranthib.jpg" },
+  { name: "Hoàng Thị Bích Thuận", image: "tranthib.jpg" },
+  { name: "Trần Thị Bé Tý", image: "tranthib.jpg" },
+  { name: "Quách Văn Hiếu", image: "tranthib.jpg" },
+  { name: "Danh Cường", image: "tranthib.jpg" },
+  { name: "Lê Thị Dư", image: "tranthib.jpg" },
+  { name: "Lê Văn Nhu", image: "tranthib.jpg" },
+  { name: "Đại Mạnh Anh", image: "tranthib.jpg" },
+  { name: "Lê Kim Hoài Duy Vũ", image: "tranthib.jpg" },
+  { name: "Nguyễn Thị Tiến", image: "tranthib.jpg" },
+  { name: "Hoàng Lê Thiên Ý", image: "tranthib.jpg" },
+  { name: "Nguyễn Thanh Lâm", image: "tranthib.jpg" },
+  { name: "Lê Thị La", image: "tranthib.jpg" },
 ];
 
 const App = () => {
@@ -258,7 +279,7 @@ const App = () => {
       {/* Modal */}
       {modalOpen && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6 animate-fadeInScale">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl p-6 animate-fadeInScale">
             <h3 className="text-xl font-bold mb-4 text-gray-800">
               {editAreaKey ? "Chỉnh sửa" : "Thêm mới"} phân công
             </h3>
