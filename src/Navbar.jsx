@@ -13,7 +13,7 @@ export default function Navbar() {
           className="flex items-center space-x-3 rtl:space-x-reverse"
         >
           <img
-            src="../public/picture/logo/logo_pavo.jpg"
+            src="/picture/logo/logo_pavo.jpg"
             className="h-10"
             alt="Flowbite Logo"
           />
