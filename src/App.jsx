@@ -238,13 +238,13 @@ const App = () => {
                     onClick={() => openModalForEdit(a)}
                     className="bg-yellow-500 text-white hover:bg-yellow-600 px-4 py-1.5 rounded-lg font-semibold shadow transition duration-200"
                   >
-                    Sửa
+                    Sửa (수정)
                   </button>
                   <button
                     onClick={() => handleDelete(a.area)}
                     className="bg-red-500 text-white hover:bg-red-600 px-4 py-1.5 rounded-lg font-semibold shadow transition duration-200"
                   >
-                    Xóa
+                    Xóa (삭제)
                   </button>
                 </div>
               </div>

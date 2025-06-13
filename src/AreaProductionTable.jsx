@@ -4,15 +4,19 @@ import { ref, onValue, set } from "firebase/database";
 import { format, getWeek, startOfWeek, addDays } from "date-fns";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import Modal from "react-modal";
+import ChartModal from "./ChartModal";
 
 const timeSlots = [
-  "6:00-8:00",
-  "8:00-10:00",
-  "10:00-12:00",
-  "12:00-14:00",
-  "14:00-16:00",
-  "16:00-18:00",
+  "08:00-10:00",
+  "10:00-11:30",
+  "12:30-15:00",
+  "15:00-17:00",
+  "17:30-20:00",
 ];
+
+// Modal accessibility
+Modal.setAppElement("#root");
 
 const AreaProductionTable = ({ area }) => {
   const areaKey = area.replace(/\//g, "_");
@@ -20,6 +24,7 @@ const AreaProductionTable = ({ area }) => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [actualData, setActualData] = useState({});
   const [productionData, setProductionData] = useState({});
+  const [modalIsOpen, setModalIsOpen] = useState(false);
 
   const weekNumber = getWeek(selectedDate, { weekStartsOn: 1 });
   const year = selectedDate.getFullYear();
@@ -92,12 +97,6 @@ const AreaProductionTable = ({ area }) => {
       });
     }
   };
-  const getColorClass = (ratio) => {
-    const r = parseFloat(ratio);
-    if (r >= 100) return "text-green-700 bg-green-100";
-    if (r >= 80) return "text-yellow-800 bg-yellow-100";
-    return "text-red-700 bg-red-100";
-  };
 
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
@@ -121,6 +120,24 @@ const AreaProductionTable = ({ area }) => {
     );
   };
 
+  // Chuẩn bị dữ liệu cho biểu đồ (theo slot tổng tuần)
+  const chartData = timeSlots.map((slot) => {
+    let sumPlan = 0;
+    let sumActual = 0;
+    weekDates.forEach((_, dayIndex) => {
+      sumPlan += Number(productionData[dayIndex]?.[slot] || 0);
+      sumActual += Number(actualData[dayIndex]?.[slot] || 0);
+    });
+    const ratio =
+      sumPlan > 0 ? Number(((sumActual / sumPlan) * 100).toFixed(1)) : 0;
+    return {
+      label: slot,
+      plan: sumPlan,
+      actual: sumActual,
+      ratio,
+    };
+  });
+
   return (
     <div className="mb-6">
       <div className="flex flex-wrap items-center justify-between mb-3 gap-2">
@@ -129,21 +146,30 @@ const AreaProductionTable = ({ area }) => {
             onClick={() => changeWeek("prev")}
             className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
           >
-            ← Tuần trước
+            ← Tuần trước (지난 주)
           </button>
           <button
             onClick={() => changeWeek("next")}
             className="ml-2 px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
           >
-            Tuần sau →
+            Tuần sau (다음 주) →
           </button>
         </div>
-        <button
-          onClick={exportToExcel}
-          className="px-4 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-        >
-          📥 Xuất Excel
-        </button>
+        <div>
+          <button
+            onClick={exportToExcel}
+            className="px-4 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+          >
+            📥 Xuất Excel (엑셀 내보내기)
+          </button>
+
+          <button
+            onClick={() => setModalIsOpen(true)}
+            className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            📊 Biểu đồ (차트)
+          </button>
+        </div>
       </div>
 
       <div className="text-sm text-gray-600 italic font-semibold mb-2">
@@ -154,7 +180,7 @@ const AreaProductionTable = ({ area }) => {
 
       <div className="flex items-center justify-between mb-4">
         <label className="font-semibold text-gray-800">
-          Chọn ngày:{" "}
+          Chọn ngày (날짜 선택):{" "}
           <input
             type="date"
             value={format(selectedDate, "yyyy-MM-dd")}
@@ -163,7 +189,7 @@ const AreaProductionTable = ({ area }) => {
           />
         </label>
         <span className="text-sm text-gray-600 italic">
-          Tuần: {weekNumber} ({weekKey})
+          Tuần (주): {weekNumber} ({weekKey})
         </span>
       </div>
 
@@ -181,7 +207,7 @@ const AreaProductionTable = ({ area }) => {
               </th>
             ))}
             <th className="border border-gray-300 px-2 py-2 text-center">
-              Total
+              Total (합계)
             </th>
           </tr>
         </thead>
@@ -219,7 +245,7 @@ const AreaProductionTable = ({ area }) => {
                     {dayLabel}
                   </td>
                   <td className="border border-gray-300 px-2 py-1 text-left font-semibold text-blue-800">
-                    Kế hoạch
+                    Kế hoạch (계획)
                   </td>
                   {timeSlots.map((slot) => (
                     <td
@@ -245,7 +271,7 @@ const AreaProductionTable = ({ area }) => {
 
                 <tr className="bg-green-50 hover:bg-green-100">
                   <td className="border border-gray-300 px-2 py-1 text-left font-semibold text-green-800">
-                    Thực tế
+                    Thực tế (실적)
                   </td>
                   {timeSlots.map((slot) => (
                     <td
@@ -269,7 +295,7 @@ const AreaProductionTable = ({ area }) => {
 
                 <tr className="bg-yellow-50 hover:bg-yellow-100">
                   <td className="border border-gray-300 px-2 py-1 text-left font-semibold text-yellow-800">
-                    % Hoàn thành
+                    % Hoàn thành (% 완료)
                   </td>
                   {timeSlots.map((slot) => {
                     const actual = Number(actualData[dayIndex]?.[slot]) || 0;
@@ -297,6 +323,14 @@ const AreaProductionTable = ({ area }) => {
           })}
         </tbody>
       </table>
+
+      {/* Modal popup hiển thị biểu đồ */}
+      <ChartModal
+        isOpen={modalIsOpen}
+        onClose={() => setModalIsOpen(false)}
+        weekNumber={weekNumber}
+        chartData={chartData}
+      />
     </div>
   );
 };
