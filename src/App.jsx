@@ -212,8 +212,7 @@ const App = () => {
   return (
     <>
     <Navbar />
-    <div className="p-6 max-w-6xl mx-auto font-sans bg-gray-50 min-h-screen">
-      
+    <div className="p-6 w-screen h-screen font-sans bg-gray-50 overflow-auto"> 
       <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 demo">
         Quản lý phân công và sản lượng
       </h1>
@@ -233,7 +232,7 @@ const App = () => {
           return (
             <div key={idx} className="border p-4 bg-white rounded shadow">
               <div className="flex justify-between items-center mb-2">
-                <h2 className="text-xl font-semibold">{a.area}</h2>
+                <h2 className="text-xl font-semibold">LINE: {a.area}</h2>
                 <div className="space-x-2">
                   <button
                     onClick={() => openModalForEdit(a)}
