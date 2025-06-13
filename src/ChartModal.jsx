@@ -74,13 +74,6 @@ const ChartModal = ({ isOpen, onClose, weekNumber, chartData }) => {
     name="Thực tế"
     label={{ position: "top", fontSize: 12, fill: "#82ca9d" }}
   />
-  <Line
-    yAxisId="right"
-    type="monotone"
-    dataKey="ratio"
-    stroke="#ff7300"
-    name="% Hoàn thành"
-  />
 </LineChart>
       <button
         onClick={onClose}
