@@ -29,7 +29,7 @@ const AreaProductionTable = ({ area }) => {
 
   const startDateOfWeek = startOfWeek(selectedDate, { weekStartsOn: 1 });
 
-  const timeSlots = Array.from({ length: 7 }, (_, i) => {
+  const timeSlots = Array.from({ length: 6 }, (_, i) => {
     const date = addDays(startDateOfWeek, i);
     return {
       label: format(date, "EEEE"),

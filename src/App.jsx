@@ -5,7 +5,7 @@ import AreaProductionTable from './AreaProductionTable'
 import Toast from "./Toast";
 import Navbar from "./Navbar";
 
-const areas = ["IACD/MMFD", "QPDF05", "WMRT85", "M90F32"];
+const areas = ["Ngọc Thành", "Chí Thành", "Muội", "Duy Hinh"];
 const statuses = [
   "Làm việc",
   "LINE NGƯNG SẢN XUẤT",
@@ -42,9 +42,6 @@ const employeesMaster = [
 
 const App = () => {
   const [assignments, setAssignments] = useState([]);
-  const [actual, setActual] = useState({});
-  const [production, setProduction] = useState({});
-
   const [modalOpen, setModalOpen] = useState(false);
   const [editAreaKey, setEditAreaKey] = useState(null);
   const [formData, setFormData] = useState({ area: "", employees: [] });
@@ -55,17 +52,6 @@ const App = () => {
 
   const showToast = (msg) => {
     setToastMessage(msg);
-  };
-
-  const updateActual = (type, area, slot, value) => {
-    if (value === undefined) {
-      alert("Giá trị không hợp lệ, không được để trống!");
-      return;
-    }
-    const key = area.replace(/\//g, "_");
-    set(ref(db, `${type}/${key}/${slot}`), value)
-      .then(() => showToast(`Cập nhật ${type === "actual" ? "thực tế" : "sản lượng"}!`))
-      .catch(() => alert("Lỗi cập nhật!"));
   };
 
   useEffect(() => {
@@ -213,18 +199,22 @@ const App = () => {
     <>
     <Navbar />
     <div className="p-6 w-screen h-screen font-sans bg-gray-50 overflow-auto"> 
-      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 demo">
-        Quản lý phân công và sản lượng
+      <div className="flex justify-between items-center mb-2">
+<h1 className="text-3xl font-bold mb-6 text-center text-gray-800 demo">
+        Bảng phân công & sản lượng
       </h1>
-
-      <div className="text-right mb-4">
+      <div className="text-right">
         <button
           onClick={openModalForNew}
           className="bg-blue-500 text-white px-4 py-2 rounded font-semibold  hover:bg-blue-600"
         >
-          + Thêm phân công
+          + Thêm phân công (+ 배정 추가)
         </button>
       </div>
+      </div>
+      
+
+      
 
       <div className="space-y-8">
         {assignments.map((a, idx) => {
@@ -232,7 +222,7 @@ const App = () => {
           return (
             <div key={idx} className="border p-4 bg-white rounded shadow">
               <div className="flex justify-between items-center mb-2">
-                <h2 className="text-xl font-semibold">LINE: {a.area}</h2>
+                <h2 className="text-xl font-semibold">LEADER: {a.area}</h2>
                 <div className="space-x-2">
                   <button
                     onClick={() => openModalForEdit(a)}
