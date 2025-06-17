@@ -50,11 +50,11 @@ const ChartModal = ({
   weekNumber,
   chartData = {},
   modelList = [],
+  area = ""
 }) => {
   const [selectedModel, setSelectedModel] = useState(
     modelList.length > 0 ? modelList[0] : ""
   );
-
   useEffect(() => {
     if (modelList.length > 0 && !modelList.includes(selectedModel)) {
       setSelectedModel(modelList[0]);
@@ -64,7 +64,6 @@ const ChartModal = ({
   const modelData = Array.isArray(chartData[selectedModel])
     ? chartData[selectedModel]
     : [];
-
   return (
     <Modal
       isOpen={isOpen}
@@ -76,16 +75,22 @@ const ChartModal = ({
           margin: "auto",
           height: "700px",
           padding: "20px",
-           backgroundColor: "#ffffff"
+          backgroundColor: "#ffffff",
         },
         overlay: {
           backgroundColor: "rgba(0,0,0,0.8)",
         },
       }}
     >
+      
       <h2 className="text-3xl font-bold mb-4 uppercase text-center">
-        Sản lượng tuần {weekNumber} (📅 {weekNumber}주차 생산량) )
+        Sản lượng tuần {weekNumber} (📅 {weekNumber}주차 생산량) 
       </h2>
+      {area && (
+  <h3 className="text-xl text-center font-semibold mb-4">
+    📍 Khu vực: {area} (라인: {area})
+  </h3>
+)}
       <div className="mb-4">
         <label className="font-semibold mr-2 uppercase">
           Chọn line (작업 라인 선택):
@@ -103,7 +108,6 @@ const ChartModal = ({
           ))}
         </select>
       </div>
-
       {modelData.length > 0 ? (
         <ResponsiveContainer width="100%" height={500}>
           <LineChart

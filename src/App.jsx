@@ -4,8 +4,10 @@ import { ref, set, onValue, remove } from "firebase/database";
 import AreaProductionTable from "./AreaProductionTable";
 import Toast from "./Toast";
 import Navbar from "./Navbar";
+import AreaProductionTableTime from "./AreaProductionTableTime";
 
-const areas = ["Ngọc Thành", "Chí Thành", "Muội", "Duy Hinh"];
+const App = () => {
+  const areas = ["Ngọc Thành", "Chí Thành", "Muội", "Duy Hinh"];
 const statuses = [
   "Làm việc",
   "LINE NGƯNG SẢN XUẤT",
@@ -39,8 +41,6 @@ const employeesMaster = [
   { name: "Nguyễn Thanh Lâm", image: "tranthib.jpg" },
   { name: "Lê Thị La", image: "tranthib.jpg" },
 ];
-
-const App = () => {
   const [assignments, setAssignments] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editAreaKey, setEditAreaKey] = useState(null);
@@ -50,6 +50,8 @@ const App = () => {
   const [errorMsg, setErrorMsg] = useState("");
   const [toastMessage, setToastMessage] = useState("");
   const [selectedLeader, setSelectedLeader] = useState("");
+
+  const [viewMode, setViewMode] = useState("time"); // mặc định "time"
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -78,7 +80,7 @@ const App = () => {
   };
 
   const openModalForNew = () => {
-    setFormData({ area: selectedLeader || "", employees: [] }); // Gán leader vào area nếu có
+    setFormData({ area: selectedLeader || "", employees: [] });
     setEditAreaKey(null);
     setModalOpen(true);
     setErrorMsg("");
@@ -193,12 +195,25 @@ const App = () => {
           <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 demo">
             Bảng phân công & sản lượng
           </h1>
-          <div className="text-right">
+
+          <div className="text-right space-x-2">
             <button
               onClick={openModalForNew}
-              className="bg-blue-500 text-white px-4 py-2 rounded font-semibold  hover:bg-blue-600"
+              className="bg-blue-500 text-white px-4 py-1.5 rounded font-semibold  hover:bg-blue-600"
             >
               + Thêm phân công (+ 배정 추가)
+            </button>
+            <button
+              onClick={() => openModalForEdit(a)}
+              className="bg-yellow-500 text-white hover:bg-yellow-600 px-4 py-1.5 rounde font-semibold shadow transition duration-200 "
+            >
+              Sửa (수정)
+            </button>
+            <button
+              onClick={() => handleDelete(a.area)}
+              className="bg-red-500 text-white hover:bg-red-600 px-4 py-1.5 rounded font-semibold shadow transition duration-200"
+            >
+              Xóa (삭제)
             </button>
           </div>
         </div>
@@ -213,17 +228,26 @@ const App = () => {
                   <div className="flex justify-between items-center mb-2">
                     <h2 className="text-xl font-semibold">LEADER: {a.area}</h2>
                     <div className="space-x-2">
+                      {/* Nút chọn hiển thị theo giờ hoặc ngày */}
                       <button
-                        onClick={() => openModalForEdit(a)}
-                        className="bg-yellow-500 text-white hover:bg-yellow-600 px-4 py-1.5 rounded-lg font-semibold shadow transition duration-200"
+                        onClick={() => setViewMode("time")}
+                        className={`px-4 py-2 rounded font-semibold ${
+                          viewMode === "time"
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-300"
+                        }`}
                       >
-                        Sửa (수정)
+                        Giờ (시간별)
                       </button>
                       <button
-                        onClick={() => handleDelete(a.area)}
-                        className="bg-red-500 text-white hover:bg-red-600 px-4 py-1.5 rounded-lg font-semibold shadow transition duration-200"
+                        onClick={() => setViewMode("day")}
+                        className={`px-4 py-2 rounded font-semibold ${
+                          viewMode === "day"
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-300"
+                        }`}
                       >
-                        Xóa (삭제)
+                        Ngày (날짜)
                       </button>
                     </div>
                   </div>
@@ -247,7 +271,12 @@ const App = () => {
                       </div>
                     ))}
                   </div>
-                  <AreaProductionTable area={a.area} />
+                  {/* Hiển thị bảng theo viewMode */}
+                  {viewMode === "time" ? (
+                    <AreaProductionTableTime area={a.area} />
+                  ) : (
+                    <AreaProductionTable area={a.area} />
+                  )}
                 </div>
               );
             })}
@@ -278,6 +307,7 @@ const App = () => {
                 >
                   <option value="">-- Chọn --</option>
                   {areas.map((a) => (
+                    
                     <option key={a} value={a}>
                       {a}
                     </option>
