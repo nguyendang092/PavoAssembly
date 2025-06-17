@@ -14,36 +14,36 @@ import {
 
 Modal.setAppElement("#root");
 
- const CustomLabel2= (props) => {
-    const { x, y, value } = props;
-    return (
-      <text
-        x={x}
-        y={y + 20}
-        fill="#ef3bf5"
-        fontSize={14} // chỉnh kích thước chữ
-        fontWeight="bold" // in đậm chữ
-        textAnchor="middle"
-      >
-        {value}
-      </text>
-    );
-  };
- const CustomLabel1= (props) => {
-    const { x, y, value } = props;
-    return (
-      <text
-        x={x}
-        y={y - 10}
-        fill="#0707f2"
-        fontSize={14} // chỉnh kích thước chữ
-        fontWeight="bold" // in đậm chữ
-        textAnchor="middle"
-      >
-        {value}
-      </text>
-    );
-  };
+const CustomLabel2 = (props) => {
+  const { x, y, value } = props;
+  return (
+    <text
+      x={x}
+      y={y + 20}
+      fill="#ef3bf5"
+      fontSize={14} // chỉnh kích thước chữ
+      fontWeight="bold" // in đậm chữ
+      textAnchor="middle"
+    >
+      {value}
+    </text>
+  );
+};
+const CustomLabel1 = (props) => {
+  const { x, y, value } = props;
+  return (
+    <text
+      x={x}
+      y={y - 10}
+      fill="#0707f2"
+      fontSize={14} // chỉnh kích thước chữ
+      fontWeight="bold" // in đậm chữ
+      textAnchor="middle"
+    >
+      {value}
+    </text>
+  );
+};
 const ChartModal = ({
   isOpen,
   onClose,
@@ -65,8 +65,6 @@ const ChartModal = ({
     ? chartData[selectedModel]
     : [];
 
- 
-
   return (
     <Modal
       isOpen={isOpen}
@@ -78,18 +76,20 @@ const ChartModal = ({
           margin: "auto",
           height: "700px",
           padding: "20px",
+           backgroundColor: "#ffffff"
         },
         overlay: {
-          backgroundColor: "rgba(0,0,0,0.5)",
+          backgroundColor: "rgba(0,0,0,0.8)",
         },
       }}
     >
-      <h2 className="text-xl font-semibold mb-4">
-        Sản lượng tuần {weekNumber}
+      <h2 className="text-3xl font-bold mb-4 uppercase text-center">
+        Sản lượng tuần {weekNumber} (📅 {weekNumber}주차 생산량) )
       </h2>
-
       <div className="mb-4">
-        <label className="font-semibold mr-2">Chọn model:</label>
+        <label className="font-semibold mr-2 uppercase">
+          Chọn line (작업 라인 선택):
+        </label>
         <select
           value={selectedModel}
           onChange={(e) => setSelectedModel(e.target.value)}
@@ -110,10 +110,11 @@ const ChartModal = ({
             data={modelData}
             margin={{ top: 60, right: 20, left: 20, bottom: 60 }}
           >
-            <CartesianGrid strokeDasharray="0"
-            stroke="#909091"
-            vertical={false}
-            horizontal={false}
+            <CartesianGrid
+              strokeDasharray="0"
+              stroke="#909091"
+              vertical={false}
+              horizontal={false}
             />
             <XAxis
               dataKey="label"
@@ -135,18 +136,20 @@ const ChartModal = ({
             <YAxis
               yAxisId="left"
               label={{
-                value: "Sản lượng",
+                value: "Sản lượng".toUpperCase(),
                 angle: -90,
                 position: "insideLeft",
                 offset: -10,
-                fontWeight: "bold"
+                fontWeight: "bold",
+                fill: "#000000",
+                fontFamily: "Arial",
               }}
               tick={({ x, y, payload }) => (
                 <text
-                  x={x - 35 }
+                  x={x - 35}
                   y={y}
                   fontSize={14}
-                  fill="#333"
+                  fill="#000000"
                   fontWeight="bold"
                 >
                   {payload.value}
@@ -158,12 +161,13 @@ const ChartModal = ({
               orientation="right"
               domain={[0, 220]}
               label={{
-                value: "% Hoàn thành",
+                value: "% Hoàn thành".toUpperCase(),
                 angle: 90,
                 position: "insideRight",
                 offset: -10,
-                fontWeight: "bold"
-                
+                fontWeight: "bold",
+                fill: "#000000",
+                fontFamily: "Arial",
               }}
               tick={({ x, y, payload }) => (
                 <text
