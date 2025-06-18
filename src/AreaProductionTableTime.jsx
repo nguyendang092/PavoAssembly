@@ -6,6 +6,8 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import Modal from "react-modal";
 import ChartModal from "./ChartModal";
+import AttendanceModal from "./AttendanceModal";
+import AddEmployeeModal from "./AddEmployeeModal";
 
 Modal.setAppElement("#root");
 
@@ -18,9 +20,12 @@ const timeLabels = [
 ];
 
 const AreaProductionTableTime = ({ area }) => {
+  const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const areaKey = area.replace(/\//g, "_");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [actualData, setActualData] = useState({});
+  const [attendanceData, setAttendanceData] = useState({});
   const [productionData, setProductionData] = useState({});
   const [modalIsOpen, setModalIsOpen] = useState(false);
 
@@ -30,10 +35,20 @@ const AreaProductionTableTime = ({ area }) => {
   const dayKey = format(selectedDate, "yyyy-MM-dd");
 
   const startDateOfWeek = startOfWeek(selectedDate, { weekStartsOn: 1 });
+const timeSlots = Array.from({ length: 6 }, (_, i) => {
+    const date = addDays(startDateOfWeek, i);
+    return {
+      label: format(date, "EEEE"),
+      date: format(date, "yyyy-MM-dd"),
+      display: format(date, "MM/dd (EEEE)"),
+      fullDate: date,
+    };
+  });
 
   useEffect(() => {
     const actualRef = ref(db, `actual/${areaKey}/${weekKey}`);
     const productionRef = ref(db, `production/${areaKey}/${weekKey}`);
+    const attendanceRef = ref(db, `attendance/${areaKey}/${weekKey}`);
     const unsubActual = onValue(actualRef, (snapshot) => {
       setActualData(snapshot.val() || {});
     });
@@ -41,10 +56,13 @@ const AreaProductionTableTime = ({ area }) => {
     const unsubProduction = onValue(productionRef, (snapshot) => {
       setProductionData(snapshot.val() || {});
     });
-
+    const unsubAttendance = onValue(attendanceRef, (snapshot) => {
+      setAttendanceData(snapshot.val() || {});
+    });
     return () => {
       unsubActual();
       unsubProduction();
+      unsubAttendance();
     };
   }, [areaKey, weekKey]);
 
@@ -70,33 +88,33 @@ const AreaProductionTableTime = ({ area }) => {
     });
   };
   const handleDataChange = (type, model, slot, e) => {
-  const val = e.target.value;
-  if (val === "" || /^[0-9]*$/.test(val)) {
-    // Cập nhật state ngay, UI sẽ phản hồi nhanh
-    if (type === "actual") {
-      setActualData((prev) => {
-        const newData = { ...prev };
-        if (!newData[model]) newData[model] = {};
-        newData[model][slot] = val === "" ? 0 : Number(val);
-        return newData;
-      });
-    } else {
-      setProductionData((prev) => {
-        const newData = { ...prev };
-        if (!newData[model]) newData[model] = {};
-        newData[model][slot] = val === "" ? 0 : Number(val);
-        return newData;
+    const val = e.target.value;
+    if (val === "" || /^[0-9]*$/.test(val)) {
+      // Cập nhật state ngay, UI sẽ phản hồi nhanh
+      if (type === "actual") {
+        setActualData((prev) => {
+          const newData = { ...prev };
+          if (!newData[model]) newData[model] = {};
+          newData[model][slot] = val === "" ? 0 : Number(val);
+          return newData;
+        });
+      } else {
+        setProductionData((prev) => {
+          const newData = { ...prev };
+          if (!newData[model]) newData[model] = {};
+          newData[model][slot] = val === "" ? 0 : Number(val);
+          return newData;
+        });
+      }
+
+      // Gửi dữ liệu lên Firebase bất đồng bộ, không chờ kết quả, không block UI
+      const path = `${type}_time/${areaKey}/${dayKey}/${model}/${slot}`;
+      set(ref(db, path), val === "" ? 0 : Number(val)).catch(() => {
+        // Xử lý lỗi, nhưng không làm chậm UI
+        alert(`Lỗi cập nhật ${type === "actual" ? "thực tế" : "kế hoạch"}!`);
       });
     }
-
-    // Gửi dữ liệu lên Firebase bất đồng bộ, không chờ kết quả, không block UI
-    const path = `${type}_time/${areaKey}/${dayKey}/${model}/${slot}`;
-    set(ref(db, path), val === "" ? 0 : Number(val)).catch(() => {
-      // Xử lý lỗi, nhưng không làm chậm UI
-      alert(`Lỗi cập nhật ${type === "actual" ? "thực tế" : "kế hoạch"}!`);
-    });
-  }
-};
+  };
 
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
@@ -153,6 +171,12 @@ const AreaProductionTableTime = ({ area }) => {
         </div>
         <div className="space-x-2">
           <button
+            onClick={() => setAddEmployeeModalOpen(true)}
+            className="px-4 py-1 bg-orange-500 text-white rounded hover:bg-orange-600"
+          >
+            ➕ Thêm phân công (직원 추가)
+          </button>
+          <button
             onClick={exportToExcel}
             className="px-4 py-1 bg-green-500 text-white rounded hover:bg-green-600"
           >
@@ -163,6 +187,12 @@ const AreaProductionTableTime = ({ area }) => {
             className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             📊 Biểu đồ (차트)
+          </button>
+          <button
+            onClick={() => setAttendanceModalOpen(true)}
+            className="px-4 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
+          >
+            🧑‍🤝‍🧑 Nhân viên (직원)
           </button>
         </div>
       </div>
@@ -302,11 +332,32 @@ const AreaProductionTableTime = ({ area }) => {
         </tbody>
       </table>
 
+      {/* Biểu đồ */}
       <ChartModal
         isOpen={modalIsOpen}
         onClose={() => setModalIsOpen(false)}
         weekNumber={weekNumber}
         chartData={chartData}
+        modelList={modelList}
+        area={area}
+        selectedDate={format(selectedDate, "yyyy-MM-dd")}
+      />
+
+      {/* Modal nhân viên */}
+      <AttendanceModal
+        isOpen={attendanceModalOpen}
+        onClose={() => setAttendanceModalOpen(false)}
+        selectedDate={format(selectedDate, "yyyy-MM-dd")}
+        attendanceData={attendanceData}
+        timeSlots={timeSlots}
+        areaKey={areaKey}
+        modelList={modelList}
+      />
+      <AddEmployeeModal
+        isOpen={addEmployeeModalOpen}
+        onClose={() => setAddEmployeeModalOpen(false)}
+        areaKey={areaKey}
+        weekKey={weekKey}
         modelList={modelList}
       />
     </div>

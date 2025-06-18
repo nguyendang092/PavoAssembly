@@ -6,16 +6,20 @@ import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 import Modal from "react-modal";
 import ChartModal from "./ChartModal";
+import AttendanceModal from "./AttendanceModal";
+import AddEmployeeModal from "./AddEmployeeModal";
 
 Modal.setAppElement("#root");
 
 const AreaProductionTable = ({ area }) => {
+  const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
   const areaKey = area.replace(/\//g, "_");
-
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [actualData, setActualData] = useState({});
   const [productionData, setProductionData] = useState({});
+  const [attendanceData, setAttendanceData] = useState({});
   const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
 
   const weekNumber = getWeek(selectedDate, { weekStartsOn: 1 });
   const year = getYear(selectedDate);
@@ -36,6 +40,7 @@ const AreaProductionTable = ({ area }) => {
   useEffect(() => {
     const actualRef = ref(db, `actual/${areaKey}/${weekKey}`);
     const productionRef = ref(db, `production/${areaKey}/${weekKey}`);
+    const attendanceRef = ref(db, `attendance/${areaKey}/${weekKey}`);
 
     const unsubActual = onValue(actualRef, (snapshot) => {
       setActualData(snapshot.val() || {});
@@ -45,9 +50,14 @@ const AreaProductionTable = ({ area }) => {
       setProductionData(snapshot.val() || {});
     });
 
+    const unsubAttendance = onValue(attendanceRef, (snapshot) => {
+      setAttendanceData(snapshot.val() || {});
+    });
+
     return () => {
       unsubActual();
       unsubProduction();
+      unsubAttendance();
     };
   }, [areaKey, weekKey]);
 
@@ -127,7 +137,7 @@ const AreaProductionTable = ({ area }) => {
     );
   };
 
-  // Chuyển chartData thành object { modelName: [data] }
+  // Biến chartData dùng cho ChartModal
   const chartData = {};
   modelList.forEach((model) => {
     chartData[model] = timeSlots.map((slotObj) => {
@@ -162,6 +172,12 @@ const AreaProductionTable = ({ area }) => {
         </div>
         <div className="space-x-2">
           <button
+            onClick={() => setAddEmployeeModalOpen(true)}
+            className="px-4 py-1 bg-orange-500 text-white rounded hover:bg-orange-600"
+          >
+            ➕ Thêm phân công (직원 추가)
+          </button>
+          <button
             onClick={exportToExcel}
             className="px-4 py-1 bg-green-500 text-white rounded hover:bg-green-600"
           >
@@ -172,6 +188,12 @@ const AreaProductionTable = ({ area }) => {
             className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             📊 Biểu đồ (차트)
+          </button>
+          <button
+            onClick={() => setAttendanceModalOpen(true)}
+            className="px-4 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
+          >
+            🧑‍🤝‍🧑 Nhân viên (직원)
           </button>
         </div>
       </div>
@@ -323,6 +345,8 @@ const AreaProductionTable = ({ area }) => {
           })}
         </tbody>
       </table>
+
+      {/* Biểu đồ */}
       <ChartModal
         isOpen={modalIsOpen}
         onClose={() => setModalIsOpen(false)}
@@ -330,6 +354,25 @@ const AreaProductionTable = ({ area }) => {
         chartData={chartData}
         modelList={modelList}
         area={area}
+        selectedDate={format(selectedDate, "yyyy-MM-dd")}
+      />
+
+      {/* Modal nhân viên */}
+      <AttendanceModal
+        isOpen={attendanceModalOpen}
+        onClose={() => setAttendanceModalOpen(false)}
+        selectedDate={format(selectedDate, "yyyy-MM-dd")}
+        attendanceData={attendanceData}
+        timeSlots={timeSlots}
+        areaKey={areaKey}
+        modelList={modelList}
+      />
+      <AddEmployeeModal
+        isOpen={addEmployeeModalOpen}
+        onClose={() => setAddEmployeeModalOpen(false)}
+        areaKey={areaKey}
+        weekKey={weekKey}
+        modelList={modelList}
       />
     </div>
   );

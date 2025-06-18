@@ -50,7 +50,8 @@ const ChartModal = ({
   weekNumber,
   chartData = {},
   modelList = [],
-  area = ""
+  area = "",
+  selectedDate="",
 }) => {
   const [selectedModel, setSelectedModel] = useState(
     modelList.length > 0 ? modelList[0] : ""
@@ -71,9 +72,9 @@ const ChartModal = ({
       contentLabel="Biểu đồ sản lượng"
       style={{
         content: {
-          maxWidth: "1300px",
+          maxWidth: "1400px",
           margin: "auto",
-          height: "700px",
+          height: "750px",
           padding: "20px",
           backgroundColor: "#ffffff",
         },
@@ -82,15 +83,14 @@ const ChartModal = ({
         },
       }}
     >
-      
       <h2 className="text-3xl font-bold mb-4 uppercase text-center">
-        Sản lượng tuần {weekNumber} (📅 {weekNumber}주차 생산량) 
+        Sản lượng tuần {weekNumber} (📅 {weekNumber}주차 생산량) - {selectedDate}
       </h2>
       {area && (
-  <h3 className="text-xl text-center font-semibold mb-4">
-    📍 Khu vực: {area} (라인: {area})
-  </h3>
-)}
+        <h3 className="text-xl text-center font-semibold mb-4">
+          📍 Leader: {area} (라인: {area})
+        </h3>
+      )}
       <div className="mb-4">
         <label className="font-semibold mr-2 uppercase">
           Chọn line (작업 라인 선택):
@@ -112,7 +112,7 @@ const ChartModal = ({
         <ResponsiveContainer width="100%" height={500}>
           <LineChart
             data={modelData}
-            margin={{ top: 60, right: 20, left: 20, bottom: 60 }}
+            margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
           >
             <CartesianGrid
               strokeDasharray="0"
@@ -127,7 +127,7 @@ const ChartModal = ({
               tick={({ x, y, payload }) => (
                 <text
                   x={x}
-                  y={y + 40}
+                  y={y + 20}
                   textAnchor="middle"
                   fontSize={18}
                   fill="#333"
