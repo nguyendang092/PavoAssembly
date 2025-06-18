@@ -215,7 +215,7 @@ const ChartModal = ({
               dataKey="actual"
               stroke="#ef3bf5"
               strokeWidth={3}
-              name="Thực tế(실제)"
+              name="Thực tế(실적)"
               activeDot={{ r: 6 }}
               label={CustomLabel2}
             />

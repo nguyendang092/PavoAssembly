@@ -214,7 +214,7 @@ const AreaProductionTable = ({ area }) => {
           />
         </label>
         <span className="text-sm text-gray-600 italic">
-          Tuần (주): {weekNumber} ({weekKey})
+          Tuần {weekNumber} - {weekNumber}주차
         </span>
       </div>
 

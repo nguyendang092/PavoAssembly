@@ -17,31 +17,6 @@ const Employ = () => {
     "ĐI VỆ SINH",
   ];
 
-  const employeesMaster = [
-    { name: "Trần Thị Kim Thủy", image: "nguyenvana.jpg" },
-    { name: "Nguyễn Thị Khánh Linh", image: "tranthib.jpg" },
-    { name: "Hoàng Thị Minh Thư", image: "tranthib.jpg" },
-    { name: "Nguyễn Thị Hoàng Hiếu", image: "tranthib.jpg" },
-    { name: "Nguyễn Thị Mỹ Nhân", image: "tranthib.jpg" },
-    { name: "Nguyễn Thị Ngọc Nga", image: "tranthib.jpg" },
-    { name: "Trần Thị Út Hiệp", image: "tranthib.jpg" },
-    { name: "Nguyễn Thị Mỹ Linh", image: "tranthib.jpg" },
-    { name: "Trần Thị Phương Dung", image: "tranthib.jpg" },
-    { name: "Nguyễn Thanh Thúy", image: "tranthib.jpg" },
-    { name: "Đào Thị Tú Anh", image: "tranthib.jpg" },
-    { name: "Hoàng Thị Bích Thuận", image: "tranthib.jpg" },
-    { name: "Trần Thị Bé Tý", image: "tranthib.jpg" },
-    { name: "Quách Văn Hiếu", image: "tranthib.jpg" },
-    { name: "Danh Cường", image: "tranthib.jpg" },
-    { name: "Lê Thị Dư", image: "tranthib.jpg" },
-    { name: "Lê Văn Nhu", image: "tranthib.jpg" },
-    { name: "Đại Mạnh Anh", image: "tranthib.jpg" },
-    { name: "Lê Kim Hoài Duy Vũ", image: "tranthib.jpg" },
-    { name: "Nguyễn Thị Tiến", image: "tranthib.jpg" },
-    { name: "Hoàng Lê Thiên Ý", image: "tranthib.jpg" },
-    { name: "Nguyễn Thanh Lâm", image: "tranthib.jpg" },
-    { name: "Lê Thị La", image: "tranthib.jpg" },
-  ];
   const [assignments, setAssignments] = useState([]);
   const [toastMessage, setToastMessage] = useState("");
   const [selectedLeader, setSelectedLeader] = useState("");
@@ -91,7 +66,7 @@ const Employ = () => {
                             : "bg-gray-300"
                         }`}
                       >
-                        Giờ (시간별)
+                        Giờ (시간)
                       </button>
                       <button
                         onClick={() => setViewMode("day")}
