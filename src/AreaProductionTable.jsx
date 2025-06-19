@@ -172,16 +172,16 @@ const AreaProductionTable = ({ area }) => {
         </div>
         <div className="space-x-2">
           <button
+            onClick={() => setAttendanceModalOpen(true)}
+            className="px-4 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
+          >
+            🧑‍🤝‍🧑 Nhân viên (직원)
+          </button>
+          <button
             onClick={() => setAddEmployeeModalOpen(true)}
             className="px-4 py-1 bg-orange-500 text-white rounded hover:bg-orange-600"
           >
             ➕ Thêm phân công (직원 추가)
-          </button>
-          <button
-            onClick={exportToExcel}
-            className="px-4 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-          >
-            📥 Xuất Excel (엑셀저장)
           </button>
           <button
             onClick={() => setModalIsOpen(true)}
@@ -190,10 +190,10 @@ const AreaProductionTable = ({ area }) => {
             📊 Biểu đồ (차트)
           </button>
           <button
-            onClick={() => setAttendanceModalOpen(true)}
-            className="px-4 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
+            onClick={exportToExcel}
+            className="px-4 py-1 bg-green-500 text-white rounded hover:bg-green-600"
           >
-            🧑‍🤝‍🧑 Nhân viên (직원)
+            📥 Xuất Excel (엑셀저장)
           </button>
         </div>
       </div>
