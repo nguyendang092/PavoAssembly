@@ -176,17 +176,26 @@ const AddEmployeeModal = ({
       <h2 className="text-xl font-bold mb-4">➕ Thêm phân công</h2>
 
       <div className="space-y-3">
-        {/* Hình ảnh */}
-        <div className="text-center">
-          {previewImage && (
-            <img
-              src={previewImage}
-              alt="Preview"
-              className="mx-auto h-24 w-24 rounded-full object-cover mb-2"
-            />
-          )}
-          <input type="file" accept="image/*" onChange={handleImageChange} />
-        </div>
+        <div className="space-y-3">
+  {/* Nhập URL hình ảnh */}
+  <div className="text-center">
+    {previewImage && (
+      <img
+        src={previewImage}
+        alt="Preview"
+        className="mx-auto h-24 w-24 rounded-full object-cover mb-2"
+      />
+    )}
+    <input
+      type="text"
+      placeholder="Nhập URL hình ảnh"
+      value={previewImage || ""}
+      onChange={(e) => setPreviewImage(e.target.value)}
+      className="w-full border px-3 py-2 rounded"
+    />
+  </div>
+</div>
+
 
         <input
           name="name"
