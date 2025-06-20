@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Modal from "react-modal";
-import { ref, remove, update } from "firebase/database";
+import { ref, get, update, remove } from "firebase/database";
 import { db } from "./firebase";
 import {
   getStorage,
@@ -14,11 +14,8 @@ const AttendanceModal = ({
   isOpen,
   onClose,
   selectedDate,
-  attendanceData = {},
-  timeSlots = [],
   areaKey,
   modelList = [],
-  weekKey,
 }) => {
   const [employees, setEmployees] = useState({});
   const [editEmployeeId, setEditEmployeeId] = useState(null);
@@ -28,35 +25,46 @@ const AttendanceModal = ({
 
   const [filterModel, setFilterModel] = useState("");
   const [filterStatus, setFilterStatus] = useState("Đi làm");
-  const [filterDate, setFilterDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split("T")[0]; // "YYYY-MM-DD"
-  });
-  const [showOnlyLeave, setShowOnlyLeave] = useState(false); // NEW
+  const [filterDate, setFilterDate] = useState(selectedDate || "");
+  const [showOnlyLeave, setShowOnlyLeave] = useState(false);
+
+  const dateKey = selectedDate?.replace(/-/g, "") || "";
 
   useEffect(() => {
-    setEmployees(attendanceData || {});
-  }, [attendanceData]);
+    const fetchAttendanceData = async () => {
+      if (!areaKey || !selectedDate) return;
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa nhân viên này?")) return;
-    try {
-      await remove(ref(db, `attendance/${areaKey}/${weekKey}/${id}`));
-      setEmployees((prev) => {
-        const newEmp = { ...prev };
-        delete newEmp[id];
-        return newEmp;
+      const snapshot = await get(ref(db, `attendance/${areaKey}`));
+      if (!snapshot.exists()) {
+        setEmployees({});
+        return;
+      }
+
+      const rawData = snapshot.val();
+      const result = {};
+
+      Object.entries(rawData).forEach(([employeeId, emp]) => {
+        const schedule = emp.schedules?.[dateKey];
+        if (schedule) {
+          result[employeeId] = {
+            ...emp,
+            model: schedule.model || "",
+            joinDate: schedule.joinDate || selectedDate,
+          };
+        }
       });
-    } catch (error) {
-      console.error("Xóa nhân viên lỗi:", error);
-    }
-  };
+
+      setEmployees(result);
+    };
+
+    fetchAttendanceData();
+  }, [areaKey, selectedDate]);
 
   const handleEditClick = (id) => {
     setEditEmployeeId(id);
-    setEditEmployeeData(employees[id] || {});
-    setEditImageFile(null);
+    setEditEmployeeData(employees[id]);
     setEditImagePreview(null);
+    setEditImageFile(null);
   };
 
   const handleChange = (field, value) => {
@@ -101,69 +109,141 @@ const AttendanceModal = ({
 
   const uploadImageToStorage = async (file, employeeId) => {
     const squareFile = await cropToSquare(file);
-    const options = {
+    const compressedFile = await imageCompression(squareFile, {
       maxSizeMB: 0.2,
       maxWidthOrHeight: 512,
       useWebWorker: true,
-    };
-    const compressedFile = await imageCompression(squareFile, options);
+    });
+
     const storage = getStorage();
     const storageReference = storageRef(storage, `employees/${employeeId}.jpg`);
     await uploadBytes(storageReference, compressedFile);
-    const downloadURL = await getDownloadURL(storageReference);
-    return downloadURL;
+    return await getDownloadURL(storageReference);
   };
-
-  const handleSaveEdit = async () => {
-    try {
-      let updatedData = { ...editEmployeeData };
-      if (editImageFile) {
-        const imageUrl = await uploadImageToStorage(
-          editImageFile,
-          editEmployeeData.employeeId || "unknown"
-        );
-        updatedData.imageUrl = imageUrl;
-      }
-      await update(
-        ref(db, `attendance/${areaKey}/${weekKey}/${editEmployeeId}`),
-        updatedData
-      );
-      setEmployees((prev) => ({
-        ...prev,
-        [editEmployeeId]: updatedData,
-      }));
-      setEditEmployeeId(null);
-      setEditEmployeeData({});
-      setEditImageFile(null);
-      setEditImagePreview(null);
-    } catch (error) {
-      console.error("Cập nhật nhân viên lỗi:", error);
-      alert("Có lỗi xảy ra khi cập nhật.");
-    }
-  };
-
   const handleCancelEdit = () => {
     setEditEmployeeId(null);
     setEditEmployeeData({});
     setEditImageFile(null);
     setEditImagePreview(null);
   };
+  const handleDelete = async (employeeId) => {
+    if (
+      !window.confirm(
+        `Bạn có chắc muốn xóa toàn bộ dữ liệu của nhân viên ${
+          employees[employeeId]?.name || ""
+        }?`
+      )
+    )
+      return;
 
-  // Group by model
-  const groupedEmployees = modelList.reduce((acc, model) => {
-    acc[model] = [];
-    return acc;
-  }, {});
+    try {
+      // Xóa toàn bộ node nhân viên trong Firebase
+      await remove(ref(db, `attendance/${areaKey}/${employeeId}`));
+
+      // Cập nhật lại state local để giao diện cập nhật
+      setEmployees((prev) => {
+        const newEmployees = { ...prev };
+        delete newEmployees[employeeId];
+        return newEmployees;
+      });
+
+      // Nếu đang chỉnh sửa nhân viên này thì hủy chế độ edit
+      if (editEmployeeId === employeeId) {
+        handleCancelEdit();
+      }
+    } catch (err) {
+      console.error("Lỗi khi xóa nhân viên:", err);
+      alert("Xóa nhân viên thất bại.");
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      const updated = { ...editEmployeeData };
+      const employeeId = editEmployeeId;
+
+      if (editImageFile) {
+        const imageUrl = await uploadImageToStorage(editImageFile, employeeId);
+        updated.imageUrl = imageUrl;
+      }
+
+      // Update main info
+      await update(ref(db, `attendance/${areaKey}/${employeeId}`), {
+        name: updated.name,
+        birthYear: updated.birthYear,
+        phone: updated.phone,
+        status: updated.status,
+        employeeId,
+        imageUrl: updated.imageUrl,
+        schedules: {
+          ...(employees[employeeId]?.schedules || {}),
+          [dateKey]: {
+            model: updated.model,
+            joinDate: updated.joinDate || selectedDate,
+          },
+        },
+      });
+
+      setEmployees((prev) => ({
+        ...prev,
+        [employeeId]: {
+          ...updated,
+          schedules: {
+            ...(prev[employeeId]?.schedules || {}),
+            [dateKey]: {
+              model: updated.model,
+              joinDate: updated.joinDate || selectedDate,
+            },
+          },
+        },
+      }));
+
+      setEditEmployeeId(null);
+      setEditEmployeeData({});
+      setEditImageFile(null);
+      setEditImagePreview(null);
+    } catch (err) {
+      console.error("Lỗi cập nhật:", err);
+      alert("Lỗi khi lưu thay đổi.");
+    }
+  };
+
+  const filteredEmployees = Object.entries(employees)
+    .filter(([_, emp]) =>
+      showOnlyLeave
+        ? emp.status === "Nghỉ phép"
+        : !filterStatus || emp.status === filterStatus
+    )
+    .filter(([_, emp]) => !filterModel || emp.model === filterModel)
+    .filter(([_, emp]) => !filterDate || emp.joinDate === filterDate);
+  // Tính thống kê
+  const totalCount = filteredEmployees.length;
+  const countWorking = filteredEmployees.filter(
+    ([_, emp]) => emp.status === "Đi làm"
+  ).length;
+  const countLeave = filteredEmployees.filter(
+    ([_, emp]) => emp.status === "Nghỉ phép"
+  ).length;
+  const groupedEmployees = {};
+
+  // Khởi tạo nhóm theo modelList
+  modelList.forEach((model) => {
+    groupedEmployees[model] = [];
+  });
+
+  // Gán nhân viên vào nhóm theo model
   Object.entries(employees).forEach(([id, emp]) => {
     const model = emp.model || "Không xác định";
     if (!groupedEmployees[model]) groupedEmployees[model] = [];
     groupedEmployees[model].push({ id, ...emp });
   });
 
-  // Filtering
+  // Áp dụng filter cho từng nhóm theo model
   const filteredGroupedEmployees = {};
+
   Object.entries(groupedEmployees).forEach(([model, emps]) => {
     if (filterModel && model !== filterModel) return;
+
     let filtered = emps;
 
     if (showOnlyLeave) {
@@ -179,11 +259,13 @@ const AttendanceModal = ({
     if (filtered.length > 0) filteredGroupedEmployees[model] = filtered;
   });
 
+  // Tính tổng nhân viên sau filter để thống kê tổng
   const totalEmployees = Object.values(filteredGroupedEmployees).reduce(
     (acc, emps) => acc + emps.length,
     0
   );
 
+  // Thống kê tổng số Đi làm / Nghỉ phép
   const totalStatusCount = {
     "Đi làm": 0,
     "Nghỉ phép": 0,
@@ -199,23 +281,24 @@ const AttendanceModal = ({
     <Modal
       isOpen={isOpen}
       onRequestClose={onClose}
-      contentLabel="Attendance Modal"
-      className="bg-white p-6 rounded shadow-lg w-full max-w-5xl mx-auto mt-12"
-      overlayClassName="fixed inset-0 bg-black bg-opacity-40 flex items-start justify-center z-50"
+      contentLabel="Attendance"
+      className="bg-white rounded-lg p-6 max-w-6xl mx-auto mt-16 shadow"
+      overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50"
     >
-      <h2 className="text-xl font-bold mb-4">
-        🧑‍🤝‍🧑 Danh sách nhân viên {selectedDate} – Tổng: {totalEmployees} người | 👷‍♂️ Đi
-        làm: {totalStatusCount["Đi làm"]} | 🌴 Nghỉ phép: {totalStatusCount["Nghỉ phép"]}
-      </h2>
-
-      {/* Bộ lọc */}
-      <div className="flex flex-wrap gap-4 mb-4 items-center">
+      <h3 className="text-2xl font-bold mb-4">
+        {" "}
+        👥 Leader: {areaKey} : {selectedDate} 
+      </h3>
+      <h2 className="text-xl font-bold mb-4"
+      >Tổng: {totalCount} người | 👷‍♂️
+        Đi làm: {countWorking} | 🌴 Nghỉ phép: {countLeave}</h2>
+      <div className="flex flex-wrap gap-3 mb-4 text-sm">
         <select
-          className="border px-3 py-2 rounded"
           value={filterModel}
           onChange={(e) => setFilterModel(e.target.value)}
+          className="border px-3 py-1 rounded"
         >
-          <option value="">-- Lọc theo line --</option>
+          <option value="">-- Tất cả line --</option>
           {modelList.map((m) => (
             <option key={m} value={m}>
               {m}
@@ -224,50 +307,47 @@ const AttendanceModal = ({
         </select>
 
         <select
-          className="border px-3 py-2 rounded"
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
           disabled={showOnlyLeave}
+          className="border px-3 py-1 rounded"
         >
-          <option value="">-- Lọc theo trạng thái --</option>
+          <option value="">-- Tất cả trạng thái --</option>
           <option value="Đi làm">Đi làm</option>
           <option value="Nghỉ phép">Nghỉ phép</option>
         </select>
 
         <input
           type="date"
-          className="border px-3 py-2 rounded"
           value={filterDate}
           onChange={(e) => setFilterDate(e.target.value)}
+          className="border px-3 py-1 rounded"
         />
 
-        <label className="flex items-center gap-2">
+        <label className="flex items-center gap-1">
           <input
             type="checkbox"
             checked={showOnlyLeave}
             onChange={(e) => setShowOnlyLeave(e.target.checked)}
           />
-          <span>DSNV Nghỉ Phép</span>
+          DSNV nghỉ phép
         </label>
 
         <button
           onClick={() => {
             setFilterModel("");
             setFilterStatus("");
-            setFilterDate(() => {
-              const today = new Date();
-              return today.toISOString().split("T")[0];
-            });
+            setFilterDate(selectedDate || "");
             setShowOnlyLeave(false);
           }}
-          className="px-3 py-2 bg-gray-300 rounded hover:bg-gray-400"
+          className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400"
         >
           Xóa bộ lọc
         </button>
       </div>
 
-      <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
-        <table className="min-w-full border text-sm text-left">
+      <div className="overflow-x-auto max-h-[70vh] overflow-y-auto text-sm">
+        <table className="min-w-full border">
           <thead>
             <tr className="bg-gray-100 font-semibold text-center">
               <th className="border px-2 py-1" colSpan={9}>
@@ -277,9 +357,11 @@ const AttendanceModal = ({
           </thead>
           <tbody>
             {Object.entries(filteredGroupedEmployees).map(([model, emps]) => {
+              // Thống kê riêng cho từng line
               const lineStats = {
-                "Đi làm": emps.filter((e) => e.status === "Đi làm").length,
-                "Nghỉ phép": emps.filter((e) => e.status === "Nghỉ phép").length,
+                total: emps.length,
+                working: emps.filter((e) => e.status === "Đi làm").length,
+                leave: emps.filter((e) => e.status === "Nghỉ phép").length,
               };
 
               return (
@@ -287,14 +369,15 @@ const AttendanceModal = ({
                   {/* Tên line + thống kê */}
                   <tr className="bg-blue-100 font-bold text-left">
                     <td colSpan={9} className="px-2 py-1">
-                      * Line: {model} ({emps.length} người) – 👷‍♂️ {lineStats["Đi làm"]} đi làm | 🌴 {lineStats["Nghỉ phép"]} nghỉ phép
+                      * Line: {model} — Tổng: {lineStats.total} người | 👷‍♂️ Đi
+                      làm: {lineStats.working} | 🌴 Nghỉ phép: {lineStats.leave}
                     </td>
                   </tr>
 
                   {/* Tiêu đề cột */}
                   <tr className="bg-gray-200 font-semibold text-center">
                     <th className="border px-2 py-1">Ảnh</th>
-                    <th className="border px-2 py-1">Tên</th>
+                    <th className="border px-2 py-1">Họ & Tên</th>
                     <th className="border px-2 py-1">Mã NV</th>
                     <th className="border px-2 py-1">Năm sinh</th>
                     <th className="border px-2 py-1">SĐT</th>
@@ -330,7 +413,9 @@ const AttendanceModal = ({
                             </>
                           ) : (
                             <img
-                              src={emp.imageUrl || "https://via.placeholder.com/48"}
+                              src={
+                                emp.imageUrl || "https://via.placeholder.com/48"
+                              }
                               alt="avatar"
                               className="w-10 h-10 rounded-full object-cover mx-auto"
                             />
@@ -340,20 +425,26 @@ const AttendanceModal = ({
                           {isEditing ? (
                             <input
                               value={editEmployeeData.name || ""}
-                              onChange={(e) => handleChange("name", e.target.value)}
+                              onChange={(e) =>
+                                handleChange("name", e.target.value)
+                              }
                               className="w-full border px-1 py-0.5"
                             />
                           ) : (
                             emp.name
                           )}
                         </td>
-                        <td className="border px-2 py-1">{emp.employeeId || "—"}</td>
+                        <td className="border px-2 py-1">
+                          {emp.employeeId || "—"}
+                        </td>
                         <td className="border px-2 py-1">
                           {isEditing ? (
                             <input
                               type="number"
                               value={editEmployeeData.birthYear || ""}
-                              onChange={(e) => handleChange("birthYear", e.target.value)}
+                              onChange={(e) =>
+                                handleChange("birthYear", e.target.value)
+                              }
                               className="w-full border px-1 py-0.5"
                             />
                           ) : (
@@ -364,7 +455,9 @@ const AttendanceModal = ({
                           {isEditing ? (
                             <input
                               value={editEmployeeData.phone || ""}
-                              onChange={(e) => handleChange("phone", e.target.value)}
+                              onChange={(e) =>
+                                handleChange("phone", e.target.value)
+                              }
                               className="w-full border px-1 py-0.5"
                             />
                           ) : (
@@ -375,7 +468,9 @@ const AttendanceModal = ({
                           {isEditing ? (
                             <select
                               value={editEmployeeData.status || ""}
-                              onChange={(e) => handleChange("status", e.target.value)}
+                              onChange={(e) =>
+                                handleChange("status", e.target.value)
+                              }
                               className="w-full border px-1 py-0.5"
                             >
                               <option value="Đi làm">Đi làm</option>
@@ -389,7 +484,9 @@ const AttendanceModal = ({
                           {isEditing ? (
                             <select
                               value={editEmployeeData.model || ""}
-                              onChange={(e) => handleChange("model", e.target.value)}
+                              onChange={(e) =>
+                                handleChange("model", e.target.value)
+                              }
                               className="w-full border px-1 py-0.5"
                             >
                               <option value="">-- Chọn line --</option>
@@ -403,7 +500,9 @@ const AttendanceModal = ({
                             emp.model || "—"
                           )}
                         </td>
-                        <td className="border px-2 py-1">{emp.joinDate || "—"}</td>
+                        <td className="border px-2 py-1">
+                          {emp.joinDate || "—"}
+                        </td>
                         <td className="border px-2 py-1 space-x-1">
                           {isEditing ? (
                             <>
@@ -450,7 +549,7 @@ const AttendanceModal = ({
       <div className="text-right mt-4">
         <button
           onClick={onClose}
-          className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+          className="px-4 py-2 bg-gray-500 text-white rounded"
         >
           Đóng
         </button>

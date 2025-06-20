@@ -14,12 +14,13 @@ const AddEmployeeModal = ({
   isOpen,
   onClose,
   areaKey,
-  weekKey,
+  selectedDate, // dạng "YYYY-MM-DD"
   modelList = [],
   setModelList,
-  selectedDate,
 }) => {
   const getToday = () => new Date().toISOString().slice(0, 10);
+  const dateKey =
+    selectedDate?.replace(/-/g, "") || getToday().replace(/-/g, "");
 
   const [newEmployee, setNewEmployee] = useState({
     name: "",
@@ -29,8 +30,12 @@ const AddEmployeeModal = ({
     joinDate: selectedDate || getToday(),
     model: "",
     imageUrl: "",
+    employeeId: "",
   });
 
+  const [selectedKey, setSelectedKey] = useState(null);
+  const [existingEmployees, setExistingEmployees] = useState([]);
+  const [searchKeyword, setSearchKeyword] = useState("");
   const [inputModel, setInputModel] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
@@ -42,6 +47,27 @@ const AddEmployeeModal = ({
       joinDate: selectedDate || getToday(),
     }));
   }, [selectedDate]);
+
+  useEffect(() => {
+    const fetchExisting = async () => {
+      const snapshot = await get(ref(db, `attendance/${areaKey}`));
+      if (!snapshot.exists()) return setExistingEmployees([]);
+
+      const data = snapshot.val();
+      const filtered = Object.entries(data)
+        .filter(([_, val]) => val?.schedules?.[dateKey])
+        .map(([key, val]) => ({
+          key,
+          ...val,
+          model: val.schedules?.[dateKey]?.model || "",
+          joinDate: val.schedules?.[dateKey]?.joinDate || selectedDate,
+        }));
+
+      setExistingEmployees(filtered);
+    };
+
+    fetchExisting();
+  }, [areaKey, dateKey]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -86,212 +112,256 @@ const AddEmployeeModal = ({
 
   const uploadImageToStorage = async (file, employeeId) => {
     const squareFile = await cropToSquare(file);
-
-    const options = {
+    const compressedFile = await imageCompression(squareFile, {
       maxSizeMB: 0.2,
       maxWidthOrHeight: 512,
       useWebWorker: true,
-    };
-
-    const compressedFile = await imageCompression(squareFile, options);
+    });
 
     const storage = getStorage();
     const storageReference = storageRef(storage, `employees/${employeeId}.jpg`);
     await uploadBytes(storageReference, compressedFile);
-    const downloadURL = await getDownloadURL(storageReference);
-    return downloadURL;
+    return await getDownloadURL(storageReference);
   };
 
-  const generateEmployeeId = async () => {
-    const snapshot = await get(ref(db, `attendance/${areaKey}/${weekKey}`));
-    const employeeCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
-    return `PAVO${(employeeCount + 1).toString().padStart(3, "0")}`;
-  };
-
-  const handleAddEmployee = async () => {
+  const handleAddOrUpdateEmployee = async () => {
     const modelValue =
       inputModel.trim() !== "" ? inputModel.trim() : newEmployee.model.trim();
 
-    if (!newEmployee.name.trim() || !modelValue) {
-      alert("Vui lòng nhập tên và chọn hoặc nhập line làm việc!");
+    if (!newEmployee.name.trim() || !modelValue || !selectedDate) {
+      alert("Vui lòng nhập tên, line và ngày!");
       return;
     }
 
     setIsSaving(true);
 
-    try {
-      const employeeId = await generateEmployeeId();
-      let imageUrl = "";
+    const schedulesForDate = {
+      model: modelValue,
+      joinDate: newEmployee.joinDate || selectedDate,
+    };
 
-      if (imageFile) {
-        imageUrl = await uploadImageToStorage(imageFile, employeeId);
+    try {
+      let employeeId = newEmployee.employeeId;
+
+      if (!employeeId) {
+        const snapshot = await get(ref(db, `attendance/${areaKey}`));
+        const count = snapshot.exists()
+          ? Object.keys(snapshot.val()).length
+          : 0;
+        employeeId = `PAVO${(count + 1).toString().padStart(3, "0")}`;
       }
 
-      const employeeData = {
-        ...newEmployee,
-        model: modelValue,
+      const employeeRef = ref(db, `attendance/${areaKey}/${employeeId}`);
+      const employeeSnap = await get(employeeRef);
+
+      let existingData = {};
+      if (employeeSnap.exists()) {
+        existingData = employeeSnap.val();
+      }
+
+      let imageUrl = existingData.imageUrl || "";
+      if (imageFile) {
+        imageUrl = await uploadImageToStorage(imageFile, employeeId);
+      } else if (previewImage?.startsWith("http")) {
+        imageUrl = previewImage;
+      }
+
+      const updatedEmployee = {
+        name: newEmployee.name,
+        birthYear: newEmployee.birthYear,
+        phone: newEmployee.phone,
+        status: newEmployee.status,
+        joinDate: newEmployee.joinDate || selectedDate,
         employeeId,
         imageUrl,
+        schedules: {
+          ...(existingData.schedules || {}),
+          [dateKey]: schedulesForDate,
+        },
       };
 
-      const newKey = Date.now().toString();
-      const employeeRef = ref(db, `attendance/${areaKey}/${weekKey}/${newKey}`);
-      await set(employeeRef, employeeData);
+      await set(employeeRef, updatedEmployee);
 
       if (!modelList.includes(modelValue)) {
         const updatedModels = [...modelList, modelValue];
-        const modelRef = ref(db, `models/${areaKey}`);
-        await set(modelRef, updatedModels);
+        await set(ref(db, `models/${areaKey}`), updatedModels);
         setModelList(updatedModels);
       }
 
-      setNewEmployee({
-        name: "",
-        birthYear: "",
-        phone: "",
-        status: "Đi làm",
-        joinDate: selectedDate || getToday(),
-        model: "",
-        imageUrl: "",
-      });
-      setInputModel("");
-      setImageFile(null);
-      setPreviewImage(null);
+      resetForm();
       onClose();
     } catch (err) {
-      console.error("Lỗi khi thêm nhân viên:", err);
-      alert("Đã có lỗi khi lưu dữ liệu.");
+      console.error("Lỗi khi lưu:", err);
+      alert("Đã xảy ra lỗi.");
     }
 
     setIsSaving(false);
   };
 
+  const resetForm = () => {
+    setSelectedKey(null);
+    setNewEmployee({
+      name: "",
+      birthYear: "",
+      phone: "",
+      status: "Đi làm",
+      joinDate: selectedDate || getToday(),
+      model: "",
+      imageUrl: "",
+      employeeId: "",
+    });
+    setPreviewImage(null);
+    setImageFile(null);
+  };
+
+  const handleSelectEmployee = (emp) => {
+    setNewEmployee(emp);
+    setPreviewImage(emp.imageUrl || "");
+    setSelectedKey(emp.key);
+  };
+
+  const filteredEmployees = existingEmployees.filter((emp) =>
+    emp.name.toLowerCase().includes(searchKeyword.toLowerCase())
+  );
+
   return (
     <Modal
       isOpen={isOpen}
-      onRequestClose={onClose}
-      className="bg-white rounded-lg p-6 max-w-md mx-auto mt-20 shadow-lg"
-      overlayClassName="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-start z-50"
+      onRequestClose={() => {
+        resetForm();
+        onClose();
+      }}
+      className="bg-white rounded-xl p-8 max-w-4xl mx-auto mt-4 shadow-2xl ring-1 ring-black ring-opacity-5"
+      overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
     >
-      <h2 className="text-xl font-bold mb-4">➕ Thêm phân công</h2>
+      <h2 className="text-2xl font-extrabold mb-6 text-gray-900">
+        ➕ Thêm / ✏️ Cập nhật nhân viên
+      </h2>
 
-      <div className="space-y-3">
-        <div className="space-y-3">
-  {/* Nhập URL hình ảnh */}
-  <div className="text-center">
-    {previewImage && (
-      <img
-        src={previewImage}
-        alt="Preview"
-        className="mx-auto h-24 w-24 rounded-full object-cover mb-2"
-      />
-    )}
-    <input
-      type="text"
-      placeholder="Nhập URL hình ảnh"
-      value={previewImage || ""}
-      onChange={(e) => setPreviewImage(e.target.value)}
-      className="w-full border px-3 py-2 rounded"
-    />
-  </div>
-</div>
+      <div className="mb-3 text-gray-700 text-sm">
+        Ngày phân công: <strong>{selectedDate}</strong>
+      </div>
 
-
+      <div className="mb-4 max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3 text-sm bg-gray-50 scrollbar-thin scrollbar-thumb-gray-300">
         <input
-          name="name"
-          value={newEmployee.name}
-          onChange={handleChange}
-          placeholder="Tên nhân viên"
-          className="w-full border px-3 py-2 rounded"
+          type="text"
+          value={searchKeyword}
+          onChange={(e) => setSearchKeyword(e.target.value)}
+          placeholder="Tìm theo tên..."
+          className="w-full border border-gray-300 rounded-md px-3 py-2 mb-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
         />
+        <ul className="space-y-1 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300">
+          {filteredEmployees.slice(0, 5).map((emp) => (
+            <li
+              key={emp.key}
+              className="cursor-pointer hover:bg-yellow-200 rounded-md px-3 py-1 select-none"
+              onClick={() => handleSelectEmployee(emp)}
+            >
+              <span className="font-semibold">{emp.name}</span> -{" "}
+              <span className="italic text-gray-600">{emp.model}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
 
+      <div className="flex justify-center mb-5">
+        <img
+          src={previewImage}
+          alt="Hình ảnh"
+          className="h-28 w-28 rounded-full object-cover border-4 border-gradient-to-tr from-blue-400 to-purple-600 shadow-lg"
+        />
+      </div>
+
+      <input
+        type="text"
+        placeholder="Dán URL hình ảnh"
+        value={previewImage || ""}
+        onChange={(e) => setPreviewImage(e.target.value)}
+        className="w-full border border-gray-300 rounded-md px-4 py-3 mb-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+      />
+
+      <input
+        name="name"
+        value={newEmployee.name}
+        onChange={handleChange}
+        placeholder="Tên nhân viên"
+        className="w-full border border-gray-300 rounded-md px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+      />
+
+      <div className="flex gap-4 mb-3">
         <input
           name="birthYear"
           type="number"
           value={newEmployee.birthYear}
           onChange={handleChange}
           placeholder="Năm sinh"
-          className="w-full border px-3 py-2 rounded"
+          className="flex-1 border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
         />
-
         <input
           name="phone"
           value={newEmployee.phone}
           onChange={handleChange}
           placeholder="Số điện thoại"
-          className="w-full border px-3 py-2 rounded"
-        />
-
-        <select
-          name="status"
-          value={newEmployee.status}
-          onChange={handleChange}
-          className="w-full border px-3 py-2 rounded"
-        >
-          <option value="Đi làm">Đi làm</option>
-          <option value="Nghỉ phép">Nghỉ phép</option>
-        </select>
-
-        <select
-          name="model"
-          value={newEmployee.model}
-          onChange={(e) => {
-            handleChange(e);
-            setInputModel("");
-          }}
-          className="w-full border px-3 py-2 rounded"
-        >
-          <option value="">-- Chọn line làm việc --</option>
-          {modelList.map((model) => (
-            <option key={model} value={model}>
-              {model}
-            </option>
-          ))}
-        </select>
-
-        <input
-          placeholder="Hoặc nhập line mới"
-          className="w-full border px-3 py-2 rounded"
-          value={inputModel}
-          onChange={(e) => {
-            setInputModel(e.target.value);
-            if (newEmployee.model !== "")
-              setNewEmployee((prev) => ({ ...prev, model: "" }));
-          }}
-        />
-
-        <input
-          name="joinDate"
-          type="date"
-          value={newEmployee.joinDate}
-          onChange={handleChange}
-          className="w-full border px-3 py-2 rounded"
+          className="flex-1 border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
         />
       </div>
 
-      <div className="flex justify-end space-x-2 mt-5">
+      <select
+        name="status"
+        value={newEmployee.status}
+        onChange={handleChange}
+        className="w-full border border-gray-300 rounded-md px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+      >
+        <option value="Đi làm">Đi làm</option>
+        <option value="Nghỉ phép">Nghỉ phép</option>
+      </select>
+
+      <select
+        name="model"
+        value={newEmployee.model}
+        onChange={(e) => {
+          handleChange(e);
+          setInputModel("");
+        }}
+        className="w-full border border-gray-300 rounded-md px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+      >
+        <option value="">-- Chọn line --</option>
+        {modelList.map((model) => (
+          <option key={model} value={model}>
+            {model}
+          </option>
+        ))}
+      </select>
+
+      <input
+        name="joinDate"
+        type="date"
+        value={newEmployee.joinDate}
+        onChange={handleChange}
+        className="w-full border border-gray-300 rounded-md px-4 py-3 mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+      />
+
+      <div className="flex justify-end space-x-3">
         <button
           onClick={() => {
-            setInputModel("");
-            setImageFile(null);
-            setPreviewImage(null);
+            resetForm();
             onClose();
           }}
-          className="px-4 py-2 rounded bg-gray-300 hover:bg-gray-400"
+          className="px-5 py-2 rounded-md bg-gray-300 hover:bg-gray-400 transition disabled:opacity-50"
           disabled={isSaving}
         >
           Hủy
         </button>
         <button
-          onClick={handleAddEmployee}
-          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+          onClick={handleAddOrUpdateEmployee}
+          className="px-5 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50"
           disabled={isSaving}
         >
-          {isSaving ? "Đang lưu..." : "Lưu"}
+          {isSaving ? "Đang lưu..." : selectedKey ? "Cập nhật" : "Lưu mới"}
         </button>
       </div>
     </Modal>
   );
 };
 
-export default AddEmployeeModal; 
+export default AddEmployeeModal;

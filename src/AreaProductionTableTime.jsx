@@ -366,6 +366,7 @@ const AreaProductionTableTime = ({ area }) => {
         areaKey={areaKey}
         weekKey={weekKey}
         modelList={modelList}
+        selectedDate={format(selectedDate, "yyyy-MM-dd")}
       />
     </div>
   );
