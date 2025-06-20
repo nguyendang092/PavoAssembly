@@ -75,22 +75,27 @@ const AreaProductionTable = ({ area }) => {
   };
 
   const handleActualChange = (model, slot, e) => {
-    const val = e.target.value;
-    if (val === "" || /^[0-9]*$/.test(val)) {
-      setActualData((prev) => {
-        const newData = { ...prev };
-        if (!newData[model]) newData[model] = {};
-        newData[model][slot] = val;
-        set(
-          ref(db, `actual/${areaKey}/${weekKey}/${model}/${slot}`),
-          val === "" ? 0 : Number(val)
-        ).catch(() => alert("Lỗi cập nhật thực tế!"));
-        return newData;
-      });
-    }
-  };
+  const val = e.target.value;
+  if (val === "" || /^[0-9]*$/.test(val)) {
+    const numericVal = val === "" ? 0 : Number(val);
+    setActualData((prev) => {
+      const newData = { ...prev };
+      if (!newData[model]) newData[model] = {};
+      newData[model][slot] = val;
+
+      // Ghi vào actual (theo tuần)
+      set(
+        ref(db, `actual/${areaKey}/${weekKey}/${model}/${slot}`),
+        numericVal
+      ).catch(() => alert("Lỗi cập nhật thực tế!"));
+      return newData;
+    });
+  }
+};
+
 
   const handleProductionChange = (model, slot, e) => {
+    console.log(areaKey, weekKey, model, slot)
     const val = e.target.value;
     if (val === "" || /^[0-9]*$/.test(val)) {
       setProductionData((prev) => {

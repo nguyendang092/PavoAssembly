@@ -32,7 +32,6 @@ const AreaProductionTableTime = ({ area }) => {
   const weekNumber = getWeek(selectedDate, { weekStartsOn: 1 });
   const year = getYear(selectedDate);
   const weekKey = `week_${year}_${weekNumber}`;
-  const dayKey = format(selectedDate, "yyyy-MM-dd");
 
   const startDateOfWeek = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const timeSlots = Array.from({ length: 6 }, (_, i) => {
@@ -49,6 +48,7 @@ const AreaProductionTableTime = ({ area }) => {
     const actualRef = ref(db, `actual/${areaKey}/${weekKey}`);
     const productionRef = ref(db, `production/${areaKey}/${weekKey}`);
     const attendanceRef = ref(db, `attendance/${areaKey}/${weekKey}`);
+
     const unsubActual = onValue(actualRef, (snapshot) => {
       setActualData(snapshot.val() || {});
     });
@@ -56,9 +56,11 @@ const AreaProductionTableTime = ({ area }) => {
     const unsubProduction = onValue(productionRef, (snapshot) => {
       setProductionData(snapshot.val() || {});
     });
+
     const unsubAttendance = onValue(attendanceRef, (snapshot) => {
       setAttendanceData(snapshot.val() || {});
     });
+
     return () => {
       unsubActual();
       unsubProduction();
@@ -75,6 +77,7 @@ const AreaProductionTableTime = ({ area }) => {
     "MTC FRONT 46-55",
     "KM24",
   ];
+
   const handleDateChange = (e) => {
     setSelectedDate(new Date(e.target.value));
   };
@@ -87,30 +90,32 @@ const AreaProductionTableTime = ({ area }) => {
         : addDays(currentStart, 7);
     });
   };
+
   const handleDataChange = (type, model, slot, e) => {
     const val = e.target.value;
+    // Chỉ cho phép nhập số hoặc để trống
     if (val === "" || /^[0-9]*$/.test(val)) {
-      // Cập nhật state ngay, UI sẽ phản hồi nhanh
+      const numVal = val === "" ? 0 : Number(val);
+
       if (type === "actual") {
         setActualData((prev) => {
           const newData = { ...prev };
           if (!newData[model]) newData[model] = {};
-          newData[model][slot] = val === "" ? 0 : Number(val);
+          newData[model][slot] = numVal;
           return newData;
         });
       } else {
         setProductionData((prev) => {
           const newData = { ...prev };
           if (!newData[model]) newData[model] = {};
-          newData[model][slot] = val === "" ? 0 : Number(val);
+          newData[model][slot] = numVal;
           return newData;
         });
       }
 
-      // Gửi dữ liệu lên Firebase bất đồng bộ, không chờ kết quả, không block UI
-      const path = `${type}_time/${areaKey}/${dayKey}/${model}/${slot}`;
-      set(ref(db, path), val === "" ? 0 : Number(val)).catch(() => {
-        // Xử lý lỗi, nhưng không làm chậm UI
+      // Lưu dữ liệu vào Firebase
+      const path = `${type}/${areaKey}/${weekKey}/${model}/${slot}`;
+      set(ref(db, path), numVal).catch(() => {
         alert(`Lỗi cập nhật ${type === "actual" ? "thực tế" : "kế hoạch"}!`);
       });
     }
@@ -133,7 +138,7 @@ const AreaProductionTableTime = ({ area }) => {
     const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     saveAs(
       new Blob([wbout], { type: "application/octet-stream" }),
-      `SanLuongGio_${areaKey}_${dayKey}.xlsx`
+      `SanLuongGio_${areaKey}_${weekKey}.xlsx`
     );
   };
 
@@ -194,8 +199,6 @@ const AreaProductionTableTime = ({ area }) => {
           >
             📥 Xuất Excel (엑셀저장)
           </button>
-          
-          
         </div>
       </div>
       <div className="text-sm text-gray-600 italic font-semibold mb-2">
@@ -356,6 +359,7 @@ const AreaProductionTableTime = ({ area }) => {
         modelList={modelList}
         weekKey={weekKey}
       />
+
       <AddEmployeeModal
         isOpen={addEmployeeModalOpen}
         onClose={() => setAddEmployeeModalOpen(false)}
