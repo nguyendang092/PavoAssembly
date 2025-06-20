@@ -105,7 +105,7 @@ const AddEmployeeModal = ({
   const generateEmployeeId = async () => {
     const snapshot = await get(ref(db, `attendance/${areaKey}/${weekKey}`));
     const employeeCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
-    return `EMP${(employeeCount + 1).toString().padStart(3, "0")}`;
+    return `PAVO${(employeeCount + 1).toString().padStart(3, "0")}`;
   };
 
   const handleAddEmployee = async () => {
