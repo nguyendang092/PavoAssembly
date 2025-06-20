@@ -366,6 +366,7 @@ const AreaProductionTable = ({ area }) => {
         timeSlots={timeSlots}
         areaKey={areaKey}
         modelList={modelList}
+        weekKey={weekKey}
       />
       <AddEmployeeModal
         isOpen={addEmployeeModalOpen}

@@ -40,6 +40,7 @@ const AttendanceModal = ({
       setEmployees((prev) => {
         const newEmp = { ...prev };
         delete newEmp[id];
+
         return newEmp;
       });
     } catch (error) {
@@ -191,8 +192,8 @@ const AttendanceModal = ({
     >
       <h2 className="text-xl font-bold mb-4">
         🧑‍🤝‍🧑 Danh sách nhân viên {selectedDate} – Tổng: {totalEmployees} người |
-        👷‍♂️ Đi làm: {totalStatusCount["Đi làm"]} |
-        🌴 Nghỉ phép: {totalStatusCount["Nghỉ phép"]}
+        👷‍♂️ Đi làm: {totalStatusCount["Đi làm"]} | 🌴 Nghỉ phép:{" "}
+        {totalStatusCount["Nghỉ phép"]}
       </h2>
 
       {/* Bộ lọc */}
@@ -235,14 +236,17 @@ const AttendanceModal = ({
         <table className="min-w-full border text-sm text-left">
           <thead>
             <tr className="bg-gray-100 font-semibold text-center">
-              <th className="border px-2 py-1" colSpan={9}>Danh sách nhân viên</th>
+              <th className="border px-2 py-1" colSpan={9}>
+                Danh sách nhân viên
+              </th>
             </tr>
           </thead>
           <tbody>
             {Object.entries(filteredGroupedEmployees).map(([model, emps]) => {
               const lineStats = {
                 "Đi làm": emps.filter((e) => e.status === "Đi làm").length,
-                "Nghỉ phép": emps.filter((e) => e.status === "Nghỉ phép").length,
+                "Nghỉ phép": emps.filter((e) => e.status === "Nghỉ phép")
+                  .length,
               };
 
               return (
@@ -250,7 +254,9 @@ const AttendanceModal = ({
                   {/* Tên line + thống kê */}
                   <tr className="bg-blue-100 font-bold text-left">
                     <td colSpan={9} className="px-2 py-1">
-                      * Line:  {model} ({emps.length} người) – 👷‍♂️ {lineStats["Đi làm"]} đi làm | 🌴 {lineStats["Nghỉ phép"]} nghỉ phép
+                      * Line: {model} ({emps.length} người) – 👷‍♂️{" "}
+                      {lineStats["Đi làm"]} đi làm | 🌴 {lineStats["Nghỉ phép"]}{" "}
+                      nghỉ phép
                     </td>
                   </tr>
 
@@ -293,7 +299,9 @@ const AttendanceModal = ({
                             </>
                           ) : (
                             <img
-                              src={emp.imageUrl || "https://via.placeholder.com/48"}
+                              src={
+                                emp.imageUrl || "https://via.placeholder.com/48"
+                              }
                               alt="avatar"
                               className="w-10 h-10 rounded-full object-cover mx-auto"
                             />
@@ -303,20 +311,26 @@ const AttendanceModal = ({
                           {isEditing ? (
                             <input
                               value={editEmployeeData.name || ""}
-                              onChange={(e) => handleChange("name", e.target.value)}
+                              onChange={(e) =>
+                                handleChange("name", e.target.value)
+                              }
                               className="w-full border px-1 py-0.5"
                             />
                           ) : (
                             emp.name
                           )}
                         </td>
-                        <td className="border px-2 py-1">{emp.employeeId || "—"}</td>
+                        <td className="border px-2 py-1">
+                          {emp.employeeId || "—"}
+                        </td>
                         <td className="border px-2 py-1">
                           {isEditing ? (
                             <input
                               type="number"
                               value={editEmployeeData.birthYear || ""}
-                              onChange={(e) => handleChange("birthYear", e.target.value)}
+                              onChange={(e) =>
+                                handleChange("birthYear", e.target.value)
+                              }
                               className="w-full border px-1 py-0.5"
                             />
                           ) : (
@@ -327,7 +341,9 @@ const AttendanceModal = ({
                           {isEditing ? (
                             <input
                               value={editEmployeeData.phone || ""}
-                              onChange={(e) => handleChange("phone", e.target.value)}
+                              onChange={(e) =>
+                                handleChange("phone", e.target.value)
+                              }
                               className="w-full border px-1 py-0.5"
                             />
                           ) : (
@@ -338,7 +354,9 @@ const AttendanceModal = ({
                           {isEditing ? (
                             <select
                               value={editEmployeeData.status || ""}
-                              onChange={(e) => handleChange("status", e.target.value)}
+                              onChange={(e) =>
+                                handleChange("status", e.target.value)
+                              }
                               className="w-full border px-1 py-0.5"
                             >
                               <option value="Đi làm">Đi làm</option>
@@ -352,7 +370,9 @@ const AttendanceModal = ({
                           {isEditing ? (
                             <select
                               value={editEmployeeData.model || ""}
-                              onChange={(e) => handleChange("model", e.target.value)}
+                              onChange={(e) =>
+                                handleChange("model", e.target.value)
+                              }
                               className="w-full border px-1 py-0.5"
                             >
                               <option value="">-- Chọn line --</option>
@@ -366,7 +386,9 @@ const AttendanceModal = ({
                             emp.model || "—"
                           )}
                         </td>
-                        <td className="border px-2 py-1">{emp.joinDate || "—"}</td>
+                        <td className="border px-2 py-1">
+                          {emp.joinDate || "—"}
+                        </td>
                         <td className="border px-2 py-1 space-x-1">
                           {isEditing ? (
                             <>
