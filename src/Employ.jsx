@@ -8,6 +8,14 @@ import AreaProductionTableTime from "./AreaProductionTableTime";
 import AddEmployeeForm from "./AddEmployeeModal";
 
 const Employ = () => {
+  const areas = ["Ngọc Thành", "Chí Thành", "Muội", "Duy Hinh"];
+  const statuses = [
+    "Làm việc",
+    "LINE NGƯNG SẢN XUẤT",
+    "NGHỈ PHÉP",
+    "PHỤ LINE KHÁC",
+    "ĐI VỆ SINH",
+  ];
 
   const [assignments, setAssignments] = useState([]);
   const [toastMessage, setToastMessage] = useState("");

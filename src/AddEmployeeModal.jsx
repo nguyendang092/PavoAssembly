@@ -104,8 +104,10 @@ const AddEmployeeModal = ({
 
   const generateEmployeeId = async () => {
     const snapshot = await get(ref(db, `attendance/${areaKey}/${weekKey}`));
-    const employeeCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
-    return `EMP${(employeeCount + 1).toString().padStart(3, "0")}`;
+    const employeeCount = snapshot.exists()
+      ? Object.keys(snapshot.val()).length
+      : 0;
+    return `PAVO${(employeeCount + 1).toString().padStart(3, "0")}`;
   };
 
   const handleAddEmployee = async () => {
@@ -178,13 +180,37 @@ const AddEmployeeModal = ({
       <div className="space-y-3">
         {/* Hình ảnh */}
         <div className="text-center">
-          {previewImage && (
+          {previewImage ? (
             <img
               src={previewImage}
-              alt="Preview"
+              alt="Ảnh xem trước"
               className="mx-auto h-24 w-24 rounded-full object-cover mb-2"
+              loading="lazy"
+              onError={(e) => {
+                e.currentTarget.onerror = null; // prevent infinite loop
+                e.currentTarget.src = "https://via.placeholder.com/96";
+              }}
+            />
+          ) : newEmployee.imageUrl ? (
+            <img
+              src={newEmployee.imageUrl}
+              alt="Ảnh nhân viên"
+              className="mx-auto h-24 w-24 rounded-full object-cover mb-2"
+              loading="lazy"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "https://via.placeholder.com/96";
+              }}
+            />
+          ) : (
+            <img
+              src="https://via.placeholder.com/96"
+              alt="Ảnh mặc định"
+              className="mx-auto h-24 w-24 rounded-full object-cover mb-2"
+              loading="lazy"
             />
           )}
+
           <input type="file" accept="image/*" onChange={handleImageChange} />
         </div>
 
