@@ -19,8 +19,10 @@ const AddEmployeeModal = ({
   setModelList,
 }) => {
   const getToday = () => new Date().toISOString().slice(0, 10);
-  const dateKey =
-    selectedDate?.replace(/-/g, "") || getToday().replace(/-/g, "");
+  const dateKey = selectedDate?.replace(/-/g, "") || getToday().replace(/-/g, "");
+
+  const [filterDate, setFilterDate] = useState(selectedDate || "");
+  const filterDateKey = filterDate?.replace(/-/g, "") || "";
 
   const [newEmployee, setNewEmployee] = useState({
     name: "",
@@ -42,6 +44,7 @@ const AddEmployeeModal = ({
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    setFilterDate(selectedDate || getToday());
     setNewEmployee((prev) => ({
       ...prev,
       joinDate: selectedDate || getToday(),
@@ -55,24 +58,31 @@ const AddEmployeeModal = ({
 
       const data = snapshot.val();
       const filtered = Object.entries(data)
-        .filter(([_, val]) => val?.schedules?.[dateKey])
+        .filter(([_, val]) => val?.schedules?.[filterDateKey])
         .map(([key, val]) => ({
           key,
           ...val,
-          model: val.schedules?.[dateKey]?.model || "",
-          joinDate: val.schedules?.[dateKey]?.joinDate || selectedDate,
+          model: val.schedules?.[filterDateKey]?.model || "",
+          joinDate: val.schedules?.[filterDateKey]?.joinDate || filterDate,
         }));
 
       setExistingEmployees(filtered);
     };
 
     fetchExisting();
-  }, [areaKey, dateKey]);
+  }, [areaKey, filterDate]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setNewEmployee((prev) => ({ ...prev, [name]: value }));
-  };
+  const { name, value } = e.target;
+
+  setNewEmployee((prev) => {
+    // Nếu đang set status = Nghỉ phép thì reset model
+    if (name === "status" && value === "Nghỉ phép") {
+      return { ...prev, [name]: value, model: "" };
+    }
+    return { ...prev, [name]: value };
+  });
+};
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -138,17 +148,15 @@ const AddEmployeeModal = ({
     const schedulesForDate = {
       model: modelValue,
       joinDate: newEmployee.joinDate || selectedDate,
+      status: newEmployee.status,
     };
 
     try {
       let employeeId = newEmployee.employeeId;
 
+      // Nếu chưa có ID → tạo mới
       if (!employeeId) {
-        const snapshot = await get(ref(db, `attendance/${areaKey}`));
-        const count = snapshot.exists()
-          ? Object.keys(snapshot.val()).length
-          : 0;
-        employeeId = `PAVO${(count + 1).toString().padStart(3, "0")}`;
+        employeeId = `PAVO${Date.now()}`;
       }
 
       const employeeRef = ref(db, `attendance/${areaKey}/${employeeId}`);
@@ -157,6 +165,9 @@ const AddEmployeeModal = ({
       let existingData = {};
       if (employeeSnap.exists()) {
         existingData = employeeSnap.val();
+        if (existingData.status) {
+          delete existingData.status; // Xóa status ngoài schedules
+        }
       }
 
       let imageUrl = existingData.imageUrl || "";
@@ -170,8 +181,6 @@ const AddEmployeeModal = ({
         name: newEmployee.name,
         birthYear: newEmployee.birthYear,
         phone: newEmployee.phone,
-        status: newEmployee.status,
-        joinDate: newEmployee.joinDate || selectedDate,
         employeeId,
         imageUrl,
         schedules: {
@@ -215,7 +224,16 @@ const AddEmployeeModal = ({
   };
 
   const handleSelectEmployee = (emp) => {
-    setNewEmployee(emp);
+    setNewEmployee({
+      name: emp.name || "",
+      birthYear: emp.birthYear || "",
+      phone: emp.phone || "",
+      status: emp.status || "Đi làm",
+      joinDate: filterDate || getToday(),
+      model: emp.model || "",
+      imageUrl: emp.imageUrl || "",
+      employeeId: emp.employeeId || emp.key || "",
+    });
     setPreviewImage(emp.imageUrl || "");
     setSelectedKey(emp.key);
   };
@@ -239,7 +257,15 @@ const AddEmployeeModal = ({
       </h2>
 
       <div className="mb-3 text-gray-700 text-sm">
-        Ngày phân công: <strong>{selectedDate}</strong>
+        Ngày phân công:{" "}
+        <strong>
+          <input
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="border px-3 py-1 rounded"
+          />
+        </strong>
       </div>
 
       <div className="mb-4 max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3 text-sm bg-gray-50 scrollbar-thin scrollbar-thumb-gray-300">
@@ -317,21 +343,26 @@ const AddEmployeeModal = ({
       </select>
 
       <select
-        name="model"
-        value={newEmployee.model}
-        onChange={(e) => {
-          handleChange(e);
-          setInputModel("");
-        }}
-        className="w-full border border-gray-300 rounded-md px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-      >
-        <option value="">-- Chọn line --</option>
-        {modelList.map((model) => (
-          <option key={model} value={model}>
-            {model}
-          </option>
-        ))}
-      </select>
+  name="model"
+  value={newEmployee.model}
+  onChange={(e) => {
+    handleChange(e);
+    setInputModel("");
+  }}
+  disabled={newEmployee.status === "Nghỉ phép"} // disable khi nghỉ phép
+  className={`w-full border rounded-md px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+    newEmployee.status === "Nghỉ phép"
+      ? "bg-gray-200 cursor-not-allowed"
+      : "border-gray-300"
+  }`}
+>
+  <option value="">-- Chọn line --</option>
+  {modelList.map((model) => (
+    <option key={model} value={model}>
+      {model}
+    </option>
+  ))}
+</select>
 
       <input
         name="joinDate"

@@ -30,9 +30,13 @@ const AttendanceModal = ({
 
   const dateKey = selectedDate?.replace(/-/g, "") || "";
   const filterDateKey = filterDate?.replace(/-/g, "") || "";
+
   useEffect(() => {
     const fetchAttendanceData = async () => {
-      if (!areaKey || !selectedDate) return;
+      if (!areaKey || !filterDate) {
+        setEmployees({});
+        return;
+      }
 
       const snapshot = await get(ref(db, `attendance/${areaKey}`));
       if (!snapshot.exists()) {
@@ -44,12 +48,24 @@ const AttendanceModal = ({
       const result = {};
 
       Object.entries(rawData).forEach(([employeeId, emp]) => {
-        const schedule = emp.schedules?.[filterDateKey];
-        if (schedule) {
+        // Duyệt tất cả schedules của nhân viên
+        const matchedScheduleEntry = Object.entries(emp.schedules || {}).find(
+          ([dateKey, schedule]) => schedule.joinDate === filterDate
+        );
+
+        if (matchedScheduleEntry) {
+          const [dateKey, schedule] = matchedScheduleEntry;
           result[employeeId] = {
-            ...emp,
+            employeeId,
+            name: emp.name || "",
+            birthYear: emp.birthYear || "",
+            phone: emp.phone || "",
+            imageUrl: emp.imageUrl || "",
+            status: schedule.status || "Đi làm",
             model: schedule.model || "",
             joinDate: schedule.joinDate || filterDate,
+            schedules: emp.schedules || {},
+            _scheduleDateKey: dateKey, // lưu thêm để dùng sau
           };
         }
       });
@@ -68,7 +84,13 @@ const AttendanceModal = ({
   };
 
   const handleChange = (field, value) => {
-    setEditEmployeeData((prev) => ({ ...prev, [field]: value }));
+    setEditEmployeeData((prev) => {
+      if (field === "status" && value === "Nghỉ phép") {
+        // Nếu chọn nghỉ phép thì reset line về rỗng
+        return { ...prev, status: value, model: "" };
+      }
+      return { ...prev, [field]: value };
+    });
   };
 
   const handleEditImageChange = (e) => {
@@ -120,12 +142,14 @@ const AttendanceModal = ({
     await uploadBytes(storageReference, compressedFile);
     return await getDownloadURL(storageReference);
   };
+
   const handleCancelEdit = () => {
     setEditEmployeeId(null);
     setEditEmployeeData({});
     setEditImageFile(null);
     setEditImagePreview(null);
   };
+
   const handleDelete = async (employeeId) => {
     if (
       !window.confirm(
@@ -135,22 +159,14 @@ const AttendanceModal = ({
       )
     )
       return;
-
     try {
-      // Xóa toàn bộ node nhân viên trong Firebase
       await remove(ref(db, `attendance/${areaKey}/${employeeId}`));
-
-      // Cập nhật lại state local để giao diện cập nhật
       setEmployees((prev) => {
         const newEmployees = { ...prev };
         delete newEmployees[employeeId];
         return newEmployees;
       });
-
-      // Nếu đang chỉnh sửa nhân viên này thì hủy chế độ edit
-      if (editEmployeeId === employeeId) {
-        handleCancelEdit();
-      }
+      if (editEmployeeId === employeeId) handleCancelEdit();
     } catch (err) {
       console.error("Lỗi khi xóa nhân viên:", err);
       alert("Xóa nhân viên thất bại.");
@@ -167,19 +183,17 @@ const AttendanceModal = ({
         updated.imageUrl = imageUrl;
       }
 
-      // Update main info
       await update(ref(db, `attendance/${areaKey}/${employeeId}`), {
         name: updated.name,
         birthYear: updated.birthYear,
         phone: updated.phone,
-        status: updated.status,
-        employeeId,
         imageUrl: updated.imageUrl,
         schedules: {
           ...(employees[employeeId]?.schedules || {}),
           [dateKey]: {
             model: updated.model,
             joinDate: updated.joinDate || selectedDate,
+            status: updated.status || "Đi làm",
           },
         },
       });
@@ -193,15 +207,13 @@ const AttendanceModal = ({
             [dateKey]: {
               model: updated.model,
               joinDate: updated.joinDate || selectedDate,
+              status: updated.status || "Đi làm",
             },
           },
         },
       }));
 
-      setEditEmployeeId(null);
-      setEditEmployeeData({});
-      setEditImageFile(null);
-      setEditImagePreview(null);
+      handleCancelEdit();
     } catch (err) {
       console.error("Lỗi cập nhật:", err);
       alert("Lỗi khi lưu thay đổi.");
@@ -209,13 +221,8 @@ const AttendanceModal = ({
   };
 
   const filteredEmployees = Object.entries(employees)
-    .filter(([_, emp]) =>
-      showOnlyLeave
-        ? emp.status === "Nghỉ phép"
-        : !filterStatus || emp.status === filterStatus
-    )
-    .filter(([_, emp]) => !filterModel || emp.model === filterModel)
-    .filter(([_, emp]) => !filterDate || emp.joinDate === filterDate);
+    .filter(([_, emp]) => (showOnlyLeave ? emp.status === "Nghỉ phép" : true))
+    .filter(([_, emp]) => !filterModel || emp.model === filterModel);
   // Tính thống kê
   const totalCount = filteredEmployees.length;
   const countWorking = filteredEmployees.filter(
@@ -248,12 +255,6 @@ const AttendanceModal = ({
 
     if (showOnlyLeave) {
       filtered = filtered.filter((e) => e.status === "Nghỉ phép");
-    } else if (filterStatus) {
-      filtered = filtered.filter((e) => e.status === filterStatus);
-    }
-
-    if (filterDate) {
-      filtered = filtered.filter((e) => e.joinDate === filterDate);
     }
 
     if (filtered.length > 0) filteredGroupedEmployees[model] = filtered;
@@ -306,18 +307,6 @@ const AttendanceModal = ({
             </option>
           ))}
         </select>
-
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value)}
-          disabled={showOnlyLeave}
-          className="border px-3 py-1 rounded"
-        >
-          <option value="">-- Tất cả trạng thái --</option>
-          <option value="Đi làm">Đi làm</option>
-          <option value="Nghỉ phép">Nghỉ phép</option>
-        </select>
-
         <input
           type="date"
           value={filterDate}
@@ -348,7 +337,7 @@ const AttendanceModal = ({
       </div>
 
       <div className="overflow-x-auto max-h-[70vh] overflow-y-auto text-sm">
-        <table className="min-w-full border">
+        <table className="min-w-full border table-fixed">
           <thead>
             <tr className="bg-gray-100 font-semibold text-center">
               <th className="border px-2 py-1" colSpan={9}>
@@ -377,15 +366,17 @@ const AttendanceModal = ({
 
                   {/* Tiêu đề cột */}
                   <tr className="bg-gray-200 font-semibold text-center">
-                    <th className="border px-2 py-1">Ảnh</th>
-                    <th className="border px-2 py-1">Họ & Tên</th>
-                    <th className="border px-2 py-1">Mã NV</th>
-                    <th className="border px-2 py-1">Năm sinh</th>
-                    <th className="border px-2 py-1">SĐT</th>
-                    <th className="border px-2 py-1">Trạng thái</th>
-                    <th className="border px-2 py-1">Line</th>
-                    <th className="border px-2 py-1">Ngày phân công</th>
-                    <th className="border px-2 py-1">Hành động</th>
+                    <th className="border px-2 py-1 w-[80px]">Ảnh</th>
+                    <th className="border px-2 py-1 w-[160px]">Họ & Tên</th>
+                    <th className="border px-2 py-1 w-[100px]">Mã NV</th>
+                    <th className="border px-2 py-1 w-[100px]">Năm sinh</th>
+                    <th className="border px-2 py-1 w-[120px]">SĐT</th>
+                    <th className="border px-2 py-1 w-[120px]">Trạng thái</th>
+                    <th className="border px-2 py-1 w-[140px]">Line</th>
+                    <th className="border px-2 py-1 w-[140px]">
+                      Ngày phân công
+                    </th>
+                    <th className="border px-2 py-1 w-[150px]">Hành động</th>
                   </tr>
 
                   {/* Danh sách nhân viên */}
@@ -489,6 +480,7 @@ const AttendanceModal = ({
                                 handleChange("model", e.target.value)
                               }
                               className="w-full border px-1 py-0.5"
+                              disabled={editEmployeeData.status === "Nghỉ phép"} // disable khi nghỉ phép
                             >
                               <option value="">-- Chọn line --</option>
                               {modelList.map((m) => (

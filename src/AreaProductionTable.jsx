@@ -377,6 +377,8 @@ const AreaProductionTable = ({ area }) => {
         isOpen={addEmployeeModalOpen}
         onClose={() => setAddEmployeeModalOpen(false)}
         areaKey={areaKey}
+        attendanceData={attendanceData}
+        timeSlots={timeSlots}
         weekKey={weekKey}
         modelList={modelList}
         selectedDate={format(selectedDate, "yyyy-MM-dd")}
