@@ -29,7 +29,7 @@ const AttendanceModal = ({
   const [showOnlyLeave, setShowOnlyLeave] = useState(false);
 
   const dateKey = selectedDate?.replace(/-/g, "") || "";
-
+  const filterDateKey = filterDate?.replace(/-/g, "") || "";
   useEffect(() => {
     const fetchAttendanceData = async () => {
       if (!areaKey || !selectedDate) return;
@@ -44,12 +44,12 @@ const AttendanceModal = ({
       const result = {};
 
       Object.entries(rawData).forEach(([employeeId, emp]) => {
-        const schedule = emp.schedules?.[dateKey];
+        const schedule = emp.schedules?.[filterDateKey];
         if (schedule) {
           result[employeeId] = {
             ...emp,
             model: schedule.model || "",
-            joinDate: schedule.joinDate || selectedDate,
+            joinDate: schedule.joinDate || filterDate,
           };
         }
       });
@@ -58,7 +58,7 @@ const AttendanceModal = ({
     };
 
     fetchAttendanceData();
-  }, [areaKey, selectedDate]);
+  }, [areaKey, filterDate]);
 
   const handleEditClick = (id) => {
     setEditEmployeeId(id);
@@ -287,11 +287,12 @@ const AttendanceModal = ({
     >
       <h3 className="text-2xl font-bold mb-4">
         {" "}
-        👥 Leader: {areaKey} : {selectedDate} 
+        👥 Leader: {areaKey} : {selectedDate}
       </h3>
-      <h2 className="text-xl font-bold mb-4"
-      >Tổng: {totalCount} người | 👷‍♂️
-        Đi làm: {countWorking} | 🌴 Nghỉ phép: {countLeave}</h2>
+      <h2 className="text-xl font-bold mb-4">
+        Tổng: {totalCount} người | 👷‍♂️ Đi làm: {countWorking} | 🌴 Nghỉ phép:{" "}
+        {countLeave}
+      </h2>
       <div className="flex flex-wrap gap-3 mb-4 text-sm">
         <select
           value={filterModel}
