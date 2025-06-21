@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { db } from "./firebase";
 import { ref, onValue, set } from "firebase/database";
+import { get, ref as dbRef } from "firebase/database";
 import { format, getWeek, startOfWeek, addDays, getYear } from "date-fns";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
@@ -12,21 +13,32 @@ import AddEmployeeModal from "./AddEmployeeModal";
 Modal.setAppElement("#root");
 
 const AreaProductionTable = ({ area }) => {
+  const areaKeyMapping = {
+  "Ngọc Thành": "NgocThanh",
+  "Chí Thành": "ChiThanh",
+  "Duy Hinh": "DuyHinh",
+  "Muội": "Muoi",
+  // Thêm các mapping khác nếu cần
+};
+
+const getAreaKey = (areaName) => {
+  return areaKeyMapping[areaName] || areaName.replace(/\s+/g, "").replace(/\/+/g, "_");
+};
+
+// Ví dụ sử dụng trong component:
+const areaKey = getAreaKey(area);
   const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
-  const areaKey = area.replace(/\//g, "_");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [actualData, setActualData] = useState({});
   const [productionData, setProductionData] = useState({});
   const [attendanceData, setAttendanceData] = useState({});
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
-
+  const [modelList, setModelList] = useState([]);
   const weekNumber = getWeek(selectedDate, { weekStartsOn: 1 });
   const year = getYear(selectedDate);
   const weekKey = `week_${year}_${weekNumber}`;
-
   const startDateOfWeek = startOfWeek(selectedDate, { weekStartsOn: 1 });
-
   const timeSlots = Array.from({ length: 6 }, (_, i) => {
     const date = addDays(startDateOfWeek, i);
     return {
@@ -60,6 +72,25 @@ const AreaProductionTable = ({ area }) => {
       unsubAttendance();
     };
   }, [areaKey, weekKey]);
+ useEffect(() => {
+  const fetchModelList = async () => {
+    try {
+      const snap = await get(dbRef(db, `assignments/${areaKey}`));
+      if (snap.exists()) {
+        const data = snap.val();
+        setModelList(data.modelList || []);
+      } else {
+        console.warn("Không tìm thấy modelList cho", areaKey);
+        setModelList([]);
+      }
+    } catch (error) {
+      console.error("Lỗi khi lấy modelList:", error);
+      setModelList([]);
+    }
+  };
+
+  fetchModelList();
+}, [areaKey]);
 
   const handleDateChange = (e) => {
     setSelectedDate(new Date(e.target.value));
@@ -110,16 +141,7 @@ const AreaProductionTable = ({ area }) => {
       });
     }
   };
-
-  const modelList = [
-    "SILICON REAR 46-55",
-    "LEAK TEST REAR",
-    "LEAK TEST FRONT",
-    "METAL DECO 46-55",
-    "GLASS 46-55",
-    "MTC FRONT 46-55",
-    "KM24",
-  ];
+  
 
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();

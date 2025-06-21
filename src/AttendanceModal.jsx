@@ -232,17 +232,19 @@ const AttendanceModal = ({
     ([_, emp]) => emp.status === "Nghỉ phép"
   ).length;
   const groupedEmployees = {};
-
-  // Khởi tạo nhóm theo modelList
   modelList.forEach((model) => {
     groupedEmployees[model] = [];
   });
+  groupedEmployees["Nghỉ phép"] = [];
 
-  // Gán nhân viên vào nhóm theo model
   Object.entries(employees).forEach(([id, emp]) => {
-    const model = emp.model || "Không xác định";
-    if (!groupedEmployees[model]) groupedEmployees[model] = [];
-    groupedEmployees[model].push({ id, ...emp });
+    if (emp.status === "Nghỉ phép") {
+      groupedEmployees["Nghỉ phép"].push({ id, ...emp });
+    } else {
+      const model = emp.model || "Không xác định";
+      if (!groupedEmployees[model]) groupedEmployees[model] = [];
+      groupedEmployees[model].push({ id, ...emp });
+    }
   });
 
   // Áp dụng filter cho từng nhóm theo model
