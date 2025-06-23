@@ -13,7 +13,7 @@ import { getAreaKey } from "./utils";
 
 Modal.setAppElement("#root");
 
-const AreaProductionTable = ({ area }) => {
+const AreaProductionTable = ({ area, showToast }) => {
   const areaKey = getAreaKey(area);
 
   const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
@@ -27,9 +27,12 @@ const AreaProductionTable = ({ area }) => {
   const weekNumber = getWeek(selectedDate, { weekStartsOn: 1 });
   const year = getYear(selectedDate);
   const weekKey = `week_${year}_${weekNumber}`;
+  const [modelEditOpen, setModelEditOpen] = useState(false);
+  const [newModelName, setNewModelName] = useState("");
   const startDateOfWeek = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const timeSlots = Array.from({ length: 6 }, (_, i) => {
     const date = addDays(startDateOfWeek, i);
+
     return {
       label: format(date, "EEEE"),
       date: format(date, "yyyy-MM-dd"),
@@ -61,6 +64,7 @@ const AreaProductionTable = ({ area }) => {
       unsubAttendance();
     };
   }, [areaKey, weekKey]);
+
   useEffect(() => {
     const fetchModelList = async () => {
       try {
@@ -129,6 +133,25 @@ const AreaProductionTable = ({ area }) => {
       });
     }
   };
+  useEffect(() => {
+    const fetchModelList = async () => {
+      try {
+        const snap = await get(dbRef(db, `assignments/${areaKey}`));
+        if (snap.exists()) {
+          const data = snap.val();
+          setModelList(data.modelList || []);
+        } else {
+          console.warn("Không tìm thấy modelList cho", areaKey);
+          setModelList([]);
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy modelList:", error);
+        setModelList([]);
+      }
+    };
+
+    fetchModelList();
+  }, [areaKey]);
 
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
@@ -171,6 +194,12 @@ const AreaProductionTable = ({ area }) => {
     <div className="mb-6">
       <div className="flex flex-wrap items-center justify-between mb-3 gap-2">
         <div>
+          <button
+            onClick={() => setModelEditOpen(true)}
+            className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 mr-2"
+          >
+            ⚙️ Quản lý Line
+          </button>
           <button
             onClick={() => changeWeek("prev")}
             className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
@@ -359,6 +388,85 @@ const AreaProductionTable = ({ area }) => {
           })}
         </tbody>
       </table>
+      <Modal
+        isOpen={modelEditOpen}
+        onRequestClose={() => setModelEditOpen(false)}
+        className="bg-white p-6 max-w-md mx-auto rounded shadow"
+        overlayClassName="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50"
+      >
+        <h2 className="text-lg font-bold mb-4">🛠 Quản lý Model</h2>
+
+        <ul className="space-y-2">
+          {modelList.map((model, index) => (
+            <li key={index} className="flex items-center gap-2">
+              <input
+                value={model}
+                onChange={(e) => {
+                  const updated = [...modelList];
+                  updated[index] = e.target.value;
+                  setModelList(updated);
+                }}
+                className="border px-2 py-1 flex-1"
+              />
+              <button
+                onClick={() => {
+                  const updated = modelList.filter((_, i) => i !== index);
+                  setModelList(updated);
+                }}
+                className="text-red-600 hover:text-red-800"
+              >
+                ❌
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <div className="flex items-center gap-2 mt-4">
+          <input
+            type="text"
+            placeholder="Thêm model mới"
+            value={newModelName}
+            onChange={(e) => setNewModelName(e.target.value)}
+            className="border px-2 py-1 flex-1"
+          />
+          <button
+            onClick={() => {
+              const trimmed = newModelName.trim();
+              if (trimmed !== "") {
+                setModelList([...modelList, trimmed]);
+                setNewModelName("");
+              }
+            }}
+            className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+          >
+            ➕
+          </button>
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <button
+            onClick={() => setModelEditOpen(false)}
+            className="px-4 py-1 bg-gray-300 rounded hover:bg-gray-400"
+          >
+            Đóng
+          </button>
+          <button
+            onClick={() => {
+              set(ref(db, `assignments/${areaKey}/modelList`), modelList)
+                .then(() => {
+                  showToast("✅ Đã cập nhật Line");
+                  setModelEditOpen(false);
+                })
+                .catch(() => {
+                  showToast("❌ Lỗi khi lưu modelList!");
+                });
+            }}
+            className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            💾 Lưu
+          </button>
+        </div>
+      </Modal>
 
       {/* Biểu đồ */}
       <ChartModal

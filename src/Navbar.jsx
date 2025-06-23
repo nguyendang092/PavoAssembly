@@ -30,7 +30,7 @@ export default function Navbar({ onSelectLeader, onLeaderMapReady }) {
   };
 
   return (
-    <nav className="bg-white border-gray-200 dark:bg-gray-900">
+    <nav className="border-gray-200 dark:bg-gray-800">
       <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
         <a
           href="http://www.pavonine.net/en/"
@@ -70,7 +70,7 @@ export default function Navbar({ onSelectLeader, onLeaderMapReady }) {
           }`}
           id="navbar-cta"
         >
-          <ul className="flex flex-col font-medium p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:space-x-8 md:flex-row md:mt-0 md:border-0 md:bg-white dark:bg-gray-800">
+          <ul className="flex flex-col font-medium p-4 md:p-0 mt-4 border border-gray-100 rounded-lg  md:space-x-8 md:flex-row md:mt-0 md:border-0 md:bg-white dark:bg-gray-800">
             {Object.keys(leaderMap).map((key) => (
               <li key={key}>
                 <button
