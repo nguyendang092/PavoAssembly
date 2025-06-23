@@ -8,14 +8,12 @@ import AreaProductionTableTime from "./AreaProductionTableTime";
 import AddEmployeeForm from "./AddEmployeeModal";
 
 const Employ = () => {
-
   const [assignments, setAssignments] = useState([]);
   const [toastMessage, setToastMessage] = useState("");
   const [selectedLeader, setSelectedLeader] = useState("");
 
   const [viewMode, setViewMode] = useState("time"); // mặc định "time"
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
   useEffect(() => {
     const assignmentsRef = ref(db, "assignments");
     onValue(assignmentsRef, (snapshot) => {

@@ -17,44 +17,64 @@ const AttendanceModal = ({
   areaKey,
   modelList = [],
 }) => {
+  const areaKeyMapping = {
+    "Ngọc Thành": "NgocThanh",
+    "Chí Thành": "ChiThanh",
+    "Duy Hinh": "DuyHinh",
+    Muội: "Muoi",
+  };
+
+  const getAreaKey = (areaName) =>
+    areaKeyMapping[areaName] ||
+    areaName.replace(/\s+/g, "").replace(/\//g, "_");
+
+  const mappedAreaKey = getAreaKey(areaKey);
+
   const [employees, setEmployees] = useState({});
   const [editEmployeeId, setEditEmployeeId] = useState(null);
   const [editEmployeeData, setEditEmployeeData] = useState({});
   const [editImageFile, setEditImageFile] = useState(null);
   const [editImagePreview, setEditImagePreview] = useState(null);
-
   const [filterModel, setFilterModel] = useState("");
-  const [filterStatus, setFilterStatus] = useState("Đi làm");
   const [filterDate, setFilterDate] = useState(selectedDate || "");
   const [showOnlyLeave, setShowOnlyLeave] = useState(false);
-
   const dateKey = selectedDate?.replace(/-/g, "") || "";
-  const filterDateKey = filterDate?.replace(/-/g, "") || "";
+  const filterDateKey = filterDate.replace(/-/g, "");
 
   useEffect(() => {
     const fetchAttendanceData = async () => {
-      if (!areaKey || !filterDate) {
+      if (!mappedAreaKey || !filterDateKey) {
         setEmployees({});
         return;
       }
 
-      const snapshot = await get(ref(db, `attendance/${areaKey}`));
+      // console.log("▶️ mappedAreaKey:", mappedAreaKey);
+      // console.log("▶️ filterDate:", filterDate);
+      // console.log("▶️ filterDateKey:", filterDateKey);
+
+      const snapshot = await get(ref(db, `attendance/${mappedAreaKey}`));
+      // console.log("📂 Đọc đường dẫn:", `attendance/${mappedAreaKey}`);
+
       if (!snapshot.exists()) {
+        // console.log("❌ Không tìm thấy dữ liệu.");
         setEmployees({});
         return;
       }
 
       const rawData = snapshot.val();
+      // console.log("✅ rawData:", rawData);
+
       const result = {};
 
       Object.entries(rawData).forEach(([employeeId, emp]) => {
-        // Duyệt tất cả schedules của nhân viên
         const matchedScheduleEntry = Object.entries(emp.schedules || {}).find(
-          ([dateKey, schedule]) => schedule.joinDate === filterDate
+          ([scheduleDateKey]) => scheduleDateKey === filterDateKey
         );
 
+        // console.log(`🔍 EmployeeId: ${employeeId}`, matchedScheduleEntry);
+
         if (matchedScheduleEntry) {
-          const [dateKey, schedule] = matchedScheduleEntry;
+          const [scheduleDateKey, schedule] = matchedScheduleEntry;
           result[employeeId] = {
             employeeId,
             name: emp.name || "",
@@ -65,7 +85,7 @@ const AttendanceModal = ({
             model: schedule.model || "",
             joinDate: schedule.joinDate || filterDate,
             schedules: emp.schedules || {},
-            _scheduleDateKey: dateKey, // lưu thêm để dùng sau
+            _scheduleDateKey: scheduleDateKey,
           };
         }
       });
@@ -74,7 +94,7 @@ const AttendanceModal = ({
     };
 
     fetchAttendanceData();
-  }, [areaKey, filterDate]);
+  }, [mappedAreaKey, filterDateKey]);
 
   const handleEditClick = (id) => {
     setEditEmployeeId(id);
@@ -160,7 +180,7 @@ const AttendanceModal = ({
     )
       return;
     try {
-      await remove(ref(db, `attendance/${areaKey}/${employeeId}`));
+      await remove(ref(db, `attendance/${mappedAreaKey}/${employeeId}`));
       setEmployees((prev) => {
         const newEmployees = { ...prev };
         delete newEmployees[employeeId];
@@ -183,7 +203,7 @@ const AttendanceModal = ({
         updated.imageUrl = imageUrl;
       }
 
-      await update(ref(db, `attendance/${areaKey}/${employeeId}`), {
+      await update(ref(db, `attendance/${mappedAreaKey}/${employeeId}`), {
         name: updated.name,
         birthYear: updated.birthYear,
         phone: updated.phone,
@@ -290,7 +310,7 @@ const AttendanceModal = ({
     >
       <h3 className="text-2xl font-bold mb-4">
         {" "}
-        👥 Leader: {areaKey} : {selectedDate}
+        👥 Leader: {mappedAreaKey} : {selectedDate}
       </h3>
       <h2 className="text-xl font-bold mb-4">
         Tổng: {totalCount} người | 👷‍♂️ Đi làm: {countWorking} | 🌴 Nghỉ phép:{" "}
@@ -347,38 +367,41 @@ const AttendanceModal = ({
               </th>
             </tr>
           </thead>
-          <tbody>
-            {Object.entries(filteredGroupedEmployees).map(([model, emps]) => {
-              // Thống kê riêng cho từng line
-              const lineStats = {
-                total: emps.length,
-                working: emps.filter((e) => e.status === "Đi làm").length,
-                leave: emps.filter((e) => e.status === "Nghỉ phép").length,
-              };
+          <thead>
+            <tr className="bg-gray-100 font-semibold text-center">
+              <th className="border px-2 py-1 w-[80px]">Ảnh</th>
+              <th className="border px-2 py-1 w-[160px]">Họ & Tên</th>
+              <th className="border px-2 py-1 w-[100px]">Mã NV</th>
+              <th className="border px-2 py-1 w-[100px]">Năm sinh</th>
+              <th className="border px-2 py-1 w-[120px]">SĐT</th>
+              <th className="border px-2 py-1 w-[120px]">Trạng thái</th>
+              <th className="border px-2 py-1 w-[140px]">Line</th>
+              <th className="border px-2 py-1 w-[140px]">Ngày phân công</th>
+              <th className="border px-2 py-1 w-[150px]">Hành động</th>
+            </tr>
+          </thead>
 
-              return (
+          <tbody>
+            {Object.entries(filteredGroupedEmployees).length === 0 ? (
+              <tr>
+                <td
+                  colSpan={9}
+                  className="text-center py-6 text-gray-500 italic"
+                >
+                  Chưa có nhân viên được phân công
+                </td>
+              </tr>
+            ) : (
+              Object.entries(filteredGroupedEmployees).map(([model, emps]) => (
                 <React.Fragment key={model}>
                   {/* Tên line + thống kê */}
                   <tr className="bg-blue-100 font-bold text-left">
                     <td colSpan={9} className="px-2 py-1">
-                      * Line: {model} — Tổng: {lineStats.total} người | 👷‍♂️ Đi
-                      làm: {lineStats.working} | 🌴 Nghỉ phép: {lineStats.leave}
+                      * Line: {model} — Tổng: {emps.length} người | 👷‍♂️ Đi làm:{" "}
+                      {emps.filter((e) => e.status === "Đi làm").length} | 🌴
+                      Nghỉ phép:{" "}
+                      {emps.filter((e) => e.status === "Nghỉ phép").length}
                     </td>
-                  </tr>
-
-                  {/* Tiêu đề cột */}
-                  <tr className="bg-gray-200 font-semibold text-center">
-                    <th className="border px-2 py-1 w-[80px]">Ảnh</th>
-                    <th className="border px-2 py-1 w-[160px]">Họ & Tên</th>
-                    <th className="border px-2 py-1 w-[100px]">Mã NV</th>
-                    <th className="border px-2 py-1 w-[100px]">Năm sinh</th>
-                    <th className="border px-2 py-1 w-[120px]">SĐT</th>
-                    <th className="border px-2 py-1 w-[120px]">Trạng thái</th>
-                    <th className="border px-2 py-1 w-[140px]">Line</th>
-                    <th className="border px-2 py-1 w-[140px]">
-                      Ngày phân công
-                    </th>
-                    <th className="border px-2 py-1 w-[150px]">Hành động</th>
                   </tr>
 
                   {/* Danh sách nhân viên */}
@@ -386,6 +409,7 @@ const AttendanceModal = ({
                     const isEditing = editEmployeeId === id;
                     return (
                       <tr key={id} className="border-b text-center">
+                        {/* Cột ảnh */}
                         <td className="border px-2 py-1">
                           {isEditing ? (
                             <>
@@ -415,6 +439,8 @@ const AttendanceModal = ({
                             />
                           )}
                         </td>
+
+                        {/* Các cột còn lại giống như bạn đã có */}
                         <td className="border px-2 py-1">
                           {isEditing ? (
                             <input
@@ -482,7 +508,7 @@ const AttendanceModal = ({
                                 handleChange("model", e.target.value)
                               }
                               className="w-full border px-1 py-0.5"
-                              disabled={editEmployeeData.status === "Nghỉ phép"} // disable khi nghỉ phép
+                              disabled={editEmployeeData.status === "Nghỉ phép"}
                             >
                               <option value="">-- Chọn line --</option>
                               {modelList.map((m) => (
@@ -535,8 +561,8 @@ const AttendanceModal = ({
                     );
                   })}
                 </React.Fragment>
-              );
-            })}
+              ))
+            )}
           </tbody>
         </table>
       </div>

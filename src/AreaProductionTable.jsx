@@ -9,24 +9,13 @@ import Modal from "react-modal";
 import ChartModal from "./ChartModal";
 import AttendanceModal from "./AttendanceModal";
 import AddEmployeeModal from "./AddEmployeeModal";
+import { getAreaKey } from "./utils";
 
 Modal.setAppElement("#root");
 
 const AreaProductionTable = ({ area }) => {
-  const areaKeyMapping = {
-  "Ngọc Thành": "NgocThanh",
-  "Chí Thành": "ChiThanh",
-  "Duy Hinh": "DuyHinh",
-  "Muội": "Muoi",
-  // Thêm các mapping khác nếu cần
-};
+  const areaKey = getAreaKey(area);
 
-const getAreaKey = (areaName) => {
-  return areaKeyMapping[areaName] || areaName.replace(/\s+/g, "").replace(/\/+/g, "_");
-};
-
-// Ví dụ sử dụng trong component:
-const areaKey = getAreaKey(area);
   const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [actualData, setActualData] = useState({});
@@ -72,25 +61,25 @@ const areaKey = getAreaKey(area);
       unsubAttendance();
     };
   }, [areaKey, weekKey]);
- useEffect(() => {
-  const fetchModelList = async () => {
-    try {
-      const snap = await get(dbRef(db, `assignments/${areaKey}`));
-      if (snap.exists()) {
-        const data = snap.val();
-        setModelList(data.modelList || []);
-      } else {
-        console.warn("Không tìm thấy modelList cho", areaKey);
+  useEffect(() => {
+    const fetchModelList = async () => {
+      try {
+        const snap = await get(dbRef(db, `assignments/${areaKey}`));
+        if (snap.exists()) {
+          const data = snap.val();
+          setModelList(data.modelList || []);
+        } else {
+          console.warn("Không tìm thấy modelList cho", areaKey);
+          setModelList([]);
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy modelList:", error);
         setModelList([]);
       }
-    } catch (error) {
-      console.error("Lỗi khi lấy modelList:", error);
-      setModelList([]);
-    }
-  };
+    };
 
-  fetchModelList();
-}, [areaKey]);
+    fetchModelList();
+  }, [areaKey]);
 
   const handleDateChange = (e) => {
     setSelectedDate(new Date(e.target.value));
@@ -106,27 +95,26 @@ const areaKey = getAreaKey(area);
   };
 
   const handleActualChange = (model, slot, e) => {
-  const val = e.target.value;
-  if (val === "" || /^[0-9]*$/.test(val)) {
-    const numericVal = val === "" ? 0 : Number(val);
-    setActualData((prev) => {
-      const newData = { ...prev };
-      if (!newData[model]) newData[model] = {};
-      newData[model][slot] = val;
+    const val = e.target.value;
+    if (val === "" || /^[0-9]*$/.test(val)) {
+      const numericVal = val === "" ? 0 : Number(val);
+      setActualData((prev) => {
+        const newData = { ...prev };
+        if (!newData[model]) newData[model] = {};
+        newData[model][slot] = val;
 
-      // Ghi vào actual (theo tuần)
-      set(
-        ref(db, `actual/${areaKey}/${weekKey}/${model}/${slot}`),
-        numericVal
-      ).catch(() => alert("Lỗi cập nhật thực tế!"));
-      return newData;
-    });
-  }
-};
-
+        // Ghi vào actual (theo tuần)
+        set(
+          ref(db, `actual/${areaKey}/${weekKey}/${model}/${slot}`),
+          numericVal
+        ).catch(() => alert("Lỗi cập nhật thực tế!"));
+        return newData;
+      });
+    }
+  };
 
   const handleProductionChange = (model, slot, e) => {
-    console.log(areaKey, weekKey, model, slot)
+    console.log(areaKey, weekKey, model, slot);
     const val = e.target.value;
     if (val === "" || /^[0-9]*$/.test(val)) {
       setProductionData((prev) => {
@@ -141,7 +129,6 @@ const areaKey = getAreaKey(area);
       });
     }
   };
-  
 
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
