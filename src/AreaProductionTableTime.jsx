@@ -204,13 +204,13 @@ const AreaProductionTableTime = ({ area }) => {
             onClick={() => changeWeek("prev")}
             className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
           >
-            ← Tuần trước (지난 주)
+            ← Tuần trước
           </button>
           <button
             onClick={() => changeWeek("next")}
             className="ml-2 px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
           >
-            Tuần sau (다음 주) →
+            Tuần sau →
           </button>
         </div>
         <div className="space-x-2">
@@ -218,25 +218,25 @@ const AreaProductionTableTime = ({ area }) => {
             onClick={() => setAttendanceModalOpen(true)}
             className="px-4 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
           >
-            🧑‍🤝‍🧑 Nhân viên (직원)
+            🧑‍🤝‍🧑 Nhân viên
           </button>
           <button
             onClick={() => setAddEmployeeModalOpen(true)}
             className="px-4 py-1 bg-orange-500 text-white rounded hover:bg-orange-600"
           >
-            ➕ Thêm phân công (직원 추가)
+            ➕ Thêm phân công
           </button>
           <button
             onClick={() => setModalIsOpen(true)}
             className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            📊 Biểu đồ (차트)
+            📊 Biểu đồ
           </button>
           <button
             onClick={exportToExcel}
             className="px-4 py-1 bg-green-500 text-white rounded hover:bg-green-600"
           >
-            📥 Xuất Excel (엑셀저장)
+            📥 Xuất Excel
           </button>
         </div>
       </div>
@@ -247,7 +247,7 @@ const AreaProductionTableTime = ({ area }) => {
 
       <div className="flex items-center justify-between mb-4">
         <label className="font-semibold text-gray-800">
-          Chọn ngày (날짜 선택):{" "}
+          Chọn ngày :{" "}
           <input
             type="date"
             value={format(selectedDate, "yyyy-MM-dd")}
@@ -256,7 +256,7 @@ const AreaProductionTableTime = ({ area }) => {
           />
         </label>
         <span className="text-sm text-gray-600 italic">
-          Tuần (주): {weekNumber} ({weekKey})
+          Tuần : {weekNumber} ({weekKey})
         </span>
       </div>
       <table className="w-full border-collapse text-sm text-gray-700">
@@ -304,7 +304,7 @@ const AreaProductionTableTime = ({ area }) => {
                     {model}
                   </td>
                   <td className="border border-gray-300 px-2 py-1 font-semibold text-blue-800">
-                    Kế hoạch (계획)
+                    Kế hoạch
                   </td>
                   {timeLabels.map((slot) => (
                     <td
@@ -327,7 +327,7 @@ const AreaProductionTableTime = ({ area }) => {
                 </tr>
                 <tr className="bg-green-50 hover:bg-green-100">
                   <td className="border border-gray-300 px-2 py-1 font-semibold text-green-800">
-                    Thực tế (실적)
+                    Thực tế
                   </td>
                   {timeLabels.map((slot) => (
                     <td
@@ -350,7 +350,7 @@ const AreaProductionTableTime = ({ area }) => {
                 </tr>
                 <tr className="bg-yellow-50 hover:bg-yellow-100">
                   <td className="border border-gray-300 px-2 py-1 font-semibold text-yellow-800">
-                    % Hoàn thành (% 완료)
+                    % Hoàn thành
                   </td>
                   {timeLabels.map((slot) => {
                     const plan = Number(productionData[model]?.[slot] ?? 0);
@@ -376,85 +376,88 @@ const AreaProductionTableTime = ({ area }) => {
         </tbody>
       </table>
       <Modal
-              isOpen={modelEditOpen}
-              onRequestClose={() => setModelEditOpen(false)}
-              className="bg-white p-6 max-w-md mx-auto rounded shadow"
-              overlayClassName="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50"
-            >
-              <h2 className="text-lg font-bold mb-4">🛠 Quản lý Model</h2>
-      
-              <ul className="space-y-2">
-                {modelList.map((model, index) => (
-                  <li key={index} className="flex items-center gap-2">
-                    <input
-                      value={model}
-                      onChange={(e) => {
-                        const updated = [...modelList];
-                        updated[index] = e.target.value;
-                        setModelList(updated);
-                      }}
-                      className="border px-2 py-1 flex-1"
-                    />
-                    <button
-                      onClick={() => {
-                        const updated = modelList.filter((_, i) => i !== index);
-                        setModelList(updated);
-                      }}
-                      className="text-red-600 hover:text-red-800"
-                    >
-                      ❌
-                    </button>
-                  </li>
-                ))}
-              </ul>
-      
-              <div className="flex items-center gap-2 mt-4">
-                <input
-                  type="text"
-                  placeholder="Thêm model mới"
-                  value={newModelName}
-                  onChange={(e) => setNewModelName(e.target.value)}
-                  className="border px-2 py-1 flex-1"
-                />
-                <button
-                  onClick={() => {
-                    const trimmed = newModelName.trim();
-                    if (trimmed !== "") {
-                      setModelList([...modelList, trimmed]);
-                      setNewModelName("");
-                    }
-                  }}
-                  className="bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
-                >
-                  ➕
-                </button>
-              </div>
-      
-              <div className="mt-4 flex justify-end gap-2">
-                <button
-                  onClick={() => setModelEditOpen(false)}
-                  className="px-4 py-1 bg-gray-300 rounded hover:bg-gray-400"
-                >
-                  Đóng
-                </button>
-                <button
-                  onClick={() => {
-                    set(ref(db, `assignments/${areaKey}/modelList`), modelList)
-                      .then(() => {
-                        showToast("✅ Đã cập nhật Line");
-                        setModelEditOpen(false);
-                      })
-                      .catch(() => {
-                        showToast("❌ Lỗi khi lưu modelList!");
-                      });
-                  }}
-                  className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  💾 Lưu
-                </button>
-              </div>
-            </Modal>
-      
+        isOpen={modelEditOpen}
+        onRequestClose={() => setModelEditOpen(false)}
+        className="bg-gradient-to-br from-blue-50 to-white p-6 max-w-md w-full mx-auto rounded-2xl shadow-2xl transform transition-all duration-300 scale-100"
+        overlayClassName="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 transition-opacity duration-300"
+      >
+        <h2 className="text-2xl font-bold mb-4 text-center text-blue-700">
+          🛠 Quản lý Line
+        </h2>
+
+        <ul className="space-y-3 max-h-60 overflow-y-auto pr-1">
+          {modelList.map((model, index) => (
+            <li key={index} className="flex items-center gap-2 group">
+              <input
+                value={model}
+                onChange={(e) => {
+                  const updated = [...modelList];
+                  updated[index] = e.target.value;
+                  setModelList(updated);
+                }}
+                className="border border-blue-300 px-3 py-2 flex-1 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition bg-white group-hover:bg-blue-50"
+              />
+              <button
+                onClick={() => {
+                  const updated = modelList.filter((_, i) => i !== index);
+                  setModelList(updated);
+                }}
+                className="text-red-500 hover:text-red-700 transition text-lg"
+                title="Xóa model"
+              >
+                ❌
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <div className="flex items-center gap-2 mt-5">
+          <input
+            type="text"
+            placeholder="Thêm model mới"
+            value={newModelName}
+            onChange={(e) => setNewModelName(e.target.value)}
+            className="border border-green-300 px-3 py-2 flex-1 rounded-lg shadow-inner focus:outline-none focus:ring-2 focus:ring-green-400 transition bg-white"
+          />
+          <button
+            onClick={() => {
+              const trimmed = newModelName.trim();
+              if (trimmed !== "") {
+                setModelList([...modelList, trimmed]);
+                setNewModelName("");
+              }
+            }}
+            className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 transition font-semibold shadow-md"
+          >
+            ➕
+          </button>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            onClick={() => setModelEditOpen(false)}
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition shadow-sm"
+          >
+            Đóng
+          </button>
+          <button
+            onClick={() => {
+              set(ref(db, `assignments/${areaKey}/modelList`), modelList)
+                .then(() => {
+                  showToast("✅ Đã cập nhật Line");
+                  setModelEditOpen(false);
+                })
+                .catch(() => {
+                  showToast("❌ Lỗi khi lưu Line!");
+                });
+            }}
+            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition font-semibold shadow-md"
+          >
+            💾 Lưu
+          </button>
+        </div>
+      </Modal>
+
       {/* Biểu đồ */}
       <ChartModal
         isOpen={modalIsOpen}

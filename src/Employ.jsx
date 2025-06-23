@@ -74,7 +74,7 @@ const [isScrolled, setIsScrolled] = useState(false);
                             : "bg-gray-300"
                         }`}
                       >
-                        Giờ (시간)
+                        Giờ
                       </button>
                       <button
                         onClick={() => setViewMode("day")}
@@ -84,7 +84,7 @@ const [isScrolled, setIsScrolled] = useState(false);
                             : "bg-gray-300"
                         }`}
                       >
-                        Ngày (날짜)
+                        Ngày
                       </button>
                     </div>
                   </div>
