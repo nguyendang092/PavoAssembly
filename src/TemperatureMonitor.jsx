@@ -1,32 +1,63 @@
-// TemperatureMonitor.jsx
-import React, { useEffect, useState } from "react";
-import { db } from "./firebase";
-import { ref, onValue } from "firebase/database";
+import React, { useState } from "react";
+import { format } from "date-fns";
+import SingleMachineTable from "./SingleMachineTable";
+
+const areaMachinesMap = {
+  PRESS: ["PRESS_1", "PRESS_2"],
+  MC: ["MC_1", "MC_2", "MC_3"],
+  ASSEMBLY: ["ASSEMBLY_1"],
+};
 
 const TemperatureMonitor = () => {
-  const [temperatures, setTemperatures] = useState({});
+  const [selectedArea, setSelectedArea] = useState("PRESS");
+  const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
 
-  useEffect(() => {
-    const tempRef = ref(db, "temperature"); // ví dụ: db/temperature
-    onValue(tempRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setTemperatures(data);
-      }
-    });
-  }, []);
+  const machines = areaMachinesMap[selectedArea] || [];
 
   return (
-    <div className="p-6 font-sans bg-gray-50 pt-24">
-      <h1 className="text-2xl font-bold mb-4 text-center text-red-600">🌡️ Theo dõi nhiệt độ</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {Object.entries(temperatures).map(([area, value]) => (
-          <div
-            key={area}
-            className="bg-white p-4 rounded shadow border border-gray-200"
+    <div className="p-6 bg-white rounded shadow max-w-7xl mx-auto">
+      <h2 className="text-2xl font-bold text-center mb-6">📋 Theo dõi nhiệt độ & độ ẩm theo khu vực</h2>
+
+      <div className="flex justify-center space-x-6 mb-6">
+        <label className="text-sm">
+          📍 Khu vực:
+          <select
+            value={selectedArea}
+            onChange={(e) => setSelectedArea(e.target.value)}
+            className="ml-2 px-3 py-1 border rounded"
           >
-            <h2 className="text-lg font-semibold mb-2">{area}</h2>
-            <p className="text-3xl font-bold text-blue-500">{value}°C</p>
+            {Object.keys(areaMachinesMap).map((area) => (
+              <option key={area} value={area}>
+                {area}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="text-sm">
+          📅 Tháng:
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="ml-2 px-3 py-1 border rounded"
+          />
+        </label>
+      </div>
+
+      {machines.length === 0 && (
+        <p className="text-center text-gray-600">Không có máy đo nào trong khu vực này.</p>
+      )}
+
+      <div
+        className="grid gap-6"
+        style={{
+          gridTemplateColumns: "1fr 1fr",
+        }}
+      >
+        {machines.map((machine) => (
+          <div key={machine} className="overflow-x-auto">
+            <SingleMachineTable machine={machine} selectedMonth={selectedMonth} />
           </div>
         ))}
       </div>
