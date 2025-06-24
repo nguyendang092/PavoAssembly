@@ -358,31 +358,30 @@ const AreaProductionTable = ({ area, showToast }) => {
                   </td>
                 </tr>
                 <tr className="bg-yellow-50 hover:bg-yellow-100">
-                  <td className="border border-gray-300 px-2 py-1 text-left font-semibold text-yellow-800">
-                    % Hoàn thành
-                  </td>
-                  {timeSlots.map((slotObj) => {
-                    const plan = Number(
-                      productionData[model]?.[slotObj.label] || 0
-                    );
-                    const actual = Number(
-                      actualData[model]?.[slotObj.label] || 0
-                    );
-                    const ratio =
-                      plan > 0 ? ((actual / plan) * 100).toFixed(1) : "0.0";
-                    return (
-                      <td
-                        key={slotObj.date}
-                        className="border border-gray-300 px-2 py-1 text-center font-semibold"
-                      >
-                        {ratio}%
-                      </td>
-                    );
-                  })}
-                  <td className="border border-gray-300 px-2 py-1 text-center font-semibold text-yellow-800">
-                    {averageRatio}%
-                  </td>
-                </tr>
+  <td className="border border-gray-300 px-2 py-1 text-left font-semibold text-yellow-800">
+    % Hoàn thành
+  </td>
+  {timeSlots.map((slotObj) => {
+    const plan = Number(productionData[model]?.[slotObj.label] || 0);
+    const actual = Number(actualData[model]?.[slotObj.label] || 0);
+    const ratio =
+      plan > 0 && !isNaN(actual)
+        ? ((actual / plan) * 100).toFixed(1)
+        : "0.0";
+    return (
+      <td
+        key={slotObj.date}
+        className="border border-gray-300 px-2 py-1 text-center font-semibold"
+      >
+        {ratio}%
+      </td>
+    );
+  })}
+  <td className="border border-gray-300 px-2 py-1 text-center font-semibold text-yellow-800">
+    {averageRatio}%
+  </td>
+</tr>
+
               </React.Fragment>
             );
           })}

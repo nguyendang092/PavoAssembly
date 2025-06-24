@@ -5,10 +5,12 @@ export default function Navbar({ onSelectLeader, onLeaderMapReady }) {
   const [activeLeaderKey, setActiveLeaderKey] = useState("PavoNine_Ngọc Thành");
 
   const leaderMap = {
+    "Nhiệt độ": "nhietdo",
     "PavoNine_Ngọc Thành": "NgocThanh",
     "PavoNine_Chí Thành": "ChiThanh",
-    PavoNine_Muội: "Muoi",
-    PavoNine_Hinh: "DuyHinh",
+    "PavoNine_Muội": "Muoi",
+   "PavoNine_Hinh": "DuyHinh",
+   
   };
   useEffect(() => {
     if (onLeaderMapReady) {
