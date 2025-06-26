@@ -12,6 +12,9 @@ import { FaChartLine, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 Modal.setAppElement("#root");
 
 const TemperatureMonitor = () => {
+  const [editingMachine, setEditingMachine] = useState(null);
+  const [editMachineName, setEditMachineName] = useState("");
+
   // State lưu danh sách khu vực dạng object { areaName: { machines: [] } }
   const [areas, setAreas] = useState({});
 
@@ -54,7 +57,7 @@ const TemperatureMonitor = () => {
     const areasRef = ref(db, "areas");
     const unsubscribe = onValue(areasRef, (snapshot) => {
       const data = snapshot.val() || {};
-      console.log("Firebase areas data:", data);
+      // console.log("Firebase areas data:", data);
       setAreas(data);
 
       // Bỏ không set selectedArea, modalSelectedArea tự động
@@ -69,33 +72,46 @@ const TemperatureMonitor = () => {
     selectedArea && areas[selectedArea]?.machines
       ? areas[selectedArea].machines
       : [];
-
-  // --- Thêm khu vực mới ---
-  const handleAddArea = async () => {
-    const trimmedName = newAreaName.trim();
-    if (!trimmedName) {
-      alert("Tên khu vực không được để trống");
+  const handleEditMachine = async (oldName, newName) => {
+    if (!selectedArea) return;
+    const trimmedNew = newName.trim();
+    if (!trimmedNew) {
+      alert("Tên máy không được để trống");
       return;
     }
-    if (areas[trimmedName]) {
-      alert("Khu vực đã tồn tại");
+
+    const currentMachines = areas[selectedArea]?.machines || [];
+
+    // Không thay đổi gì
+    if (oldName === trimmedNew) {
+      setEditingMachine(null);
+      return;
+    }
+
+    // Kiểm tra trùng
+    if (currentMachines.includes(trimmedNew)) {
+      alert("Máy đã tồn tại trong khu vực");
       return;
     }
 
     try {
-      await update(ref(db, "areas"), {
-        [trimmedName]: { machines: [] },
+      const updatedMachines = currentMachines.map((m) =>
+        m === oldName ? trimmedNew : m
+      );
+
+      await update(ref(db, `areas/${selectedArea}`), {
+        machines: updatedMachines,
       });
-      console.log("Thêm khu vực thành công:", trimmedName);
-      setNewAreaName("");
-      setIsAddingArea(false);
-      setSelectedArea(trimmedName);
-      setModalSelectedArea(trimmedName);
+
+      // console.log(`Đã đổi tên máy ${oldName} thành ${trimmedNew}`);
+      setEditingMachine(null);
+      setEditMachineName("");
     } catch (error) {
-      console.error("Lỗi khi thêm khu vực:", error);
-      alert("Lỗi khi thêm khu vực. Xem console để biết chi tiết.");
+      console.error("Lỗi khi sửa máy:", error);
+      alert("Lỗi khi sửa máy. Xem console để biết chi tiết.");
     }
   };
+
   // --- Xóa máy khỏi khu vực ---
   const handleDeleteMachine = async (machineName) => {
     if (!selectedArea) return;
@@ -113,7 +129,7 @@ const TemperatureMonitor = () => {
         machines: updatedMachines,
       });
 
-      console.log(`Đã xóa máy ${machineName} khỏi khu vực ${selectedArea}`);
+      // console.log(`Đã xóa máy ${machineName} khỏi khu vực ${selectedArea}`);
     } catch (error) {
       console.error("Lỗi khi xóa máy:", error);
       alert("Lỗi khi xóa máy. Xem console để biết chi tiết.");
@@ -148,7 +164,7 @@ const TemperatureMonitor = () => {
       // Xóa khu vực cũ
       await remove(ref(db, `areas/${editingArea}`));
 
-      console.log(`Đã sửa khu vực: ${editingArea} thành ${trimmedName}`);
+      // console.log(`Đã sửa khu vực: ${editingArea} thành ${trimmedName}`);
 
       // Cập nhật state
       setEditingArea(null);
@@ -156,7 +172,7 @@ const TemperatureMonitor = () => {
       setSelectedArea(trimmedName);
       setModalSelectedArea(trimmedName);
     } catch (error) {
-      console.error("Lỗi khi sửa khu vực:", error);
+      // console.error("Lỗi khi sửa khu vực:", error);
       alert("Lỗi khi sửa khu vực. Xem console để biết chi tiết.");
     }
   };
@@ -174,7 +190,7 @@ const TemperatureMonitor = () => {
 
     try {
       await remove(ref(db, `areas/${areaName}`));
-      console.log(`Đã xóa khu vực: ${areaName}`);
+      // console.log(`Đã xóa khu vực: ${areaName}`);
 
       // Nếu xóa khu vực đang chọn, reset lại selectedArea
       if (selectedArea === areaName) {
@@ -182,7 +198,7 @@ const TemperatureMonitor = () => {
         setModalSelectedArea(null);
       }
     } catch (error) {
-      console.error("Lỗi khi xóa khu vực:", error);
+      // console.error("Lỗi khi xóa khu vực:", error);
       alert("Lỗi khi xóa khu vực. Xem console để biết chi tiết.");
     }
   };
@@ -211,14 +227,10 @@ const TemperatureMonitor = () => {
       await update(ref(db, `areas/${selectedArea}`), {
         machines: updatedMachines,
       });
-
-      console.log(`Đã thêm máy ${trimmedMachine} vào khu vực ${selectedArea}`);
-
       setNewMachineName("");
       setIsAddingMachine(false);
     } catch (error) {
-      console.error("Lỗi khi thêm máy:", error);
-      alert("Lỗi khi thêm máy. Xem console để biết chi tiết.");
+      alert("Lỗi khi thêm máy. Hãy liên hệ quản trị viên.");
     }
   };
 
@@ -349,14 +361,68 @@ const TemperatureMonitor = () => {
                     key={machine}
                     className="flex items-center justify-between bg-white/10 px-2 py-1 rounded"
                   >
-                    <span>{machine}</span>
-                    <button
-                      onClick={() => handleDeleteMachine(machine)}
-                      className="text-red-300 hover:text-red-500"
-                      title="Xóa máy"
-                    >
-                      <FaTrash />
-                    </button>
+                    {editingMachine === machine ? (
+                      <>
+                        <input
+                          value={editMachineName}
+                          onChange={(e) => setEditMachineName(e.target.value)}
+                          className="flex-1 px-2 py-1 rounded text-black"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter")
+                              handleEditMachine(machine, editMachineName);
+                            else if (e.key === "Escape") {
+                              setEditingMachine(null);
+                              setEditMachineName("");
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <div className="ml-1">
+                          <button
+                            onClick={() =>
+                              handleEditMachine(machine, editMachineName)
+                            }
+                            className="text-green-400 hover:text-green-600"
+                            title="Lưu"
+                          >
+                            <FaCheck />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditingMachine(null);
+                              setEditMachineName("");
+                            }}
+                            className="text-gray-400 hover:text-gray-600"
+                            title="Hủy"
+                          >
+                            <FaTimes />
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <span>{machine}</span>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              setEditingMachine(machine);
+                              setEditMachineName(machine);
+                            }}
+                            className=" hover:text-green-300"
+                            title="Sửa tên"
+                          >
+                            <FaEdit />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMachine(machine)}
+                            className=" hover:text-red-500"
+                            title="Xóa máy"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </li>
                 ))}
               </ul>
