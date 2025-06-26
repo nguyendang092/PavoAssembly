@@ -7,7 +7,12 @@ import Navbar from "./Navbar";
 import AreaProductionTableTime from "./AreaProductionTableTime";
 import AddEmployeeForm from "./AddEmployeeModal";
 
-const Employ = ({ showToast, selectedLeader, onNavigateLeader, onLeaderMapReady }) => {
+const Employ = ({
+  showToast,
+  selectedLeader,
+  onNavigateLeader,
+  onLeaderMapReady,
+}) => {
   const [assignments, setAssignments] = useState([]);
   const [toastMessage, setToastMessage] = useState("");
   const [viewMode, setViewMode] = useState("time"); // mặc định "time"

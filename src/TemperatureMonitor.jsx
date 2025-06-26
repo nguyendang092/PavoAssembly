@@ -5,11 +5,7 @@ import SingleMachineTable from "./SingleMachineTable";
 import ChartView from "./ChartView";
 import { ref, onValue, set, remove, update } from "firebase/database";
 import { db } from "./firebase";
-import {
-  HiHome,
-  HiCalendar,
-  HiFolder,
-} from "react-icons/hi";
+import { HiHome, HiCalendar, HiFolder } from "react-icons/hi";
 import { FaCheck, FaTimes } from "react-icons/fa";
 import { FaChartLine, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
 
@@ -87,8 +83,8 @@ const TemperatureMonitor = () => {
     }
 
     try {
-      await update(ref(db, 'areas'), {
-        [trimmedName]: { machines: [] }
+      await update(ref(db, "areas"), {
+        [trimmedName]: { machines: [] },
       });
       console.log("Thêm khu vực thành công:", trimmedName);
       setNewAreaName("");
@@ -101,24 +97,28 @@ const TemperatureMonitor = () => {
     }
   };
   // --- Xóa máy khỏi khu vực ---
-const handleDeleteMachine = async (machineName) => {
-  if (!selectedArea) return;
+  const handleDeleteMachine = async (machineName) => {
+    if (!selectedArea) return;
 
-  const confirmed = window.confirm(`Bạn có chắc muốn xóa máy "${machineName}" không?`);
-  if (!confirmed) return;
+    const confirmed = window.confirm(
+      `Bạn có chắc muốn xóa máy "${machineName}" không?`
+    );
+    if (!confirmed) return;
 
-  try {
-    const currentMachines = areas[selectedArea]?.machines || [];
-    const updatedMachines = currentMachines.filter((m) => m !== machineName);
+    try {
+      const currentMachines = areas[selectedArea]?.machines || [];
+      const updatedMachines = currentMachines.filter((m) => m !== machineName);
 
-    await update(ref(db, `areas/${selectedArea}`), { machines: updatedMachines });
+      await update(ref(db, `areas/${selectedArea}`), {
+        machines: updatedMachines,
+      });
 
-    console.log(`Đã xóa máy ${machineName} khỏi khu vực ${selectedArea}`);
-  } catch (error) {
-    console.error("Lỗi khi xóa máy:", error);
-    alert("Lỗi khi xóa máy. Xem console để biết chi tiết.");
-  }
-};
+      console.log(`Đã xóa máy ${machineName} khỏi khu vực ${selectedArea}`);
+    } catch (error) {
+      console.error("Lỗi khi xóa máy:", error);
+      alert("Lỗi khi xóa máy. Xem console để biết chi tiết.");
+    }
+  };
 
   // --- Bắt đầu sửa ---
   const startEditArea = (areaName) => {
@@ -169,7 +169,8 @@ const handleDeleteMachine = async (machineName) => {
 
   // --- Xóa khu vực ---
   const handleDeleteArea = async (areaName) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa khu vực "${areaName}" không?`)) return;
+    if (!window.confirm(`Bạn có chắc muốn xóa khu vực "${areaName}" không?`))
+      return;
 
     try {
       await remove(ref(db, `areas/${areaName}`));
@@ -197,8 +198,6 @@ const handleDeleteMachine = async (machineName) => {
       alert("Chưa chọn khu vực để thêm máy");
       return;
     }
-  
-
 
     // Kiểm tra máy đã tồn tại trong khu vực chưa
     const existingMachines = areas[selectedArea]?.machines || [];
@@ -209,7 +208,9 @@ const handleDeleteMachine = async (machineName) => {
 
     try {
       const updatedMachines = [...existingMachines, trimmedMachine];
-      await update(ref(db, `areas/${selectedArea}`), { machines: updatedMachines });
+      await update(ref(db, `areas/${selectedArea}`), {
+        machines: updatedMachines,
+      });
 
       console.log(`Đã thêm máy ${trimmedMachine} vào khu vực ${selectedArea}`);
 
@@ -233,7 +234,9 @@ const handleDeleteMachine = async (machineName) => {
         </div>
 
         <div className="space-y-4">
-          <p className="uppercase text-sm text-white/70 tracking-wide">Bộ lọc</p>
+          <p className="uppercase text-sm text-white/70 tracking-wide">
+            Bộ lọc
+          </p>
 
           {/* Khu vực */}
           <div>
@@ -243,24 +246,33 @@ const handleDeleteMachine = async (machineName) => {
             >
               <HiFolder className="text-xl" />
               <span className="font-semibold">Khu vực</span>
-              <span className="ml-auto select-none">{showAreas ? "▲" : "▼"}</span>
+              <span className="ml-auto select-none">
+                {showAreas ? "▲" : "▼"}
+              </span>
             </div>
 
             {showAreas && (
               <div className="ml-2 mt-2 space-y-2">
                 {/* Nếu chưa có khu vực */}
                 {Object.keys(areas).length === 0 && (
-                  <p className="text-sm text-white/60 italic">Chưa có khu vực nào</p>
+                  <p className="text-sm text-white/60 italic">
+                    Chưa có khu vực nào
+                  </p>
                 )}
 
                 {Object.keys(areas).map((area) => (
                   <div
                     key={area}
                     className={`flex items-center justify-between px-2 py-1 rounded cursor-pointer ${
-                      selectedArea === area ? "bg-white/30 font-semibold" : "hover:bg-white/10"
+                      selectedArea === area
+                        ? "bg-white/30 font-semibold"
+                        : "hover:bg-white/10"
                     }`}
                   >
-                    <div className="flex-1" onClick={() => setSelectedArea(area)}>
+                    <div
+                      className="flex-1"
+                      onClick={() => setSelectedArea(area)}
+                    >
                       {editingArea === area ? (
                         <input
                           value={editAreaName}
@@ -315,50 +327,6 @@ const handleDeleteMachine = async (machineName) => {
                     )}
                   </div>
                 ))}
-
-                {/* Thêm khu vực */}
-                {isAddingArea ? (
-                  <div className="mt-2 flex gap-2">
-                    <input
-                      type="text"
-                      value={newAreaName}
-                      onChange={(e) => setNewAreaName(e.target.value)}
-                      placeholder="Khu vực mới"
-                      className="flex-1 px-1 py-1 rounded text-black"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleAddArea();
-                        else if (e.key === "Escape") {
-                          setIsAddingArea(false);
-                          setNewAreaName("");
-                        }
-                      }}
-                    />
-                    <button
-                      onClick={handleAddArea}
-                      className="w-14 bg-indigo-600 px-1 py-1 rounded text-white"
-                    >
-                      <FaCheck />
-                    </button>
-                    <button
-                      onClick={() => {
-                        setIsAddingArea(false);
-                        setNewAreaName("");
-                      }}
-                      className="w-14 bg-gray-600 px-1 py-1 rounded text-white"
-                    >
-                      <FaTimes />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setIsAddingArea(true)}
-                    className="mt-2 flex items-center space-x-1 text-indigo-300 hover:text-indigo-100"
-                  >
-                    <FaPlus />
-                    <span>Thêm khu vực</span>
-                  </button>
-                )}
               </div>
             )}
           </div>
@@ -370,27 +338,28 @@ const handleDeleteMachine = async (machineName) => {
                 Khu vực: {selectedArea}
               </p>
               {machines.length === 0 && (
-                <p className="text-sm text-white/60 italic mb-2">Chưa có máy nào</p>
+                <p className="text-sm text-white/60 italic mb-2">
+                  Chưa có máy nào
+                </p>
               )}
 
               <ul className="space-y-1">
-  {machines.map((machine) => (
-    <li
-      key={machine}
-      className="flex items-center justify-between bg-white/10 px-2 py-1 rounded"
-    >
-      <span>{machine}</span>
-      <button
-        onClick={() => handleDeleteMachine(machine)}
-        className="text-red-300 hover:text-red-500"
-        title="Xóa máy"
-      >
-        <FaTrash />
-      </button>
-    </li>
-  ))}
-</ul>
-
+                {machines.map((machine) => (
+                  <li
+                    key={machine}
+                    className="flex items-center justify-between bg-white/10 px-2 py-1 rounded"
+                  >
+                    <span>{machine}</span>
+                    <button
+                      onClick={() => handleDeleteMachine(machine)}
+                      className="text-red-300 hover:text-red-500"
+                      title="Xóa máy"
+                    >
+                      <FaTrash />
+                    </button>
+                  </li>
+                ))}
+              </ul>
 
               {isAddingMachine ? (
                 <div className="flex space-x-1">
@@ -445,7 +414,9 @@ const handleDeleteMachine = async (machineName) => {
             >
               <HiCalendar className="text-xl" />
               <span className="font-semibold">Tháng</span>
-              <span className="ml-auto select-none">{showMonthInput ? "▲" : "▼"}</span>
+              <span className="ml-auto select-none">
+                {showMonthInput ? "▲" : "▼"}
+              </span>
             </div>
 
             {showMonthInput && (
@@ -482,12 +453,20 @@ const handleDeleteMachine = async (machineName) => {
           </h2>
 
           {machines.length === 0 ? (
-            <p className="text-center text-gray-600">Không có máy đo nào trong khu vực này.</p>
+            <p className="text-center text-gray-600">
+              Không có máy đo nào trong khu vực này.
+            </p>
           ) : (
-            <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div
+              className="grid gap-6"
+              style={{ gridTemplateColumns: "1fr 1fr" }}
+            >
               {machines.map((machine) => (
                 <div key={machine} className="overflow-x-auto">
-                  <SingleMachineTable machine={machine} selectedMonth={selectedMonth} />
+                  <SingleMachineTable
+                    machine={machine}
+                    selectedMonth={selectedMonth}
+                  />
                 </div>
               ))}
             </div>
@@ -504,7 +483,9 @@ const handleDeleteMachine = async (machineName) => {
       >
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center space-x-6">
-            <h3 className="text-2xl font-bold">📈 Biểu đồ khu vực - {selectedMonth}</h3>
+            <h3 className="text-2xl font-bold">
+              📈 Biểu đồ khu vực - {selectedMonth}
+            </h3>
 
             {/* Dropdown chọn khu vực */}
             <select
@@ -556,12 +537,11 @@ const handleDeleteMachine = async (machineName) => {
         {/* Biểu đồ */}
         {modalSelectedArea ? (
           <ChartView
-  selectedArea={modalSelectedArea}
-  selectedMonth={selectedMonth}
-  type={activeTab}
-  machines={areas[modalSelectedArea]?.machines || []}
-/>
-
+            selectedArea={modalSelectedArea}
+            selectedMonth={selectedMonth}
+            type={activeTab}
+            machines={areas[modalSelectedArea]?.machines || []}
+          />
         ) : (
           <p>Chưa có khu vực nào được chọn để hiển thị biểu đồ.</p>
         )}

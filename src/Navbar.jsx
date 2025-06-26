@@ -9,8 +9,7 @@ export default function Navbar({ onSelectLeader, onLeaderMapReady }) {
     "PavoNine_Ngọc Thành": "NgocThanh",
     "PavoNine_Chí Thành": "ChiThanh",
     "PavoNine_Muội": "Muoi",
-   "PavoNine_Hinh": "DuyHinh",
-   
+    "PavoNine_Duy Hinh": "DuyHinh",
   };
   useEffect(() => {
     if (onLeaderMapReady) {

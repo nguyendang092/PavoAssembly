@@ -1,4 +1,3 @@
-// ChartView.jsx
 import React, { useEffect, useState } from "react";
 import { db } from "./firebase";
 import { ref, get } from "firebase/database";
@@ -10,15 +9,34 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ReferenceLine,
+  ReferenceArea
 } from "recharts";
 import { getDaysInMonth } from "date-fns";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
 
-const COLORS = ["#8884d8", "#82ca9d", "#ff7300", "#ff4d4f", "#00bcd4", "#a83279"];
+
+const COLORS = [
+  "#000000",
+  "#fabb00",
+  "#00FF00",
+  "#0000FF",
+  "#ff00ee",
+  "#a83279",
+];
 
 const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
   const [chartData, setChartData] = useState([]);
+  const [alerts, setAlerts] = useState([]);
+
+  const getThreshold = () => {
+    if (type === "temperature") return { min: 25, max: 35 };
+    if (type === "humidity") return { min: 60, max: 85 };
+    return { min: -Infinity, max: Infinity };
+  };
+
+  const threshold = getThreshold();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -26,17 +44,16 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
       const year = parseInt(selectedMonth.split("-")[0], 10);
       const month = parseInt(selectedMonth.split("-")[1], 10) - 1;
       const daysInMonth = getDaysInMonth(new Date(year, month));
+      const newAlerts = [];
 
-      // Khởi tạo dữ liệu cho từng ngày và máy
       for (let d = 1; d <= daysInMonth; d++) {
         const dayKey = d.toString().padStart(2, "0");
         result[dayKey] = { day: dayKey };
         machines.forEach((machine) => {
-          result[dayKey][machine] = null; // để đảm bảo chart vẫn có điểm trống nếu không có dữ liệu
+          result[dayKey][machine] = null;
         });
       }
 
-      // Lấy dữ liệu từ Firebase
       for (let i = 0; i < machines.length; i++) {
         const machine = machines[i];
         const snapshot = await get(
@@ -46,7 +63,17 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
           const data = snapshot.val();
           Object.entries(data).forEach(([day, value]) => {
             const dayKey = day.padStart(2, "0");
-            result[dayKey][machine] = parseFloat(value);
+            const val = parseFloat(value);
+            result[dayKey][machine] = val;
+            if (val < threshold.min || val > threshold.max) {
+              newAlerts.push({
+                day: `${dayKey}/${selectedMonth.split("-")[1]}`,
+                machine,
+                value: val,
+                status:
+                  val < threshold.min ? "Dưới tiêu chuẩn" : "Vượt tiêu chuẩn",
+              });
+            }
           });
         }
       }
@@ -55,12 +82,12 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
         (a, b) => parseInt(a.day) - parseInt(b.day)
       );
       setChartData(sortedData);
+      setAlerts(newAlerts);
     };
 
     fetchData();
   }, [selectedArea, selectedMonth, machines, type]);
 
-  // Export Excel
   const handleExportExcel = () => {
     const ws = XLSX.utils.json_to_sheet(chartData);
     const wb = XLSX.utils.book_new();
@@ -72,8 +99,19 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
     saveAs(blob, fileName);
   };
 
+  const hasWarning = alerts.length > 0;
+
   return (
     <div className="overflow-x-auto">
+      {/* Thông báo cảnh báo */}
+      {hasWarning && (
+        <div className="mb-4 p-3 rounded bg-red-100 text-red-700 font-medium">
+          ⚠️ Có {alerts.length} giá trị vượt ngưỡng {threshold.min}
+          {type === "temperature" ? "°C" : "%"} - {threshold.max}
+          {type === "temperature" ? "°C" : "%"}
+        </div>
+      )}
+
       {/* Nút xuất Excel */}
       <div className="mb-4 text-right">
         <button
@@ -84,19 +122,25 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
         </button>
       </div>
 
-      {/* Biểu đồ */}
-      <div style={{ width: `${chartData.length * 80}px`, minWidth: "100%" }}>
+      {/* Biểu đồ cố định kích thước */}
+      <div
+        className="mx-auto"
+        style={{
+          maxWidth: "1200px",
+          overflowX: "auto",
+        }}
+      >
         <LineChart
-          width={chartData.length * 80}
-          height={400}
+          width={1200}
+          height={420}
           data={chartData}
           margin={{ top: 30, right: 50, left: 30, bottom: 40 }}
         >
-          <CartesianGrid stroke="#ccc" strokeDasharray="3 3" />
+          <CartesianGrid vertical={false} horizontal={false} />
           <XAxis
             dataKey="day"
             tick={{
-              fill: "#333",
+              fill: "#000000",
               fontSize: 12,
               fontFamily: "sans-serif",
               angle: -45,
@@ -110,10 +154,16 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
           />
           <YAxis
             unit={type === "temperature" ? "°C" : "%"}
-            tick={{ fill: "#333", fontSize: 12, fontFamily: "sans-serif" }}
+            tick={{ fill: "#000000", fontSize: 12, fontFamily: "sans-serif", fontWeight: "bold",}}
             axisLine={{ stroke: "#999" }}
             tickLine={{ stroke: "#999" }}
           />
+          <ReferenceArea
+    y1={threshold.min}
+    y2={threshold.max}
+    strokeOpacity={0}
+    fill="rgba(214, 175, 163,0.4)" // xanh nhạt
+  />
           <Tooltip
             contentStyle={{
               fontFamily: "sans-serif",
@@ -127,10 +177,52 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
             }
           />
           <Legend
+            verticalAlign="top"
             wrapperStyle={{
-              fontSize: 13,
+              fontSize: 15,
               fontFamily: "sans-serif",
               color: "#333",
+              marginTop: -10,
+            }}
+          />
+          <ReferenceLine
+            y={threshold.min}
+            stroke="red"
+            strokeDasharray="3 3"
+            label={({ viewBox }) => {
+              const { y } = viewBox;
+              return (
+                <text
+                  x={5} // 👈 cách trục Y 40px
+                  y={y}
+                  fill="red"
+                  fontSize={12}
+                  fontFamily="sans-serif"
+                  fontWeight="bold"
+                >
+                  {`Min (${threshold.min})`}
+                </text>
+              );
+            }}
+          />
+          <ReferenceLine
+            y={threshold.max}
+            stroke="red"
+            strokeDasharray="3 3"
+            label={({ viewBox }) => {
+              const { y } = viewBox;
+              return (
+                <text
+                  x={5} // 👈 cách trục Y 40px
+                  y={y}
+                  fill="red"
+                  fontSize={12}
+                  fontFamily="sans-serif"
+                  fontWeight="bold"
+                >
+                  {`Max (${threshold.max})`}
+                </text>
+              );
             }}
           />
           {machines.map((machine, index) => (
@@ -140,12 +232,63 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
               dataKey={machine}
               stroke={COLORS[index % COLORS.length]}
               strokeWidth={2}
-              dot={{ r: 3 }}
-              connectNulls={true} // ✅ đảm bảo vẽ liên tục nếu có giá trị null
+              connectNulls={true}
+              dot={({ cx, cy, payload }) => {
+                const value = payload[machine];
+                if (value === null || value === undefined) return null;
+                const isOutOfRange =
+                  value < threshold.min || value > threshold.max;
+                return (
+                  <circle
+                    cx={cx}
+                    cy={cy}
+                    r={4}
+                    fill={isOutOfRange ? "red" : "white"}
+                    stroke={
+                      isOutOfRange ? "red" : COLORS[index % COLORS.length]
+                    }
+                    strokeWidth={2}
+                  />
+                );
+              }}
             />
           ))}
         </LineChart>
       </div>
+
+      {/* Bảng cảnh báo cụ thể */}
+      {hasWarning && (
+        <div className="mt-2">
+          <h3 className="text-lg font-semibold mb-2">🔍 Chi tiết cảnh báo</h3>
+          <div className="overflow-auto border rounded">
+            <table className="min-w-full text-sm text-left border-collapse">
+              <thead className="bg-gray-100 text-gray-800">
+                <tr>
+                  <th className="px-4 py-2 border">Ngày</th>
+                  <th className="px-4 py-2 border">Máy</th>
+                  <th className="px-4 py-2 border">Giá trị</th>
+                  <th className="px-4 py-2 border">Trạng thái</th>
+                </tr>
+              </thead>
+              <tbody>
+                {alerts.map((alert, index) => (
+                  <tr key={index} className="bg-white even:bg-gray-50">
+                    <td className="px-4 py-2 border">{alert.day}</td>
+                    <td className="px-4 py-2 border">{alert.machine}</td>
+                    <td className="px-4 py-2 border">
+                      {alert.value}
+                      {type === "temperature" ? "°C" : "%"}
+                    </td>
+                    <td className="px-4 py-2 border text-red-600">
+                      {alert.status}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
