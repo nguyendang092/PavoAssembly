@@ -21,7 +21,7 @@ const AttendanceModal = ({
     "Ngọc Thành": "NgocThanh",
     "Chí Thành": "ChiThanh",
     "Duy Hinh": "DuyHinh",
-    Muội: "Muoi",
+    "Muội": "Muoi",
   };
 
   const getAreaKey = (areaName) =>

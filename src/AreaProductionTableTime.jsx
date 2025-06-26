@@ -24,6 +24,7 @@ const timeLabels = [
 const AreaProductionTableTime = ({ area }) => {
   // Ví dụ sử dụng trong component:
   const areaKey = getAreaKey(area);
+  const [draftModelList, setDraftModelList] = useState([]);
   const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
   const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -47,6 +48,11 @@ const AreaProductionTableTime = ({ area }) => {
       fullDate: date,
     };
   });
+  useEffect(() => {
+  if (modelEditOpen) {
+    setDraftModelList(modelList);
+  }
+}, [modelEditOpen, modelList]);
 
   useEffect(() => {
     const actualRef = ref(db, `actual/${areaKey}/${weekKey}`);
@@ -376,87 +382,75 @@ const AreaProductionTableTime = ({ area }) => {
         </tbody>
       </table>
       <Modal
-        isOpen={modelEditOpen}
-        onRequestClose={() => setModelEditOpen(false)}
-        className="bg-gradient-to-br from-blue-50 to-white p-6 max-w-md w-full mx-auto rounded-2xl shadow-2xl transform transition-all duration-300 scale-100"
-        overlayClassName="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50 transition-opacity duration-300"
-      >
-        <h2 className="text-2xl font-bold mb-4 text-center text-blue-700">
-          🛠 Quản lý Line
-        </h2>
-
-        <ul className="space-y-3 max-h-60 overflow-y-auto pr-1">
-          {modelList.map((model, index) => (
-            <li key={index} className="flex items-center gap-2 group">
-              <input
-                value={model}
-                onChange={(e) => {
-                  const updated = [...modelList];
-                  updated[index] = e.target.value;
-                  setModelList(updated);
-                }}
-                className="border border-blue-300 px-3 py-2 flex-1 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 transition bg-white group-hover:bg-blue-50"
-              />
-              <button
-                onClick={() => {
-                  const updated = modelList.filter((_, i) => i !== index);
-                  setModelList(updated);
-                }}
-                className="text-red-500 hover:text-red-700 transition text-lg"
-                title="Xóa model"
-              >
-                ❌
-              </button>
-            </li>
-          ))}
-        </ul>
-
-        <div className="flex items-center gap-2 mt-5">
-          <input
-            type="text"
-            placeholder="Thêm Line mới"
-            value={newModelName}
-            onChange={(e) => setNewModelName(e.target.value)}
-            className="border border-green-300 px-3 py-2 flex-1 rounded-lg shadow-inner focus:outline-none focus:ring-2 focus:ring-green-400 transition bg-white"
-          />
-          <button
-            onClick={() => {
-              const trimmed = newModelName.trim();
-              if (trimmed !== "") {
-                setModelList([...modelList, trimmed]);
-                setNewModelName("");
-              }
-            }}
-            className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg hover:from-green-600 hover:to-green-700 transition font-semibold shadow-md"
-          >
-            ➕
-          </button>
-        </div>
-
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            onClick={() => setModelEditOpen(false)}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition shadow-sm"
-          >
-            Đóng
-          </button>
-          <button
-            onClick={() => {
-              set(ref(db, `assignments/${areaKey}/modelList`), modelList)
-                .then(() => {
-                  showToast("✅ Đã cập nhật Line");
-                  setModelEditOpen(false);
-                })
-                .catch(() => {
-                  showToast("❌ Lỗi khi lưu Line!");
-                });
-            }}
-            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition font-semibold shadow-md"
-          >
-            💾 Lưu
-          </button>
-        </div>
-      </Modal>
+              isOpen={modelEditOpen}
+              onRequestClose={() => setModelEditOpen(false)}
+              className="bg-white p-6 max-w-md mx-auto rounded shadow"
+              overlayClassName="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50"
+            >
+              <h2 className="text-lg font-bold mb-4">🛠 Quản lý Line</h2>
+              <ul className="space-y-2 max-h-60 overflow-y-auto">
+                {draftModelList.map((model, index) => (
+                  <li key={index} className="flex gap-2">
+                    <input
+                      value={model}
+                      onChange={(e) => {
+                        const updated = [...draftModelList];
+                        updated[index] = e.target.value;
+                        setDraftModelList(updated);
+                      }}
+                      className="border px-2 py-1 rounded flex-1"
+                    />
+                    <button onClick={() => setDraftModelList(draftModelList.filter((_, i) => i !== index))}>
+                      ❌
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex mt-4 gap-2">
+                <input
+                  value={newModelName}
+                  onChange={(e) => setNewModelName(e.target.value)}
+                  placeholder="Thêm Line mới"
+                  className="border px-2 py-1 rounded flex-1"
+                />
+                <button
+                  onClick={() => {
+                    const trimmed = newModelName.trim();
+                    if (trimmed) {
+                      setDraftModelList([...draftModelList, trimmed]);
+                      setNewModelName("");
+                    }
+                  }}
+                  className="bg-green-600 text-white px-4 py-1 rounded"
+                >
+                  ➕
+                </button>
+              </div>
+              <div className="flex justify-end mt-4 gap-2">
+                <button
+                  onClick={() => setModelEditOpen(false)}
+                  className="bg-gray-300 px-4 py-1 rounded"
+                >
+                  Đóng
+                </button>
+                <button
+                  onClick={() => {
+                    set(ref(db, `assignments/${areaKey}/modelList`), draftModelList)
+                      .then(() => {
+                        showToast("✅ Đã cập nhật Line");
+                        setModelList(draftModelList);
+                        setModelEditOpen(false);
+                      })
+                      .catch(() => {
+                        showToast("❌ Lỗi khi lưu Line!");
+                      });
+                  }}
+                  className="bg-blue-600 text-white px-4 py-1 rounded"
+                >
+                  💾 Lưu
+                </button>
+              </div>
+            </Modal>
 
       {/* Biểu đồ */}
       <ChartModal
