@@ -8,10 +8,16 @@ import { db } from "./firebase";
 import { HiHome, HiCalendar, HiFolder } from "react-icons/hi";
 import { FaCheck, FaTimes } from "react-icons/fa";
 import { FaChartLine, FaPlus, FaEdit, FaTrash } from "react-icons/fa";
+import Toast from "./Toast";
 
 Modal.setAppElement("#root");
 
 const TemperatureMonitor = () => {
+  const [toastMessage, setToastMessage] = useState("");
+  const showToast = (message) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(""), 3000); // tự động ẩn sau 3s
+  };
   const [editingMachine, setEditingMachine] = useState(null);
   const [editMachineName, setEditMachineName] = useState("");
 
@@ -40,10 +46,6 @@ const TemperatureMonitor = () => {
 
   // Modal chọn khu vực biểu đồ
   const [modalSelectedArea, setModalSelectedArea] = useState(null);
-
-  // Thêm / sửa khu vực
-  const [isAddingArea, setIsAddingArea] = useState(false);
-  const [newAreaName, setNewAreaName] = useState("");
 
   const [editingArea, setEditingArea] = useState(null);
   const [editAreaName, setEditAreaName] = useState("");
@@ -532,6 +534,7 @@ const TemperatureMonitor = () => {
                   <SingleMachineTable
                     machine={machine}
                     selectedMonth={selectedMonth}
+                    showToast={showToast}
                   />
                 </div>
               ))}
@@ -612,6 +615,7 @@ const TemperatureMonitor = () => {
           <p>Chưa có khu vực nào được chọn để hiển thị biểu đồ.</p>
         )}
       </Modal>
+      <Toast message={toastMessage} onClose={() => setToastMessage("")} />
     </div>
   );
 };

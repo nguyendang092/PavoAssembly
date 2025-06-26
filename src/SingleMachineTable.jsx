@@ -5,7 +5,7 @@ import { format, eachDayOfInterval, endOfMonth } from "date-fns";
 
 const PAGE_SIZE = 10;
 
-const SingleMachineTable = ({ machine, selectedMonth }) => {
+const SingleMachineTable = ({ machine, selectedMonth, showToast }) => {
   const [data, setData] = useState({ temperature: {}, humidity: {} });
   const [currentPage, setCurrentPage] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -50,10 +50,10 @@ const SingleMachineTable = ({ machine, selectedMonth }) => {
           await set(ref(db, path), valueToSave);
         }
       }
-      alert("Lưu dữ liệu thành công!");
+      if (showToast) showToast(`✅ Đã lưu dữ liệu cho máy ${machine}`);
     } catch (error) {
       console.error("Lỗi lưu dữ liệu:", error);
-      alert("Lưu dữ liệu thất bại, vui lòng thử lại.");
+      if (showToast) showToast("❌ Lưu dữ liệu thất bại!");
     } finally {
       setSaving(false);
     }
@@ -115,11 +115,9 @@ const SingleMachineTable = ({ machine, selectedMonth }) => {
         >
           ← Trước
         </button>
-
         <span>
           Trang {currentPage} / {totalPages}
         </span>
-
         <button
           onClick={() => goToPage(currentPage + 1)}
           disabled={currentPage === totalPages}

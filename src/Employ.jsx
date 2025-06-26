@@ -1,23 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { db } from "./firebase";
-import { ref, set, onValue, remove } from "firebase/database";
+import { ref, onValue } from "firebase/database";
 import AreaProductionTable from "./AreaProductionTable";
 import Toast from "./Toast";
-import Navbar from "./Navbar";
 import AreaProductionTableTime from "./AreaProductionTableTime";
 import AddEmployeeForm from "./AddEmployeeModal";
 
-const Employ = ({
-  showToast,
-  selectedLeader,
-  onNavigateLeader,
-  onLeaderMapReady,
-}) => {
+const Employ = ({ showToast, selectedLeader }) => {
   const [assignments, setAssignments] = useState([]);
   const [toastMessage, setToastMessage] = useState("");
-  const [viewMode, setViewMode] = useState("time"); // mặc định "time"
 
-  // Lấy danh sách assignments
+  // Trạng thái chế độ xem cho từng khu vực: { "Ngọc Thành": "time", "Quang Long": "day", ... }
+  const [viewModes, setViewModes] = useState({});
+
+  // Lấy danh sách assignments từ Firebase
   useEffect(() => {
     const assignmentsRef = ref(db, "assignments");
     onValue(assignmentsRef, (snapshot) => {
@@ -30,6 +26,14 @@ const Employ = ({
     });
   }, []);
 
+  // Chuyển đổi giữa chế độ "time" và "day" theo khu vực
+  const toggleViewMode = (area, mode) => {
+    setViewModes((prev) => ({
+      ...prev,
+      [area]: mode,
+    }));
+  };
+
   return (
     <>
       <div className="p-6 font-sans bg-gray-50 pt-24">
@@ -38,43 +42,50 @@ const Employ = ({
             Bảng phân công & sản lượng
           </h1>
         </div>
+
         <div className="space-y-8">
           {assignments
             .filter((a) => !selectedLeader || a.area === selectedLeader)
             .map((a, idx) => {
               const key = a.area.replace(/\//g, "_");
+              const currentViewMode = viewModes[a.area] || "time"; // mặc định là "time"
+
               return (
-                <div key={idx} className="border p-4 bg-white rounded shadow">
+                <div key={key} className="border p-4 bg-white rounded shadow">
                   <div className="flex justify-between items-center mb-2">
                     <h2 className="text-xl font-semibold">LEADER: {a.area}</h2>
-                    <AddEmployeeForm />
-                    <div className="space-x-2">
-                      {/* Nút chọn hiển thị theo giờ hoặc ngày */}
-                      <button
-                        onClick={() => setViewMode("time")}
-                        className={`px-4 py-2 rounded font-semibold ${
-                          viewMode === "time"
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-300"
-                        }`}
-                      >
-                        Giờ
-                      </button>
-                      <button
-                        onClick={() => setViewMode("day")}
-                        className={`px-4 py-2 rounded font-semibold ${
-                          viewMode === "day"
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-300"
-                        }`}
-                      >
-                        Ngày
-                      </button>
+
+                    <div className="flex items-center gap-4">
+                      <AddEmployeeForm />
+
+                      {/* Nút chọn chế độ hiển thị */}
+                      <div className="space-x-2">
+                        <button
+                          onClick={() => toggleViewMode(a.area, "time")}
+                          className={`px-4 py-2 rounded font-semibold ${
+                            currentViewMode === "time"
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-300"
+                          }`}
+                        >
+                          Giờ
+                        </button>
+                        <button
+                          onClick={() => toggleViewMode(a.area, "day")}
+                          className={`px-4 py-2 rounded font-semibold ${
+                            currentViewMode === "day"
+                              ? "bg-blue-500 text-white"
+                              : "bg-gray-300"
+                          }`}
+                        >
+                          Ngày
+                        </button>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Hiển thị bảng theo viewMode */}
-                  {viewMode === "time" ? (
+                  {/* Hiển thị bảng theo chế độ */}
+                  {currentViewMode === "time" ? (
                     <AreaProductionTableTime
                       area={a.area}
                       showToast={showToast}
@@ -87,6 +98,7 @@ const Employ = ({
             })}
         </div>
 
+        {/* Toast thông báo */}
         <Toast message={toastMessage} onClose={() => setToastMessage("")} />
       </div>
     </>
