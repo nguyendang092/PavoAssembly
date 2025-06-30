@@ -293,4 +293,4 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
   );
 };
 
-export default ChartView;
+export default ChartView; 

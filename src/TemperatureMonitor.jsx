@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import Modal from "react-modal";
 import SingleMachineTable from "./SingleMachineTable";
 import ChartView from "./ChartView";
-import { ref, onValue, set, remove, update } from "firebase/database";
+import { ref, onValue, set, remove, update, get } from "firebase/database";
 import { db } from "./firebase";
 import { HiHome, HiCalendar, HiFolder } from "react-icons/hi";
 import { FaCheck, FaTimes } from "react-icons/fa";
@@ -20,130 +20,118 @@ const TemperatureMonitor = () => {
   };
   const [editingMachine, setEditingMachine] = useState(null);
   const [editMachineName, setEditMachineName] = useState("");
-
   // State lưu danh sách khu vực dạng object { areaName: { machines: [] } }
   const [areas, setAreas] = useState({});
-
   // Khu vực được chọn ở sidebar (mặc định null, chờ user chọn)
   const [selectedArea, setSelectedArea] = useState(null);
-
   // Tháng hiện tại (format yyyy-MM)
   const [selectedMonth, setSelectedMonth] = useState(() =>
     format(new Date(), "yyyy-MM")
   );
-
   // Hiển thị danh sách khu vực trên sidebar
   const [showAreas, setShowAreas] = useState(false);
-
   // Hiển thị input chọn tháng
   const [showMonthInput, setShowMonthInput] = useState(false);
-
   // Modal biểu đồ
   const [isChartModalOpen, setIsChartModalOpen] = useState(false);
-
   // Tab biểu đồ: temperature hoặc humidity
   const [activeTab, setActiveTab] = useState("temperature");
-
   // Modal chọn khu vực biểu đồ
   const [modalSelectedArea, setModalSelectedArea] = useState(null);
-
   const [editingArea, setEditingArea] = useState(null);
   const [editAreaName, setEditAreaName] = useState("");
-
   // Thêm máy
   const [newMachineName, setNewMachineName] = useState("");
   const [isAddingMachine, setIsAddingMachine] = useState(false);
-
   // --- Lấy dữ liệu realtime của areas từ Firebase ---
   useEffect(() => {
     const areasRef = ref(db, "areas");
     const unsubscribe = onValue(areasRef, (snapshot) => {
       const data = snapshot.val() || {};
-      // console.log("Firebase areas data:", data);
+      console.log("Firebase areas data:", data);
       setAreas(data);
-
       // Bỏ không set selectedArea, modalSelectedArea tự động
       // User sẽ click chọn khu vực bên sidebar
     });
-
     return () => unsubscribe();
   }, []);
-
   // Lấy danh sách máy trong khu vực được chọn
   const machines =
     selectedArea && areas[selectedArea]?.machines
       ? areas[selectedArea].machines
       : [];
-  const handleEditMachine = async (oldName, newName) => {
-    if (!selectedArea) return;
-    const trimmedNew = newName.trim();
-    if (!trimmedNew) {
-      alert("Tên máy không được để trống");
-      return;
-    }
-
-    const currentMachines = areas[selectedArea]?.machines || [];
-
-    // Không thay đổi gì
-    if (oldName === trimmedNew) {
-      setEditingMachine(null);
-      return;
-    }
-
-    // Kiểm tra trùng
-    if (currentMachines.includes(trimmedNew)) {
-      alert("Máy đã tồn tại trong khu vực");
-      return;
-    }
-
-    try {
-      const updatedMachines = currentMachines.map((m) =>
-        m === oldName ? trimmedNew : m
-      );
-
-      await update(ref(db, `areas/${selectedArea}`), {
-        machines: updatedMachines,
-      });
-
-      // console.log(`Đã đổi tên máy ${oldName} thành ${trimmedNew}`);
+const handleEditMachine = async (oldName, newName) => {
+  if (!selectedArea) return;
+  const trimmedNew = newName.trim();
+  if (!trimmedNew) {
+    alert("Tên máy không được để trống");
+    return;
+  }
+  const currentMachines = areas[selectedArea]?.machines || [];
+  console.log("Old name:", oldName);
+  console.log("New name:", trimmedNew);
+  console.log("Current machines:", currentMachines);
+  if (oldName === trimmedNew) {
+    setEditingMachine(null);
+    return;
+  }
+  if (currentMachines.includes(trimmedNew)) {
+    alert("Máy đã tồn tại trong khu vực");
+    return;
+  }
+  try {
+    // Update danh sách máy trong khu vực
+    const updatedMachines = currentMachines.map((m) =>
+      m === oldName ? trimmedNew : m
+    );
+    console.log("Updated machines list:", updatedMachines);
+    await update(ref(db, `areas/${selectedArea}`), {
+      machines: updatedMachines,
+    });
+    console.log("Updated machines list in Firebase");
+    // Đổi tên máy trong temperature_monitor
+    const oldRef = ref(db, `temperature_monitor/${selectedArea}/${oldName}`);
+const newRef = ref(db, `temperature_monitor/${selectedArea}/${trimmedNew}`);
+    const snapshot = await get(oldRef);
+    console.log("Snapshot exists:", snapshot.exists());
+    if (snapshot.exists()) {
+      console.log("Old data:", snapshot.val());
+      await set(newRef, snapshot.val());
+      console.log("Set new key done");
+      await remove(oldRef);
+      console.log("Removed old key done");
       setEditingMachine(null);
       setEditMachineName("");
-    } catch (error) {
-      console.error("Lỗi khi sửa máy:", error);
-      alert("Lỗi khi sửa máy. Xem console để biết chi tiết.");
+      showToast(`Đã đổi tên máy ${oldName} thành ${trimmedNew}`);
+    } else {
+      console.log("Không tìm thấy dữ liệu nhiệt độ cũ để đổi tên.");
+      alert("Không tìm thấy dữ liệu nhiệt độ để đổi tên");
     }
-  };
-
+  } catch (error) {
+    console.error("Lỗi khi sửa máy:", error);
+    alert("Lỗi khi sửa máy. Xem console để biết chi tiết.");
+  }
+};
   // --- Xóa máy khỏi khu vực ---
   const handleDeleteMachine = async (machineName) => {
     if (!selectedArea) return;
-
-    const confirmed = window.confirm(
-      `Bạn có chắc muốn xóa máy "${machineName}" không?`
-    );
+    const confirmed = window.confirm(`Bạn có chắc muốn xóa máy \"${machineName}\" không?`);
     if (!confirmed) return;
-
     try {
       const currentMachines = areas[selectedArea]?.machines || [];
       const updatedMachines = currentMachines.filter((m) => m !== machineName);
-
-      await update(ref(db, `areas/${selectedArea}`), {
-        machines: updatedMachines,
-      });
-
-      // console.log(`Đã xóa máy ${machineName} khỏi khu vực ${selectedArea}`);
+      await update(ref(db, `areas/${selectedArea}`), { machines: updatedMachines });
+      await remove(ref(db, `temperature_monitor/${selectedArea}/${machineName}`));
     } catch (error) {
       console.error("Lỗi khi xóa máy:", error);
       alert("Lỗi khi xóa máy. Xem console để biết chi tiết.");
     }
   };
-
   // --- Bắt đầu sửa ---
   const startEditArea = (areaName) => {
     setEditingArea(areaName);
     setEditAreaName(areaName);
   };
-
   // --- Lưu sửa khu vực ---
   const handleEditArea = async () => {
     const trimmedName = editAreaName.trim();
@@ -155,58 +143,48 @@ const TemperatureMonitor = () => {
       alert("Khu vực mới đã tồn tại");
       return;
     }
-
     try {
-      // Lấy máy của khu vực cũ
       const oldMachines = areas[editingArea]?.machines || [];
-
-      // Tạo khu vực mới với tên mới + dữ liệu máy cũ
       await set(ref(db, `areas/${trimmedName}`), { machines: oldMachines });
-
-      // Xóa khu vực cũ
       await remove(ref(db, `areas/${editingArea}`));
 
-      // console.log(`Đã sửa khu vực: ${editingArea} thành ${trimmedName}`);
+      const oldDataRef = ref(db, `temperature_monitor/${editingArea}`);
+      const newDataRef = ref(db, `temperature_monitor/${trimmedName}`);
+      const snapshot = await get(oldDataRef);
+      if (snapshot.exists()) {
+        await set(newDataRef, snapshot.val());
+        await remove(oldDataRef);
+      }
 
-      // Cập nhật state
       setEditingArea(null);
       setEditAreaName("");
       setSelectedArea(trimmedName);
       setModalSelectedArea(trimmedName);
     } catch (error) {
-      // console.error("Lỗi khi sửa khu vực:", error);
       alert("Lỗi khi sửa khu vực. Xem console để biết chi tiết.");
     }
   };
-
   // --- Hủy sửa ---
   const cancelEditArea = () => {
     setEditingArea(null);
     setEditAreaName("");
   };
-
   // --- Xóa khu vực ---
   const handleDeleteArea = async (areaName) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa khu vực "${areaName}" không?`))
-      return;
-
+    if (!window.confirm(`Bạn có chắc muốn xóa khu vực \"${areaName}\" không?`)) return;
     try {
       await remove(ref(db, `areas/${areaName}`));
-      // console.log(`Đã xóa khu vực: ${areaName}`);
-
-      // Nếu xóa khu vực đang chọn, reset lại selectedArea
+      await remove(ref(db, `temperature_monitor/${areaName}`));
       if (selectedArea === areaName) {
         setSelectedArea(null);
         setModalSelectedArea(null);
       }
     } catch (error) {
-      // console.error("Lỗi khi xóa khu vực:", error);
       alert("Lỗi khi xóa khu vực. Xem console để biết chi tiết.");
     }
   };
-
   // --- Thêm máy mới vào khu vực ---
-  const handleAddMachine = async () => {
+   const handleAddMachine = async () => {
     const trimmedMachine = newMachineName.trim();
     if (!trimmedMachine) {
       alert("Tên máy không được để trống");
@@ -216,26 +194,25 @@ const TemperatureMonitor = () => {
       alert("Chưa chọn khu vực để thêm máy");
       return;
     }
-
-    // Kiểm tra máy đã tồn tại trong khu vực chưa
     const existingMachines = areas[selectedArea]?.machines || [];
     if (existingMachines.includes(trimmedMachine)) {
       alert("Máy đã tồn tại trong khu vực");
       return;
     }
-
     try {
       const updatedMachines = [...existingMachines, trimmedMachine];
       await update(ref(db, `areas/${selectedArea}`), {
         machines: updatedMachines,
       });
+      // Khởi tạo dữ liệu rỗng cho máy trong temperature_monitor
+      await set(ref(db, `temperature_monitor/${selectedArea}/${trimmedMachine}`), {});
       setNewMachineName("");
       setIsAddingMachine(false);
     } catch (error) {
       alert("Lỗi khi thêm máy. Hãy liên hệ quản trị viên.");
     }
   };
-
+  
   return (
     <div className="flex">
       {/* Sidebar */}
@@ -246,12 +223,10 @@ const TemperatureMonitor = () => {
             <span className="font-semibold">Dashboard</span>
           </div>
         </div>
-
         <div className="space-y-4">
           <p className="uppercase text-sm text-white/70 tracking-wide">
             Bộ lọc
           </p>
-
           {/* Khu vực */}
           <div>
             <div
@@ -264,7 +239,6 @@ const TemperatureMonitor = () => {
                 {showAreas ? "▲" : "▼"}
               </span>
             </div>
-
             {showAreas && (
               <div className="ml-2 mt-2 space-y-2">
                 {/* Nếu chưa có khu vực */}
@@ -273,7 +247,6 @@ const TemperatureMonitor = () => {
                     Chưa có khu vực nào
                   </p>
                 )}
-
                 {Object.keys(areas).map((area) => (
                   <div
                     key={area}
@@ -302,7 +275,6 @@ const TemperatureMonitor = () => {
                         <span>{area}</span>
                       )}
                     </div>
-
                     {/* Nút sửa, xóa */}
                     {editingArea === area ? (
                       <div className="space-x-1">
@@ -344,7 +316,6 @@ const TemperatureMonitor = () => {
               </div>
             )}
           </div>
-
           {/* Chỉ hiện phần máy khi đã chọn khu vực */}
           {selectedArea && (
             <div className="mt-6">
@@ -356,7 +327,6 @@ const TemperatureMonitor = () => {
                   Chưa có máy nào
                 </p>
               )}
-
               <ul className="space-y-1">
                 {machines.map((machine) => (
                   <li
@@ -407,6 +377,7 @@ const TemperatureMonitor = () => {
                         <div className="flex space-x-2">
                           <button
                             onClick={() => {
+                              console.log("🟢 Click nút Lưu");
                               setEditingMachine(machine);
                               setEditMachineName(machine);
                             }}
@@ -428,7 +399,6 @@ const TemperatureMonitor = () => {
                   </li>
                 ))}
               </ul>
-
               {isAddingMachine ? (
                 <div className="flex space-x-1">
                   <input
@@ -473,7 +443,6 @@ const TemperatureMonitor = () => {
               )}
             </div>
           )}
-
           {/* Tháng */}
           <div className="mt-6">
             <div
@@ -486,7 +455,6 @@ const TemperatureMonitor = () => {
                 {showMonthInput ? "▲" : "▼"}
               </span>
             </div>
-
             {showMonthInput && (
               <div className="ml-6 mt-2">
                 <input
@@ -498,7 +466,6 @@ const TemperatureMonitor = () => {
               </div>
             )}
           </div>
-
           {/* Nút mở popup biểu đồ */}
           <div
             onClick={() => {
@@ -512,14 +479,12 @@ const TemperatureMonitor = () => {
           </div>
         </div>
       </div>
-
       {/* Nội dung chính */}
       <div className="ml-72 flex-1 p-6">
         <div className="bg-white rounded shadow p-6 pt-12 min-h-[500px]">
           <h2 className="text-2xl font-bold text-center mb-6">
             📋 Theo dõi nhiệt độ & độ ẩm - {selectedArea || "Chưa chọn khu vực"}
           </h2>
-
           {machines.length === 0 ? (
             <p className="text-center text-gray-600">
               Không có máy đo nào trong khu vực này.
@@ -535,6 +500,7 @@ const TemperatureMonitor = () => {
                     machine={machine}
                     selectedMonth={selectedMonth}
                     showToast={showToast}
+                    area={selectedArea}
                   />
                 </div>
               ))}
@@ -542,7 +508,6 @@ const TemperatureMonitor = () => {
           )}
         </div>
       </div>
-
       {/* Modal Biểu đồ */}
       <Modal
         isOpen={isChartModalOpen}
@@ -555,7 +520,6 @@ const TemperatureMonitor = () => {
             <h3 className="text-2xl font-bold">
               📈 Biểu đồ khu vực - {selectedMonth}
             </h3>
-
             {/* Dropdown chọn khu vực */}
             <select
               value={modalSelectedArea}
@@ -569,7 +533,6 @@ const TemperatureMonitor = () => {
               ))}
             </select>
           </div>
-
           <button
             onClick={() => setIsChartModalOpen(false)}
             className="text-red-600 font-bold hover:text-red-800 transition-colors"
@@ -578,7 +541,6 @@ const TemperatureMonitor = () => {
             Đóng ✖
           </button>
         </div>
-
         {/* Tabs */}
         <div className="flex space-x-4 mb-6">
           <button
@@ -602,7 +564,6 @@ const TemperatureMonitor = () => {
             Độ ẩm
           </button>
         </div>
-
         {/* Biểu đồ */}
         {modalSelectedArea ? (
           <ChartView

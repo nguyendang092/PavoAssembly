@@ -5,7 +5,7 @@ import { format, eachDayOfInterval, endOfMonth } from "date-fns";
 
 const PAGE_SIZE = 10;
 
-const SingleMachineTable = ({ machine, selectedMonth, showToast }) => {
+const SingleMachineTable = ({area,  machine, selectedMonth, showToast }) => {
   const [data, setData] = useState({ temperature: {}, humidity: {} });
   const [currentPage, setCurrentPage] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -19,16 +19,16 @@ const SingleMachineTable = ({ machine, selectedMonth, showToast }) => {
   const pagedDays = daysInMonth.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   useEffect(() => {
-    const path = `temperature_monitor/${machine}/${selectedMonth}`;
-    const dataRef = ref(db, path);
-    const unsubscribe = onValue(dataRef, (snapshot) => {
-      const val = snapshot.val() || { temperature: {}, humidity: {} };
-      setData(val);
-    });
+  const path = `temperature_monitor/${area}/${machine}/${selectedMonth}`;
+  const dataRef = ref(db, path);
+  const unsubscribe = onValue(dataRef, (snapshot) => {
+    const val = snapshot.val() || { temperature: {}, humidity: {} };
+    setData(val);
+  });
 
-    setCurrentPage(1);
-    return () => unsubscribe();
-  }, [machine, selectedMonth]);
+  setCurrentPage(1);
+  return () => unsubscribe();
+}, [area, machine, selectedMonth]);
 
   const handleInputChange = (type, day, value) => {
     setData((prev) => {
@@ -45,10 +45,10 @@ const SingleMachineTable = ({ machine, selectedMonth, showToast }) => {
       for (const type of ["temperature", "humidity"]) {
         const entries = data[type] || {};
         for (const [day, val] of Object.entries(entries)) {
-          const path = `temperature_monitor/${machine}/${selectedMonth}/${type}/${day}`;
-          const valueToSave = val === "" ? null : parseFloat(val);
-          await set(ref(db, path), valueToSave);
-        }
+  const path = `temperature_monitor/${area}/${machine}/${selectedMonth}/${type}/${day}`;
+  const valueToSave = val === "" ? null : parseFloat(val);
+  await set(ref(db, path), valueToSave);
+}
       }
       if (showToast) showToast(`✅ Đã lưu dữ liệu cho máy ${machine}`);
     } catch (error) {
