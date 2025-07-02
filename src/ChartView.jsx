@@ -10,12 +10,11 @@ import {
   Tooltip,
   Legend,
   ReferenceLine,
-  ReferenceArea
+  ReferenceArea,
 } from "recharts";
 import { getDaysInMonth } from "date-fns";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
-
 
 const COLORS = [
   "#000000",
@@ -57,7 +56,10 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
       for (let i = 0; i < machines.length; i++) {
         const machine = machines[i];
         const snapshot = await get(
-          ref(db, `temperature_monitor/${selectedArea}/${machine}/${selectedMonth}/${type}`)
+          ref(
+            db,
+            `temperature_monitor/${selectedArea}/${machine}/${selectedMonth}/${type}`
+          )
         );
         if (snapshot.exists()) {
           const data = snapshot.val();
@@ -153,18 +155,23 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
             interval={0}
           />
           <YAxis
-          domain={[threshold.min - 5, threshold.max + 5]}
+            domain={[threshold.min - 5, threshold.max + 5]}
             unit={type === "temperature" ? "°C" : "%"}
-            tick={{ fill: "#000000", fontSize: 12, fontFamily: "sans-serif", fontWeight: "bold",}}
+            tick={{
+              fill: "#000000",
+              fontSize: 12,
+              fontFamily: "sans-serif",
+              fontWeight: "bold",
+            }}
             axisLine={{ stroke: "#999" }}
             tickLine={{ stroke: "#999" }}
           />
           <ReferenceArea
-    y1={threshold.min}
-    y2={threshold.max}
-    strokeOpacity={0}
-    fill="rgba(214, 175, 163,0.4)" // xanh nhạt
-  />
+            y1={threshold.min}
+            y2={threshold.max}
+            strokeOpacity={0}
+            fill="rgba(214, 175, 163,0.4)" // xanh nhạt
+          />
           <Tooltip
             contentStyle={{
               fontFamily: "sans-serif",
@@ -189,7 +196,7 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
           <ReferenceLine
             y={threshold.min}
             stroke="red"
-             ifOverflow="extendDomain"
+            ifOverflow="extendDomain"
             strokeDasharray="3 3"
             label={({ viewBox }) => {
               const { y } = viewBox;
@@ -210,7 +217,7 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
           <ReferenceLine
             y={threshold.max}
             stroke="red"
-             ifOverflow="extendDomain"
+            ifOverflow="extendDomain"
             strokeDasharray="3 3"
             label={({ viewBox }) => {
               const { y } = viewBox;
@@ -296,4 +303,4 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
   );
 };
 
-export default ChartView; 
+export default ChartView;
