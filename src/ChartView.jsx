@@ -57,7 +57,7 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
       for (let i = 0; i < machines.length; i++) {
         const machine = machines[i];
         const snapshot = await get(
-          ref(db, `temperature_monitor/${machine}/${selectedMonth}/${type}`)
+          ref(db, `temperature_monitor/${selectedArea}/${machine}/${selectedMonth}/${type}`)
         );
         if (snapshot.exists()) {
           const data = snapshot.val();
