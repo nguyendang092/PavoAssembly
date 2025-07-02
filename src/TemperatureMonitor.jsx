@@ -275,7 +275,7 @@ const newRef = ref(db, `temperature_monitor/${selectedArea}/${trimmedNew}`);
                         <span>{area}</span>
                       )}
                     </div>
-                    {/* Nút sửa, xóa */}
+                    {/* Nút sửa, xóa
                     {editingArea === area ? (
                       <div className="space-x-1">
                         <button
@@ -310,7 +310,7 @@ const newRef = ref(db, `temperature_monitor/${selectedArea}/${trimmedNew}`);
                           <FaTrash />
                         </button>
                       </div>
-                    )}
+                    )} */}
                   </div>
                 ))}
               </div>
