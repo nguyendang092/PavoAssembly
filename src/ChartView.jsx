@@ -153,6 +153,7 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
             interval={0}
           />
           <YAxis
+          domain={[threshold.min - 5, threshold.max + 5]}
             unit={type === "temperature" ? "°C" : "%"}
             tick={{ fill: "#000000", fontSize: 12, fontFamily: "sans-serif", fontWeight: "bold",}}
             axisLine={{ stroke: "#999" }}
@@ -188,6 +189,7 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
           <ReferenceLine
             y={threshold.min}
             stroke="red"
+             ifOverflow="extendDomain"
             strokeDasharray="3 3"
             label={({ viewBox }) => {
               const { y } = viewBox;
@@ -208,6 +210,7 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
           <ReferenceLine
             y={threshold.max}
             stroke="red"
+             ifOverflow="extendDomain"
             strokeDasharray="3 3"
             label={({ viewBox }) => {
               const { y } = viewBox;
