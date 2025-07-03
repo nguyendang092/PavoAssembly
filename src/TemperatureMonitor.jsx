@@ -48,7 +48,7 @@ const TemperatureMonitor = () => {
     const areasRef = ref(db, "areas");
     const unsubscribe = onValue(areasRef, (snapshot) => {
       const data = snapshot.val() || {};
-      console.log("Firebase areas data:", data);
+      // console.log("Firebase areas data:", data);
       setAreas(data);
       // Bỏ không set selectedArea, modalSelectedArea tự động
       // User sẽ click chọn khu vực bên sidebar
@@ -60,131 +60,85 @@ const TemperatureMonitor = () => {
     selectedArea && areas[selectedArea]?.machines
       ? areas[selectedArea].machines
       : [];
-const handleEditMachine = async (oldName, newName) => {
-  if (!selectedArea) return;
-  const trimmedNew = newName.trim();
-  if (!trimmedNew) {
-    alert("Tên máy không được để trống");
-    return;
-  }
-  const currentMachines = areas[selectedArea]?.machines || [];
-  console.log("Old name:", oldName);
-  console.log("New name:", trimmedNew);
-  console.log("Current machines:", currentMachines);
-  if (oldName === trimmedNew) {
-    setEditingMachine(null);
-    return;
-  }
-  if (currentMachines.includes(trimmedNew)) {
-    alert("Máy đã tồn tại trong khu vực");
-    return;
-  }
-  try {
-    // Update danh sách máy trong khu vực
-    const updatedMachines = currentMachines.map((m) =>
-      m === oldName ? trimmedNew : m
-    );
-    console.log("Updated machines list:", updatedMachines);
-    await update(ref(db, `areas/${selectedArea}`), {
-      machines: updatedMachines,
-    });
-    console.log("Updated machines list in Firebase");
-    // Đổi tên máy trong temperature_monitor
-    const oldRef = ref(db, `temperature_monitor/${selectedArea}/${oldName}`);
-const newRef = ref(db, `temperature_monitor/${selectedArea}/${trimmedNew}`);
-    const snapshot = await get(oldRef);
-    console.log("Snapshot exists:", snapshot.exists());
-    if (snapshot.exists()) {
-      console.log("Old data:", snapshot.val());
-      await set(newRef, snapshot.val());
-      console.log("Set new key done");
-      await remove(oldRef);
-      console.log("Removed old key done");
-      setEditingMachine(null);
-      setEditMachineName("");
-      showToast(`Đã đổi tên máy ${oldName} thành ${trimmedNew}`);
-    } else {
-      console.log("Không tìm thấy dữ liệu nhiệt độ cũ để đổi tên.");
-      alert("Không tìm thấy dữ liệu nhiệt độ để đổi tên");
+  const handleEditMachine = async (oldName, newName) => {
+    if (!selectedArea) return;
+    const trimmedNew = newName.trim();
+    if (!trimmedNew) {
+      alert("Tên máy không được để trống");
+      return;
     }
-  } catch (error) {
-    console.error("Lỗi khi sửa máy:", error);
-    alert("Lỗi khi sửa máy. Xem console để biết chi tiết.");
-  }
-};
+    const currentMachines = areas[selectedArea]?.machines || [];
+    // console.log("Old name:", oldName);
+    // console.log("New name:", trimmedNew);
+    // console.log("Current machines:", currentMachines);
+    if (oldName === trimmedNew) {
+      setEditingMachine(null);
+      return;
+    }
+    if (currentMachines.includes(trimmedNew)) {
+      alert("Máy đã tồn tại trong khu vực");
+      return;
+    }
+    try {
+      // Update danh sách máy trong khu vực
+      const updatedMachines = currentMachines.map((m) =>
+        m === oldName ? trimmedNew : m
+      );
+      console.log("Updated machines list:", updatedMachines);
+      await update(ref(db, `areas/${selectedArea}`), {
+        machines: updatedMachines,
+      });
+      console.log("Updated machines list in Firebase");
+      // Đổi tên máy trong temperature_monitor
+      const oldRef = ref(db, `temperature_monitor/${selectedArea}/${oldName}`);
+      const newRef = ref(
+        db,
+        `temperature_monitor/${selectedArea}/${trimmedNew}`
+      );
+      const snapshot = await get(oldRef);
+      console.log("Snapshot exists:", snapshot.exists());
+      if (snapshot.exists()) {
+        console.log("Old data:", snapshot.val());
+        await set(newRef, snapshot.val());
+        console.log("Set new key done");
+        await remove(oldRef);
+        console.log("Removed old key done");
+        setEditingMachine(null);
+        setEditMachineName("");
+        showToast(`Đã đổi tên máy ${oldName} thành ${trimmedNew}`);
+      } else {
+        console.log("Không tìm thấy dữ liệu nhiệt độ cũ để đổi tên.");
+        alert("Không tìm thấy dữ liệu nhiệt độ để đổi tên");
+      }
+    } catch (error) {
+      console.error("Lỗi khi sửa máy:", error);
+      alert("Lỗi khi sửa máy. Xem console để biết chi tiết.");
+    }
+  };
   // --- Xóa máy khỏi khu vực ---
   const handleDeleteMachine = async (machineName) => {
     if (!selectedArea) return;
-    const confirmed = window.confirm(`Bạn có chắc muốn xóa máy \"${machineName}\" không?`);
+    const confirmed = window.confirm(
+      `Bạn có chắc muốn xóa máy \"${machineName}\" không?`
+    );
     if (!confirmed) return;
     try {
       const currentMachines = areas[selectedArea]?.machines || [];
       const updatedMachines = currentMachines.filter((m) => m !== machineName);
-      await update(ref(db, `areas/${selectedArea}`), { machines: updatedMachines });
-      await remove(ref(db, `temperature_monitor/${selectedArea}/${machineName}`));
+      await update(ref(db, `areas/${selectedArea}`), {
+        machines: updatedMachines,
+      });
+      await remove(
+        ref(db, `temperature_monitor/${selectedArea}/${machineName}`)
+      );
     } catch (error) {
       console.error("Lỗi khi xóa máy:", error);
       alert("Lỗi khi xóa máy. Xem console để biết chi tiết.");
     }
   };
-  // --- Bắt đầu sửa ---
-  const startEditArea = (areaName) => {
-    setEditingArea(areaName);
-    setEditAreaName(areaName);
-  };
-  // --- Lưu sửa khu vực ---
-  const handleEditArea = async () => {
-    const trimmedName = editAreaName.trim();
-    if (!trimmedName) {
-      alert("Tên khu vực không được để trống");
-      return;
-    }
-    if (trimmedName !== editingArea && areas[trimmedName]) {
-      alert("Khu vực mới đã tồn tại");
-      return;
-    }
-    try {
-      const oldMachines = areas[editingArea]?.machines || [];
-      await set(ref(db, `areas/${trimmedName}`), { machines: oldMachines });
-      await remove(ref(db, `areas/${editingArea}`));
 
-      const oldDataRef = ref(db, `temperature_monitor/${editingArea}`);
-      const newDataRef = ref(db, `temperature_monitor/${trimmedName}`);
-      const snapshot = await get(oldDataRef);
-      if (snapshot.exists()) {
-        await set(newDataRef, snapshot.val());
-        await remove(oldDataRef);
-      }
-
-      setEditingArea(null);
-      setEditAreaName("");
-      setSelectedArea(trimmedName);
-      setModalSelectedArea(trimmedName);
-    } catch (error) {
-      alert("Lỗi khi sửa khu vực. Xem console để biết chi tiết.");
-    }
-  };
-  // --- Hủy sửa ---
-  const cancelEditArea = () => {
-    setEditingArea(null);
-    setEditAreaName("");
-  };
-  // --- Xóa khu vực ---
-  const handleDeleteArea = async (areaName) => {
-    if (!window.confirm(`Bạn có chắc muốn xóa khu vực \"${areaName}\" không?`)) return;
-    try {
-      await remove(ref(db, `areas/${areaName}`));
-      await remove(ref(db, `temperature_monitor/${areaName}`));
-      if (selectedArea === areaName) {
-        setSelectedArea(null);
-        setModalSelectedArea(null);
-      }
-    } catch (error) {
-      alert("Lỗi khi xóa khu vực. Xem console để biết chi tiết.");
-    }
-  };
   // --- Thêm máy mới vào khu vực ---
-   const handleAddMachine = async () => {
+  const handleAddMachine = async () => {
     const trimmedMachine = newMachineName.trim();
     if (!trimmedMachine) {
       alert("Tên máy không được để trống");
@@ -205,14 +159,17 @@ const newRef = ref(db, `temperature_monitor/${selectedArea}/${trimmedNew}`);
         machines: updatedMachines,
       });
       // Khởi tạo dữ liệu rỗng cho máy trong temperature_monitor
-      await set(ref(db, `temperature_monitor/${selectedArea}/${trimmedMachine}`), {});
+      await set(
+        ref(db, `temperature_monitor/${selectedArea}/${trimmedMachine}`),
+        {}
+      );
       setNewMachineName("");
       setIsAddingMachine(false);
     } catch (error) {
       alert("Lỗi khi thêm máy. Hãy liên hệ quản trị viên.");
     }
   };
-  
+
   return (
     <div className="flex">
       {/* Sidebar */}

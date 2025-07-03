@@ -2,13 +2,13 @@ import { useEffect, useState } from "react";
 
 export default function Navbar({ onSelectLeader, onLeaderMapReady }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeLeaderKey, setActiveLeaderKey] = useState("PavoNine_Ngọc Thành");
+  const [activeLeaderKey, setActiveLeaderKey] = useState("Nhiệt độ");
 
   const leaderMap = {
     "Nhiệt độ": "nhietdo",
     "PavoNine_Ngọc Thành": "NgocThanh",
     "PavoNine_Chí Thành": "ChiThanh",
-    "PavoNine_Muội": "Muoi",
+    PavoNine_Muội: "Muoi",
     "PavoNine_Duy Hinh": "DuyHinh",
   };
   useEffect(() => {
