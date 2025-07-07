@@ -19,7 +19,8 @@ const AddEmployeeModal = ({
   setModelList,
 }) => {
   const getToday = () => new Date().toISOString().slice(0, 10);
-  const dateKey = selectedDate?.replace(/-/g, "") || getToday().replace(/-/g, "");
+  const dateKey =
+    selectedDate?.replace(/-/g, "") || getToday().replace(/-/g, "");
 
   const [filterDate, setFilterDate] = useState(selectedDate || "");
   const filterDateKey = filterDate?.replace(/-/g, "") || "";
@@ -199,19 +200,19 @@ const AddEmployeeModal = ({
       }
 
       const updatedEmployee = {
-  name: newEmployee.name,
-  employeeId,
-  imageUrl,
-  schedules: {
-    ...(existingData.schedules || {}),
-    [dateKey]: {
-      model: modelValue,
-      joinDate: newEmployee.joinDate || selectedDate,
-      status: newEmployee.status,
-      timePhanCong,
-    },
-  },
-};
+        name: newEmployee.name,
+        employeeId,
+        imageUrl,
+        schedules: {
+          ...(existingData.schedules || {}),
+          [dateKey]: {
+            model: modelValue,
+            joinDate: newEmployee.joinDate || selectedDate,
+            status: newEmployee.status,
+            timePhanCong,
+          },
+        },
+      };
       await set(employeeRef, updatedEmployee);
 
       if (!modelList.includes(modelValue)) {

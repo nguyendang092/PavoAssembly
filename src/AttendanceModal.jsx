@@ -21,7 +21,7 @@ const AttendanceModal = ({
     "Ngọc Thành": "NgocThanh",
     "Chí Thành": "ChiThanh",
     "Duy Hinh": "DuyHinh",
-    "Muội": "Muoi",
+    Muội: "Muoi",
   };
 
   const getAreaKey = (areaName) =>
@@ -157,7 +157,8 @@ const AttendanceModal = ({
   };
 
   const handleDelete = async (employeeId) => {
-    if (!window.confirm(`Xóa nhân viên ${employees[employeeId]?.name}?`)) return;
+    if (!window.confirm(`Xóa nhân viên ${employees[employeeId]?.name}?`))
+      return;
     try {
       await remove(ref(db, `attendance/${mappedAreaKey}/${employeeId}`));
       setEmployees((prev) => {
@@ -224,125 +225,250 @@ const AttendanceModal = ({
   Object.entries(employees).forEach(([id, emp]) => {
     if (showOnlyLeave && emp.status !== "Nghỉ phép") return;
     if (filterModel && emp.model !== filterModel) return;
-    if (emp.status === "Nghỉ phép") groupedEmployees["Nghỉ phép"].push({ id, ...emp });
+    if (emp.status === "Nghỉ phép")
+      groupedEmployees["Nghỉ phép"].push({ id, ...emp });
     else groupedEmployees[emp.model || "Không xác định"]?.push({ id, ...emp });
   });
   // 📌 Thống kê toàn bộ trước khi lọc
-const totalCount = Object.keys(employees).length;
-const countWorking = Object.values(employees).filter(
-  (emp) => emp.status === "Đi làm"
-).length;
-const countLeave = Object.values(employees).filter(
-  (emp) => emp.status === "Nghỉ phép"
-).length;
+  const totalCount = Object.keys(employees).length;
+  const countWorking = Object.values(employees).filter(
+    (emp) => emp.status === "Đi làm"
+  ).length;
+  const countLeave = Object.values(employees).filter(
+    (emp) => emp.status === "Nghỉ phép"
+  ).length;
   return (
-    <Modal isOpen={isOpen} onRequestClose={onClose} className="bg-white rounded-lg p-6 max-w-6xl mx-auto mt-16 shadow" overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50">
-      <h3 className="text-2xl font-bold mb-4">👥 Leader: {mappedAreaKey} : {selectedDate}</h3>
-       <h2 className="text-xl font-bold mb-2 bg-yellow-100 rounded px-3 py-2">
-          Tổng: {totalCount} người | 👷‍♂️ Đi làm: {countWorking} | 🌴 Nghỉ phép: {countLeave}
-        </h2>
+    <Modal
+      isOpen={isOpen}
+      onRequestClose={onClose}
+      className="bg-white rounded-lg p-6 max-w-6xl mx-auto mt-16 shadow"
+      overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50"
+    >
+      <h3 className="text-2xl font-bold mb-4">
+        👥 Leader: {mappedAreaKey} : {selectedDate}
+      </h3>
+      <h2 className="text-xl font-bold mb-2 bg-yellow-100 rounded px-3 py-2">
+        Tổng: {totalCount} người | 👷‍♂️ Đi làm: {countWorking} | 🌴 Nghỉ phép:{" "}
+        {countLeave}
+      </h2>
       <div className="flex flex-wrap gap-3 mb-4 text-sm">
-        <select value={filterModel} onChange={(e) => setFilterModel(e.target.value)} className="border px-3 py-1 rounded">
+        <select
+          value={filterModel}
+          onChange={(e) => setFilterModel(e.target.value)}
+          className="border px-3 py-1 rounded"
+        >
           <option value="">-- Tất cả line --</option>
           {modelList.map((m) => (
-            <option key={m} value={m}>{m}</option>
+            <option key={m} value={m}>
+              {m}
+            </option>
           ))}
         </select>
-        <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="border px-3 py-1 rounded" />
+        <input
+          type="date"
+          value={filterDate}
+          onChange={(e) => setFilterDate(e.target.value)}
+          className="border px-3 py-1 rounded"
+        />
         <label className="flex items-center gap-1">
-          <input type="checkbox" checked={showOnlyLeave} onChange={(e) => setShowOnlyLeave(e.target.checked)} /> DSNV nghỉ phép
+          <input
+            type="checkbox"
+            checked={showOnlyLeave}
+            onChange={(e) => setShowOnlyLeave(e.target.checked)}
+          />{" "}
+          DSNV nghỉ phép
         </label>
-        <button onClick={() => { setFilterModel(""); setFilterDate(selectedDate || ""); setShowOnlyLeave(false); }} className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400">Xóa bộ lọc</button>
+        <button
+          onClick={() => {
+            setFilterModel("");
+            setFilterDate(selectedDate || "");
+            setShowOnlyLeave(false);
+          }}
+          className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400"
+        >
+          Xóa bộ lọc
+        </button>
       </div>
 
-      {Object.entries(groupedEmployees).map(([model, emps]) => (
-        emps.length > 0 && (
-          <div key={model} className="mb-6">
-            <div className="bg-blue-100 text-blue-800 font-bold px-3 py-2 rounded mb-1">
-              * Line: {model} — Tổng: {emps.length} người | 👷‍♂️ Đi làm: {emps.filter(e => e.status === "Đi làm").length} | 🌴 Nghỉ phép: {emps.filter(e => e.status === "Nghỉ phép").length}
+      {Object.entries(groupedEmployees).map(
+        ([model, emps]) =>
+          emps.length > 0 && (
+            <div key={model} className="mb-6">
+              <div className="bg-blue-100 text-blue-800 font-bold px-3 py-2 rounded mb-1">
+                * Line: {model} — Tổng: {emps.length} người | 👷‍♂️ Đi làm:{" "}
+                {emps.filter((e) => e.status === "Đi làm").length} | 🌴 Nghỉ
+                phép: {emps.filter((e) => e.status === "Nghỉ phép").length}
+              </div>
+              <table className="min-w-full border table-fixed text-sm">
+                <thead>
+                  <tr className="bg-gray-100 font-semibold text-center">
+                    <th className="border px-2 py-1 w-[64px]">Ảnh</th>
+                    <th className="border px-2 py-1 w-[160px]">Họ & Tên</th>
+                    <th className="border px-2 py-1 w-[160px]">Mã NV</th>
+                    <th className="border px-2 py-1 w-[100px]">
+                      Thời gian phân line
+                    </th>
+                    <th className="border px-2 py-1 w-[100px]">Trạng thái</th>
+                    <th className="border px-2 py-1 w-[160px]">Line</th>
+                    <th className="border px-2 py-1 w-[140px]">
+                      Ngày phân công
+                    </th>
+                    <th className="border px-2 py-1 w-[100px]">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {emps.map(({ id, ...emp }) => {
+                    const isEditing = editEmployeeId === id;
+                    return (
+                      <tr key={id} className="border-b text-center">
+                        <td className="border px-2 py-1">
+                          {isEditing ? (
+                            <>
+                              <img
+                                src={
+                                  editImagePreview ||
+                                  emp.imageUrl ||
+                                  "https://via.placeholder.com/48"
+                                }
+                                alt="avatar"
+                                className="w-10 h-10 rounded-full object-cover mx-auto mb-1"
+                              />
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleEditImageChange}
+                                className="w-full"
+                              />
+                            </>
+                          ) : (
+                            <img
+                              src={
+                                emp.imageUrl || "/picture/employees/user.jpg"
+                              }
+                              alt="avatar"
+                              className="w-10 h-10 rounded-full object-cover mx-auto"
+                            />
+                          )}
+                        </td>
+                        <td className="border px-2 py-1">
+                          {isEditing ? (
+                            <input
+                              value={editEmployeeData.name || ""}
+                              onChange={(e) =>
+                                handleChange("name", e.target.value)
+                              }
+                              className="w-full border px-1 py-0.5"
+                            />
+                          ) : (
+                            emp.name
+                          )}
+                        </td>
+                        <td className="border px-2 py-1">
+                          {emp.employeeId || "—"}
+                        </td>
+                        <td className="border px-2 py-1">
+                          {isEditing ? (
+                            <input
+                              type="date"
+                              value={editEmployeeData.timePhanCong || ""}
+                              onChange={(e) =>
+                                handleChange("timePhanCong", e.target.value)
+                              }
+                              className="w-full border px-1 py-0.5"
+                            />
+                          ) : (
+                            emp.timePhanCong || "—"
+                          )}
+                        </td>
+                        <td className="border px-2 py-1">
+                          {isEditing ? (
+                            <select
+                              value={editEmployeeData.status || ""}
+                              onChange={(e) =>
+                                handleChange("status", e.target.value)
+                              }
+                              className="w-full border px-1 py-0.5"
+                            >
+                              <option value="Đi làm">Đi làm</option>
+                              <option value="Nghỉ phép">Nghỉ phép</option>
+                            </select>
+                          ) : (
+                            emp.status
+                          )}
+                        </td>
+                        <td className="border px-2 py-1">
+                          {isEditing ? (
+                            <select
+                              value={editEmployeeData.model || ""}
+                              onChange={(e) =>
+                                handleChange("model", e.target.value)
+                              }
+                              className="w-full border px-1 py-0.5"
+                              disabled={editEmployeeData.status === "Nghỉ phép"}
+                            >
+                              <option value="">-- Chọn line --</option>
+                              {modelList.map((m) => (
+                                <option key={m} value={m}>
+                                  {m}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            emp.model || "—"
+                          )}
+                        </td>
+                        <td className="border px-2 py-1">
+                          {emp.joinDate || "—"}
+                        </td>
+                        <td className="border px-2 py-1 space-x-1">
+                          {isEditing ? (
+                            <>
+                              <button
+                                onClick={handleSaveEdit}
+                                className="px-2 py-1 bg-green-500 text-white rounded"
+                              >
+                                Lưu
+                              </button>
+                              <button
+                                onClick={handleCancelEdit}
+                                className="px-2 py-1 bg-gray-400 text-white rounded"
+                              >
+                                Hủy
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleEditClick(id)}
+                                className="px-2 py-1 bg-blue-600 text-white rounded"
+                              >
+                                Sửa
+                              </button>
+                              <button
+                                onClick={() => handleDelete(id)}
+                                className="px-2 py-1 bg-red-600 text-white rounded"
+                              >
+                                Xóa
+                              </button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-            <table className="min-w-full border table-fixed text-sm">
-              <thead>
-                <tr className="bg-gray-100 font-semibold text-center">
-                  <th className="border px-2 py-1">Ảnh</th>
-                  <th className="border px-2 py-1">Họ & Tên</th>
-                  <th className="border px-2 py-1">Mã NV</th>
-                  <th className="border px-2 py-1">Thời gian phân line</th>
-                  <th className="border px-2 py-1">Trạng thái</th>
-                  <th className="border px-2 py-1">Line</th>
-                  <th className="border px-2 py-1">Ngày phân công</th>
-                  <th className="border px-2 py-1">Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {emps.map(({ id, ...emp }) => {
-                  const isEditing = editEmployeeId === id;
-                  return (
-                    <tr key={id} className="border-b text-center">
-                      <td className="border px-2 py-1">
-                        {isEditing ? (
-                          <>
-                            <img src={editImagePreview || emp.imageUrl || "https://via.placeholder.com/48"} alt="avatar" className="w-10 h-10 rounded-full object-cover mx-auto mb-1" />
-                            <input type="file" accept="image/*" onChange={handleEditImageChange} className="w-full" />
-                          </>
-                        ) : (
-                          <img src={emp.imageUrl || "/picture/employees/user.jpg"} alt="avatar" className="w-10 h-10 rounded-full object-cover mx-auto" />
-                        )}
-                      </td>
-                      <td className="border px-2 py-1">
-                        {isEditing ? (
-                          <input value={editEmployeeData.name || ""} onChange={(e) => handleChange("name", e.target.value)} className="w-full border px-1 py-0.5" />
-                        ) : emp.name}
-                      </td>
-                      <td className="border px-2 py-1">{emp.employeeId || "—"}</td>
-                      <td className="border px-2 py-1">
-                        {isEditing ? (
-                          <input type="date" value={editEmployeeData.timePhanCong || ""} onChange={(e) => handleChange("timePhanCong", e.target.value)} className="w-full border px-1 py-0.5" />
-                        ) : emp.timePhanCong || "—"}
-                      </td>
-                      <td className="border px-2 py-1">
-                        {isEditing ? (
-                          <select value={editEmployeeData.status || ""} onChange={(e) => handleChange("status", e.target.value)} className="w-full border px-1 py-0.5">
-                            <option value="Đi làm">Đi làm</option>
-                            <option value="Nghỉ phép">Nghỉ phép</option>
-                          </select>
-                        ) : emp.status}
-                      </td>
-                      <td className="border px-2 py-1">
-                        {isEditing ? (
-                          <select value={editEmployeeData.model || ""} onChange={(e) => handleChange("model", e.target.value)} className="w-full border px-1 py-0.5" disabled={editEmployeeData.status === "Nghỉ phép"}>
-                            <option value="">-- Chọn line --</option>
-                            {modelList.map((m) => (
-                              <option key={m} value={m}>{m}</option>
-                            ))}
-                          </select>
-                        ) : emp.model || "—"}
-                      </td>
-                      <td className="border px-2 py-1">{emp.joinDate || "—"}</td>
-                      <td className="border px-2 py-1 space-x-1">
-                        {isEditing ? (
-                          <>
-                            <button onClick={handleSaveEdit} className="px-2 py-1 bg-green-500 text-white rounded">Lưu</button>
-                            <button onClick={handleCancelEdit} className="px-2 py-1 bg-gray-400 text-white rounded">Hủy</button>
-                          </>
-                        ) : (
-                          <>
-                            <button onClick={() => handleEditClick(id)} className="px-2 py-1 bg-blue-600 text-white rounded">Sửa</button>
-                            <button onClick={() => handleDelete(id)} className="px-2 py-1 bg-red-600 text-white rounded">Xóa</button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )
-      ))}
+          )
+      )}
 
       <div className="text-right mt-4">
-        <button onClick={onClose} className="px-4 py-2 bg-gray-500 text-white rounded">Đóng</button>
+        <button
+          onClick={onClose}
+          className="px-4 py-2 bg-gray-500 text-white rounded"
+        >
+          Đóng
+        </button>
       </div>
     </Modal>
   );
