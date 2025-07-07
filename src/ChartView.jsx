@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { db } from "./firebase";
 import { ref, get } from "firebase/database";
+import { getDay } from "date-fns";
 import {
   LineChart,
   Line,
@@ -46,12 +47,15 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
       const newAlerts = [];
 
       for (let d = 1; d <= daysInMonth; d++) {
-        const dayKey = d.toString().padStart(2, "0");
-        result[dayKey] = { day: dayKey };
-        machines.forEach((machine) => {
-          result[dayKey][machine] = null;
-        });
-      }
+  const dateObj = new Date(year, month, d);
+  if (getDay(dateObj) === 0) continue; // Bỏ qua Chủ Nhật
+
+  const dayKey = d.toString().padStart(2, "0");
+  result[dayKey] = { day: dayKey };
+  machines.forEach((machine) => {
+    result[dayKey][machine] = null;
+  });
+}
 
       for (let i = 0; i < machines.length; i++) {
         const machine = machines[i];

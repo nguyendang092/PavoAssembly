@@ -26,14 +26,16 @@ const AddEmployeeModal = ({
 
   const [newEmployee, setNewEmployee] = useState({
     name: "",
-    birthYear: "",
-    phone: "",
     status: "Đi làm",
     joinDate: selectedDate || getToday(),
     model: "",
     imageUrl: "",
     employeeId: "",
   });
+
+  // 2 state riêng cho thời gian phân công từ - đến
+  const [timePhanCongFrom, setTimePhanCongFrom] = useState("");
+  const [timePhanCongTo, setTimePhanCongTo] = useState("");
 
   const [selectedKey, setSelectedKey] = useState(null);
   const [existingEmployees, setExistingEmployees] = useState([]);
@@ -59,30 +61,35 @@ const AddEmployeeModal = ({
       const data = snapshot.val();
       const filtered = Object.entries(data)
         .filter(([_, val]) => val?.schedules?.[filterDateKey])
-        .map(([key, val]) => ({
-          key,
-          ...val,
-          model: val.schedules?.[filterDateKey]?.model || "",
-          joinDate: val.schedules?.[filterDateKey]?.joinDate || filterDate,
-        }));
+        .map(([key, val]) => {
+          const schedule = val.schedules?.[filterDateKey] || {};
+          return {
+            key,
+            ...val,
+            model: schedule.model || "",
+            joinDate: schedule.joinDate || filterDate,
+            timePhanCong: schedule.timePhanCong || "",
+            employeeId: key,
+          };
+        });
 
       setExistingEmployees(filtered);
     };
 
     fetchExisting();
-  }, [areaKey, filterDate]);
+  }, [areaKey, filterDate, filterDateKey]);
 
   const handleChange = (e) => {
-  const { name, value } = e.target;
+    const { name, value } = e.target;
 
-  setNewEmployee((prev) => {
-    // Nếu đang set status = Nghỉ phép thì reset model
-    if (name === "status" && value === "Nghỉ phép") {
-      return { ...prev, [name]: value, model: "" };
-    }
-    return { ...prev, [name]: value };
-  });
-};
+    setNewEmployee((prev) => {
+      // Nếu đang set status = Nghỉ phép thì reset model
+      if (name === "status" && value === "Nghỉ phép") {
+        return { ...prev, [name]: value, model: "" };
+      }
+      return { ...prev, [name]: value };
+    });
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -135,11 +142,24 @@ const AddEmployeeModal = ({
   };
 
   const handleAddOrUpdateEmployee = async () => {
+    // Ghép chuỗi timePhanCong
+    const timePhanCongTrimmedFrom = timePhanCongFrom.trim();
+    const timePhanCongTrimmedTo = timePhanCongTo.trim();
+    let timePhanCong = "";
+    if (timePhanCongTrimmedFrom && timePhanCongTrimmedTo) {
+      timePhanCong = `${timePhanCongTrimmedFrom} - ${timePhanCongTrimmedTo}`;
+    }
+
     const modelValue =
       inputModel.trim() !== "" ? inputModel.trim() : newEmployee.model.trim();
 
     if (!newEmployee.name.trim() || !modelValue || !selectedDate) {
       alert("Vui lòng nhập tên, line và ngày!");
+      return;
+    }
+
+    if (!timePhanCong) {
+      alert("Vui lòng nhập khoảng thời gian phân công (từ giờ - đến giờ)!");
       return;
     }
 
@@ -149,6 +169,7 @@ const AddEmployeeModal = ({
       model: modelValue,
       joinDate: newEmployee.joinDate || selectedDate,
       status: newEmployee.status,
+      timePhanCong,
     };
 
     try {
@@ -178,17 +199,19 @@ const AddEmployeeModal = ({
       }
 
       const updatedEmployee = {
-        name: newEmployee.name,
-        birthYear: newEmployee.birthYear,
-        phone: newEmployee.phone,
-        employeeId,
-        imageUrl,
-        schedules: {
-          ...(existingData.schedules || {}),
-          [dateKey]: schedulesForDate,
-        },
-      };
-
+  name: newEmployee.name,
+  employeeId,
+  imageUrl,
+  schedules: {
+    ...(existingData.schedules || {}),
+    [dateKey]: {
+      model: modelValue,
+      joinDate: newEmployee.joinDate || selectedDate,
+      status: newEmployee.status,
+      timePhanCong,
+    },
+  },
+};
       await set(employeeRef, updatedEmployee);
 
       if (!modelList.includes(modelValue)) {
@@ -211,8 +234,6 @@ const AddEmployeeModal = ({
     setSelectedKey(null);
     setNewEmployee({
       name: "",
-      birthYear: "",
-      phone: "",
       status: "Đi làm",
       joinDate: selectedDate || getToday(),
       model: "",
@@ -221,19 +242,30 @@ const AddEmployeeModal = ({
     });
     setPreviewImage(null);
     setImageFile(null);
+    setTimePhanCongFrom("");
+    setTimePhanCongTo("");
   };
 
   const handleSelectEmployee = (emp) => {
     setNewEmployee({
       name: emp.name || "",
-      birthYear: emp.birthYear || "",
-      phone: emp.phone || "",
       status: emp.status || "Đi làm",
       joinDate: filterDate || getToday(),
       model: emp.model || "",
       imageUrl: emp.imageUrl || "",
       employeeId: emp.employeeId || emp.key || "",
     });
+
+    // Nếu có timePhanCong, tách thành from - to
+    if (emp.timePhanCong && emp.timePhanCong.includes(" - ")) {
+      const [from, to] = emp.timePhanCong.split(" - ");
+      setTimePhanCongFrom(from);
+      setTimePhanCongTo(to);
+    } else {
+      setTimePhanCongFrom("");
+      setTimePhanCongTo("");
+    }
+
     setPreviewImage(emp.imageUrl || "");
     setSelectedKey(emp.key);
   };
@@ -314,21 +346,23 @@ const AddEmployeeModal = ({
         className="w-full border border-gray-300 rounded-md px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
       />
 
-      <div className="flex gap-4 mb-3">
+      {/* Khoảng thời gian phân công */}
+      <div className="flex gap-2 mb-3 items-center">
+        <label className="whitespace-nowrap">Thời gian phân công:</label>
         <input
-          name="birthYear"
-          type="number"
-          value={newEmployee.birthYear}
-          onChange={handleChange}
-          placeholder="Năm sinh"
-          className="flex-1 border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+          type="time"
+          value={timePhanCongFrom}
+          onChange={(e) => setTimePhanCongFrom(e.target.value)}
+          className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+          required
         />
+        <span className="mx-1">-</span>
         <input
-          name="phone"
-          value={newEmployee.phone}
-          onChange={handleChange}
-          placeholder="Số điện thoại"
-          className="flex-1 border border-gray-300 rounded-md px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+          type="time"
+          value={timePhanCongTo}
+          onChange={(e) => setTimePhanCongTo(e.target.value)}
+          className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+          required
         />
       </div>
 
@@ -343,26 +377,26 @@ const AddEmployeeModal = ({
       </select>
 
       <select
-  name="model"
-  value={newEmployee.model}
-  onChange={(e) => {
-    handleChange(e);
-    setInputModel("");
-  }}
-  disabled={newEmployee.status === "Nghỉ phép"} // disable khi nghỉ phép
-  className={`w-full border rounded-md px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
-    newEmployee.status === "Nghỉ phép"
-      ? "bg-gray-200 cursor-not-allowed"
-      : "border-gray-300"
-  }`}
->
-  <option value="">-- Chọn line --</option>
-  {modelList.map((model) => (
-    <option key={model} value={model}>
-      {model}
-    </option>
-  ))}
-</select>
+        name="model"
+        value={newEmployee.model}
+        onChange={(e) => {
+          handleChange(e);
+          setInputModel("");
+        }}
+        disabled={newEmployee.status === "Nghỉ phép"} // disable khi nghỉ phép
+        className={`w-full border rounded-md px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
+          newEmployee.status === "Nghỉ phép"
+            ? "bg-gray-200 cursor-not-allowed"
+            : "border-gray-300"
+        }`}
+      >
+        <option value="">-- Chọn line --</option>
+        {modelList.map((model) => (
+          <option key={model} value={model}>
+            {model}
+          </option>
+        ))}
+      </select>
 
       <input
         name="joinDate"

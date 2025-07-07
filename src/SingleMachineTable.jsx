@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ref, set, onValue } from "firebase/database";
 import { db } from "./firebase";
 import { format, eachDayOfInterval, endOfMonth } from "date-fns";
+import { getDay } from "date-fns";
 
 const PAGE_SIZE = 10;
 
@@ -11,9 +12,9 @@ const SingleMachineTable = ({area,  machine, selectedMonth, showToast }) => {
   const [saving, setSaving] = useState(false);
 
   const daysInMonth = eachDayOfInterval({
-    start: new Date(`${selectedMonth}-01`),
-    end: endOfMonth(new Date(`${selectedMonth}-01`)),
-  });
+  start: new Date(`${selectedMonth}-01`),
+  end: endOfMonth(new Date(`${selectedMonth}-01`)),
+}).filter((date) => getDay(date) !== 0); // loại bỏ Chủ Nhật
 
   const totalPages = Math.ceil(daysInMonth.length / PAGE_SIZE);
   const pagedDays = daysInMonth.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
