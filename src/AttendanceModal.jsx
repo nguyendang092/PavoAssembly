@@ -2,13 +2,16 @@ import React, { useEffect, useState } from "react";
 import Modal from "react-modal";
 import { ref, get, update, remove } from "firebase/database";
 import { db } from "./firebase";
-import {
-  getStorage,
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL,
-} from "firebase/storage";
-import imageCompression from "browser-image-compression";
+
+const formatName = (name) => {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ") // bỏ thừa khoảng trắng
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
 
 const AttendanceModal = ({
   isOpen,
@@ -65,7 +68,7 @@ const AttendanceModal = ({
           const [scheduleDateKey, schedule] = matchedScheduleEntry;
           result[employeeId] = {
             employeeId,
-            name: emp.name || "",
+            name: formatName(emp.name || ""),
             imageUrl: emp.imageUrl || "",
             status: schedule.status || "Đi làm",
             model: schedule.model || "",
@@ -97,20 +100,15 @@ const AttendanceModal = ({
   };
 
   const handleChange = (field, value) => {
+    if (field === "name") {
+      value = formatName(value);
+    }
     setEditEmployeeData((prev) => {
       if (field === "status" && value === "Nghỉ phép") {
         return { ...prev, status: value, model: "" };
       }
       return { ...prev, [field]: value };
     });
-  };
-
-  const handleEditImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setEditImageFile(file);
-      setEditImagePreview(URL.createObjectURL(file));
-    }
   };
 
   const cropToSquare = async (file) => {
@@ -141,20 +139,6 @@ const AttendanceModal = ({
     });
   };
 
-  const uploadImageToStorage = async (file, employeeId) => {
-    const squareFile = await cropToSquare(file);
-    const compressedFile = await imageCompression(squareFile, {
-      maxSizeMB: 0.2,
-      maxWidthOrHeight: 512,
-      useWebWorker: true,
-    });
-
-    const storage = getStorage();
-    const storageReference = storageRef(storage, `employees/${employeeId}.jpg`);
-    await uploadBytes(storageReference, compressedFile);
-    return await getDownloadURL(storageReference);
-  };
-
   const handleCancelEdit = () => {
     setEditEmployeeId(null);
     setEditEmployeeData({});
@@ -181,8 +165,9 @@ const AttendanceModal = ({
   const handleSaveEdit = async () => {
     const updated = { ...editEmployeeData };
     const employeeId = editEmployeeId;
-    const timePhanCong = `${updated.startTime || ""} - ${updated.endTime || ""}`;
-
+    const timePhanCong = `${updated.startTime || ""} - ${
+      updated.endTime || ""
+    }`;
 
     await update(ref(db, `attendance/${mappedAreaKey}/${employeeId}`), {
       name: updated.name,
@@ -218,7 +203,6 @@ const AttendanceModal = ({
     handleCancelEdit();
   };
 
-
   const groupedEmployees = {};
   modelList.forEach((model) => (groupedEmployees[model] = []));
   groupedEmployees["Nghỉ phép"] = [];
@@ -240,12 +224,12 @@ const AttendanceModal = ({
   ).length;
   return (
     <Modal
-  isOpen={isOpen}
-  onRequestClose={onClose}
-  className="relative bg-white rounded-lg p-6 max-w-6xl mx-auto mt-16 mb-16 shadow  max-h-[90vh] overflow-y-auto"
-  overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50"
->
-  <div className="text-right mt-2">
+      isOpen={isOpen}
+      onRequestClose={onClose}
+      className="relative bg-white rounded-lg p-6 max-w-6xl mx-auto mt-16 mb-16 shadow  max-h-[90vh] overflow-y-auto"
+      overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50"
+    >
+      <div className="text-right mt-2">
         <button
           onClick={onClose}
           className="absolute right-2 px-4 py-2 bg-gray-500 text-white rounded z-50 font-bold"
@@ -331,22 +315,20 @@ const AttendanceModal = ({
                     return (
                       <tr key={id} className="border-b text-center">
                         <td className="border px-2 py-1">
-                            <img
-                              src={
-                                emp.imageUrl || "/picture/employees/user.jpg"
-                              }
-                              alt="avatar"
-                              className="w-10 h-10 rounded-full object-cover mx-auto"
-                            />
+                          <img
+                            src={emp.imageUrl || "/picture/employees/user.jpg"}
+                            alt="avatar"
+                            className="w-10 h-10 rounded-full object-cover mx-auto"
+                          />
                         </td>
                         <td className="border px-2 py-1">
                           {isEditing ? (
                             <input
                               value={editEmployeeData.name || ""}
                               onChange={(e) =>
-                                handleChange("name", e.target.value)
+                                handleChange("name", formatName(e.target.value))
                               }
-                              className="w-full border px-1 py-0.5"
+                              className="w-full border px-1 py-0.5 font-bold"
                             />
                           ) : (
                             emp.name
@@ -356,16 +338,32 @@ const AttendanceModal = ({
                           {emp.employeeId || "—"}
                         </td>
                         <td className="border px-2 py-1">
-                  {isEditing ? (
-                    <div className="flex justify-center items-center gap-1">
-                      <input type="time" value={editEmployeeData.startTime || ""} onChange={(e) => handleChange("startTime", e.target.value)} className="border px-1 py-0.5 w-[80px]" lang="vi" />
-                      <span>-</span>
-                      <input type="time" value={editEmployeeData.endTime || ""} onChange={(e) => handleChange("endTime", e.target.value)} className="border px-1 py-0.5 w-[80px]" lang="vi" />
-                    </div>
-                  ) : (
-                    emp.timePhanCong || "—"
-                  )}
-                </td>
+                          {isEditing ? (
+                            <div className="flex justify-center items-center gap-1">
+                              <input
+                                type="time"
+                                value={editEmployeeData.startTime || ""}
+                                onChange={(e) =>
+                                  handleChange("startTime", e.target.value)
+                                }
+                                className="border px-1 py-0.5 w-[80px]"
+                                lang="vi"
+                              />
+                              <span>-</span>
+                              <input
+                                type="time"
+                                value={editEmployeeData.endTime || ""}
+                                onChange={(e) =>
+                                  handleChange("endTime", e.target.value)
+                                }
+                                className="border px-1 py-0.5 w-[80px]"
+                                lang="vi"
+                              />
+                            </div>
+                          ) : (
+                            emp.timePhanCong || "—"
+                          )}
+                        </td>
                         <td className="border px-2 py-1">
                           {isEditing ? (
                             <select
