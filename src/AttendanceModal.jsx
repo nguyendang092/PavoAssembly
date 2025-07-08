@@ -240,11 +240,19 @@ const AttendanceModal = ({
   ).length;
   return (
     <Modal
-      isOpen={isOpen}
-      onRequestClose={onClose}
-      className="bg-white rounded-lg p-6 max-w-6xl mx-auto mt-16 shadow max-h-screen overflow-y-auto"
-      overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50"
-    >
+  isOpen={isOpen}
+  onRequestClose={onClose}
+  className="relative bg-white rounded-lg p-6 max-w-6xl mx-auto mt-16 mb-16 shadow  max-h-[90vh] overflow-y-auto"
+  overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50"
+>
+  <div className="text-right mt-2">
+        <button
+          onClick={onClose}
+          className="absolute right-2 px-4 py-2 bg-gray-500 text-white rounded z-50 font-bold"
+        >
+          Đóng
+        </button>
+      </div>
       <h3 className="text-2xl font-bold mb-4">
         👥 Leader: {mappedAreaKey} : {selectedDate}
       </h3>
@@ -303,18 +311,18 @@ const AttendanceModal = ({
               <table className="min-w-full border table-fixed text-sm">
                 <thead>
                   <tr className="bg-gray-100 font-semibold text-center">
-                    <th className="border px-2 py-1 w-[64px]">Ảnh</th>
-                    <th className="border px-2 py-1 w-[160px]">Họ & Tên</th>
+                    <th className="border px-2 py-1 w-[70px]">Ảnh</th>
+                    <th className="border px-2 py-1 w-[210px]">Họ & Tên</th>
                     <th className="border px-2 py-1 w-[160px]">Mã NV</th>
-                    <th className="border px-2 py-1 w-[160px]">
+                    <th className="border px-2 py-1 w-[180px]">
                       Thời gian phân line
                     </th>
                     <th className="border px-2 py-1 w-[100px]">Trạng thái</th>
-                    <th className="border px-2 py-1 w-[160px]">Line</th>
-                    <th className="border px-2 py-1 w-[140px]">
+                    <th className="border px-2 py-1 w-[170px]">Line</th>
+                    <th className="border px-2 py-1 w-[170px]">
                       Ngày phân công
                     </th>
-                    <th className="border px-2 py-1 w-[100px]">Hành động</th>
+                    <th className="border px-2 py-1 w-[170px]">Hành động</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -439,15 +447,6 @@ const AttendanceModal = ({
             </div>
           )
       )}
-
-      <div className="text-right mt-4">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 bg-gray-500 text-white rounded"
-        >
-          Đóng
-        </button>
-      </div>
     </Modal>
   );
 };
