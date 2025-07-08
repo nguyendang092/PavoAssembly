@@ -9,7 +9,15 @@ import {
   getDownloadURL,
 } from "firebase/storage";
 import imageCompression from "browser-image-compression";
-
+const formatName = (name) => {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ") // bỏ thừa khoảng trắng
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+};
 const AddEmployeeModal = ({
   isOpen,
   onClose,
@@ -33,11 +41,9 @@ const AddEmployeeModal = ({
     imageUrl: "",
     employeeId: "",
   });
-
   // 2 state riêng cho thời gian phân công từ - đến
   const [timePhanCongFrom, setTimePhanCongFrom] = useState("");
   const [timePhanCongTo, setTimePhanCongTo] = useState("");
-
   const [selectedKey, setSelectedKey] = useState(null);
   const [existingEmployees, setExistingEmployees] = useState([]);
   const [searchKeyword, setSearchKeyword] = useState("");
@@ -53,12 +59,10 @@ const AddEmployeeModal = ({
       joinDate: selectedDate || getToday(),
     }));
   }, [selectedDate]);
-
   useEffect(() => {
     const fetchExisting = async () => {
       const snapshot = await get(ref(db, `attendance/${areaKey}`));
       if (!snapshot.exists()) return setExistingEmployees([]);
-
       const data = snapshot.val();
       const filtered = Object.entries(data)
         .filter(([_, val]) => val?.schedules?.[filterDateKey])
@@ -73,16 +77,12 @@ const AddEmployeeModal = ({
             employeeId: key,
           };
         });
-
       setExistingEmployees(filtered);
     };
-
     fetchExisting();
   }, [areaKey, filterDate, filterDateKey]);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setNewEmployee((prev) => {
       // Nếu đang set status = Nghỉ phép thì reset model
       if (name === "status" && value === "Nghỉ phép") {
@@ -90,14 +90,6 @@ const AddEmployeeModal = ({
       }
       return { ...prev, [name]: value };
     });
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      setPreviewImage(URL.createObjectURL(file));
-    }
   };
 
   const cropToSquare = async (file) => {
@@ -127,7 +119,6 @@ const AddEmployeeModal = ({
       };
     });
   };
-
   const uploadImageToStorage = async (file, employeeId) => {
     const squareFile = await cropToSquare(file);
     const compressedFile = await imageCompression(squareFile, {
@@ -135,7 +126,6 @@ const AddEmployeeModal = ({
       maxWidthOrHeight: 512,
       useWebWorker: true,
     });
-
     const storage = getStorage();
     const storageReference = storageRef(storage, `employees/${employeeId}.jpg`);
     await uploadBytes(storageReference, compressedFile);
@@ -150,29 +140,17 @@ const AddEmployeeModal = ({
     if (timePhanCongTrimmedFrom && timePhanCongTrimmedTo) {
       timePhanCong = `${timePhanCongTrimmedFrom} - ${timePhanCongTrimmedTo}`;
     }
-
     const modelValue =
       inputModel.trim() !== "" ? inputModel.trim() : newEmployee.model.trim();
-
     if (!newEmployee.name.trim() || !modelValue || !selectedDate) {
       alert("Vui lòng nhập tên, line và ngày!");
       return;
     }
-
     if (!timePhanCong) {
       alert("Vui lòng nhập khoảng thời gian phân công (từ giờ - đến giờ)!");
       return;
     }
-
     setIsSaving(true);
-
-    const schedulesForDate = {
-      model: modelValue,
-      joinDate: newEmployee.joinDate || selectedDate,
-      status: newEmployee.status,
-      timePhanCong,
-    };
-
     try {
       let employeeId = newEmployee.employeeId;
 
@@ -249,7 +227,7 @@ const AddEmployeeModal = ({
 
   const handleSelectEmployee = (emp) => {
     setNewEmployee({
-      name: emp.name || "",
+      name: formatName(emp.name || ""),
       status: emp.status || "Đi làm",
       joinDate: filterDate || getToday(),
       model: emp.model || "",
@@ -300,7 +278,6 @@ const AddEmployeeModal = ({
           />
         </strong>
       </div>
-
       <div className="mb-4 max-h-40 overflow-y-auto border border-gray-200 rounded-md p-3 text-sm bg-gray-50 scrollbar-thin scrollbar-thumb-gray-300">
         <input
           type="text"
@@ -316,13 +293,12 @@ const AddEmployeeModal = ({
               className="cursor-pointer hover:bg-yellow-200 rounded-md px-3 py-1 select-none"
               onClick={() => handleSelectEmployee(emp)}
             >
-              <span className="font-semibold">{emp.name}</span> -{" "}
+              <span className="font-semibold">{formatName(emp.name)}</span> -{" "}
               <span className="italic text-gray-600">{emp.model}</span>
             </li>
           ))}
         </ul>
       </div>
-
       {/* <div className="flex justify-center mb-5">
         <img
           src={previewImage}
@@ -330,7 +306,6 @@ const AddEmployeeModal = ({
           className="h-28 w-28 rounded-full object-cover border-4 border-gradient-to-tr from-blue-400 to-purple-600 shadow-lg"
         />
       </div> */}
-
       {/* <input
         type="text"
         placeholder="Dán URL hình ảnh"
@@ -338,7 +313,6 @@ const AddEmployeeModal = ({
         onChange={(e) => setPreviewImage(e.target.value)}
         className="w-full border border-gray-300 rounded-md px-4 py-3 mb-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
       /> */}
-
       <input
         name="name"
         value={newEmployee.name}
@@ -346,7 +320,6 @@ const AddEmployeeModal = ({
         placeholder="Tên nhân viên"
         className="w-full border border-gray-300 rounded-md px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
       />
-
       {/* Khoảng thời gian phân công */}
       <div className="flex gap-2 mb-3 items-center">
         <label className="whitespace-nowrap">Thời gian phân công:</label>
@@ -366,7 +339,6 @@ const AddEmployeeModal = ({
           required
         />
       </div>
-
       <select
         name="status"
         value={newEmployee.status}
@@ -376,7 +348,6 @@ const AddEmployeeModal = ({
         <option value="Đi làm">Đi làm</option>
         <option value="Nghỉ phép">Nghỉ phép</option>
       </select>
-
       <select
         name="model"
         value={newEmployee.model}
@@ -398,7 +369,6 @@ const AddEmployeeModal = ({
           </option>
         ))}
       </select>
-
       <input
         name="joinDate"
         type="date"
@@ -406,7 +376,6 @@ const AddEmployeeModal = ({
         onChange={handleChange}
         className="w-full border border-gray-300 rounded-md px-4 py-3 mb-6 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
       />
-
       <div className="flex justify-end space-x-3">
         <button
           onClick={() => {

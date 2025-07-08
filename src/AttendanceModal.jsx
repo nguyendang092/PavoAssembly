@@ -328,7 +328,7 @@ const AttendanceModal = ({
                               onChange={(e) =>
                                 handleChange("name", formatName(e.target.value))
                               }
-                              className="w-full border px-1 py-0.5 font-bold"
+                              className="w-full border px-1 py-0.5"
                             />
                           ) : (
                             emp.name
