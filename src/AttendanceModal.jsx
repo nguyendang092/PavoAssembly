@@ -241,7 +241,7 @@ const AttendanceModal = ({
     <Modal
       isOpen={isOpen}
       onRequestClose={onClose}
-      className="bg-white rounded-lg p-6 max-w-6xl mx-auto mt-16 shadow"
+      className="bg-white rounded-lg p-6 max-w-6xl mx-auto mt-16 shadow max-h-screen overflow-y-auto"
       overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-start z-50"
     >
       <h3 className="text-2xl font-bold mb-4">
