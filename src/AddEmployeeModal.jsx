@@ -323,21 +323,21 @@ const AddEmployeeModal = ({
         </ul>
       </div>
 
-      <div className="flex justify-center mb-5">
+      {/* <div className="flex justify-center mb-5">
         <img
           src={previewImage}
           alt="Hình ảnh"
           className="h-28 w-28 rounded-full object-cover border-4 border-gradient-to-tr from-blue-400 to-purple-600 shadow-lg"
         />
-      </div>
+      </div> */}
 
-      <input
+      {/* <input
         type="text"
         placeholder="Dán URL hình ảnh"
         value={previewImage || ""}
         onChange={(e) => setPreviewImage(e.target.value)}
         className="w-full border border-gray-300 rounded-md px-4 py-3 mb-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-      />
+      /> */}
 
       <input
         name="name"
