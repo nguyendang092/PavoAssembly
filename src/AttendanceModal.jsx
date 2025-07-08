@@ -84,10 +84,16 @@ const AttendanceModal = ({
   }, [mappedAreaKey, filterDateKey]);
 
   const handleEditClick = (id) => {
+    const emp = employees[id];
+    const [start, end] = (emp.timePhanCong || "").split(" - ");
     setEditEmployeeId(id);
-    setEditEmployeeData(employees[id]);
-    setEditImagePreview(null);
+    setEditEmployeeData({
+      ...emp,
+      startTime: start || "",
+      endTime: end || "",
+    });
     setEditImageFile(null);
+    setEditImagePreview(null);
   };
 
   const handleChange = (field, value) => {
@@ -173,50 +179,45 @@ const AttendanceModal = ({
   };
 
   const handleSaveEdit = async () => {
-    try {
-      const updated = { ...editEmployeeData };
-      const employeeId = editEmployeeId;
+    const updated = { ...editEmployeeData };
+    const employeeId = editEmployeeId;
+    const timePhanCong = `${updated.startTime || ""} - ${updated.endTime || ""}`;
 
-      if (editImageFile) {
-        const imageUrl = await uploadImageToStorage(editImageFile, employeeId);
-        updated.imageUrl = imageUrl;
-      }
 
-      await update(ref(db, `attendance/${mappedAreaKey}/${employeeId}`), {
-        name: updated.name,
-        imageUrl: updated.imageUrl,
+    await update(ref(db, `attendance/${mappedAreaKey}/${employeeId}`), {
+      name: updated.name,
+      imageUrl: updated.imageUrl,
+      schedules: {
+        ...(employees[employeeId]?.schedules || {}),
+        [dateKey]: {
+          model: updated.model,
+          joinDate: updated.joinDate || selectedDate,
+          status: updated.status || "Đi làm",
+          timePhanCong,
+        },
+      },
+    });
+
+    setEmployees((prev) => ({
+      ...prev,
+      [employeeId]: {
+        ...updated,
+        timePhanCong,
         schedules: {
-          ...(employees[employeeId]?.schedules || {}),
+          ...(prev[employeeId]?.schedules || {}),
           [dateKey]: {
             model: updated.model,
             joinDate: updated.joinDate || selectedDate,
             status: updated.status || "Đi làm",
-            timePhanCong: updated.timePhanCong || "",
+            timePhanCong,
           },
         },
-      });
+      },
+    }));
 
-      setEmployees((prev) => ({
-        ...prev,
-        [employeeId]: {
-          ...updated,
-          schedules: {
-            ...(prev[employeeId]?.schedules || {}),
-            [dateKey]: {
-              model: updated.model,
-              joinDate: updated.joinDate || selectedDate,
-              status: updated.status || "Đi làm",
-              timePhanCong: updated.timePhanCong || "",
-            },
-          },
-        },
-      }));
-
-      handleCancelEdit();
-    } catch (err) {
-      console.error("Lỗi khi lưu:", err);
-    }
+    handleCancelEdit();
   };
+
 
   const groupedEmployees = {};
   modelList.forEach((model) => (groupedEmployees[model] = []));
@@ -305,7 +306,7 @@ const AttendanceModal = ({
                     <th className="border px-2 py-1 w-[64px]">Ảnh</th>
                     <th className="border px-2 py-1 w-[160px]">Họ & Tên</th>
                     <th className="border px-2 py-1 w-[160px]">Mã NV</th>
-                    <th className="border px-2 py-1 w-[100px]">
+                    <th className="border px-2 py-1 w-[160px]">
                       Thời gian phân line
                     </th>
                     <th className="border px-2 py-1 w-[100px]">Trạng thái</th>
@@ -322,25 +323,6 @@ const AttendanceModal = ({
                     return (
                       <tr key={id} className="border-b text-center">
                         <td className="border px-2 py-1">
-                          {isEditing ? (
-                            <>
-                              <img
-                                src={
-                                  editImagePreview ||
-                                  emp.imageUrl ||
-                                  "https://via.placeholder.com/48"
-                                }
-                                alt="avatar"
-                                className="w-10 h-10 rounded-full object-cover mx-auto mb-1"
-                              />
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleEditImageChange}
-                                className="w-full"
-                              />
-                            </>
-                          ) : (
                             <img
                               src={
                                 emp.imageUrl || "/picture/employees/user.jpg"
@@ -348,7 +330,6 @@ const AttendanceModal = ({
                               alt="avatar"
                               className="w-10 h-10 rounded-full object-cover mx-auto"
                             />
-                          )}
                         </td>
                         <td className="border px-2 py-1">
                           {isEditing ? (
@@ -367,19 +348,16 @@ const AttendanceModal = ({
                           {emp.employeeId || "—"}
                         </td>
                         <td className="border px-2 py-1">
-                          {isEditing ? (
-                            <input
-                              type="date"
-                              value={editEmployeeData.timePhanCong || ""}
-                              onChange={(e) =>
-                                handleChange("timePhanCong", e.target.value)
-                              }
-                              className="w-full border px-1 py-0.5"
-                            />
-                          ) : (
-                            emp.timePhanCong || "—"
-                          )}
-                        </td>
+                  {isEditing ? (
+                    <div className="flex justify-center items-center gap-1">
+                      <input type="time" value={editEmployeeData.startTime || ""} onChange={(e) => handleChange("startTime", e.target.value)} className="border px-1 py-0.5 w-[80px]" lang="vi" />
+                      <span>-</span>
+                      <input type="time" value={editEmployeeData.endTime || ""} onChange={(e) => handleChange("endTime", e.target.value)} className="border px-1 py-0.5 w-[80px]" lang="vi" />
+                    </div>
+                  ) : (
+                    emp.timePhanCong || "—"
+                  )}
+                </td>
                         <td className="border px-2 py-1">
                           {isEditing ? (
                             <select
