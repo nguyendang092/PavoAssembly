@@ -402,7 +402,18 @@ const AttendanceModal = ({
                           )}
                         </td>
                         <td className="border px-2 py-1">
-                          {emp.joinDate || "—"}
+                          {isEditing ? (
+                            <input
+                              type="date"
+                              value={editEmployeeData.joinDate || ""}
+                              onChange={(e) =>
+                                handleChange("joinDate", e.target.value)
+                              }
+                              className="border px-1 py-0.5 w-full"
+                            />
+                          ) : (
+                            emp.joinDate || "—"
+                          )}
                         </td>
                         <td className="border px-2 py-1 space-x-1">
                           {isEditing ? (

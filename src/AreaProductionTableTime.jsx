@@ -22,7 +22,6 @@ const timeLabels = [
 ];
 
 const AreaProductionTableTime = ({ area }) => {
-  // Ví dụ sử dụng trong component:
   const areaKey = getAreaKey(area);
   const [draftModelList, setDraftModelList] = useState([]);
   const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
@@ -36,6 +35,7 @@ const AreaProductionTableTime = ({ area }) => {
   const weekNumber = getWeek(selectedDate, { weekStartsOn: 1 });
   const year = getYear(selectedDate);
   const weekKey = `week_${year}_${weekNumber}`;
+  const dateKey = format(selectedDate, "yyyy-MM-dd");
   const [modelEditOpen, setModelEditOpen] = useState(false);
   const [newModelName, setNewModelName] = useState("");
   const startDateOfWeek = startOfWeek(selectedDate, { weekStartsOn: 1 });
@@ -49,15 +49,35 @@ const AreaProductionTableTime = ({ area }) => {
     };
   });
   useEffect(() => {
-  if (modelEditOpen) {
-    setDraftModelList(modelList);
-  }
-}, [modelEditOpen, modelList]);
+    if (modelEditOpen) {
+      setDraftModelList(modelList);
+    }
+  }, [modelEditOpen, modelList]);
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      const dateKey = format(selectedDate, "yyyy-MM-dd");
+
+      const [actualSnap, productionSnap, attendanceSnap] = await Promise.all([
+        get(ref(db, `actual/${areaKey}/${dateKey}`)),
+        get(ref(db, `production/${areaKey}/${dateKey}`)),
+        get(ref(db, `attendance/${areaKey}/${dateKey}`)),
+      ]);
+
+      setActualData(actualSnap.val() || {});
+      setProductionData(productionSnap.val() || {});
+      setAttendanceData(attendanceSnap.val() || {});
+      setIsLoading(false);
+    };
+
+    fetchData();
+  }, [selectedDate, areaKey]);
 
   useEffect(() => {
-    const actualRef = ref(db, `actual/${areaKey}/${weekKey}`);
-    const productionRef = ref(db, `production/${areaKey}/${weekKey}`);
-    const attendanceRef = ref(db, `attendance/${areaKey}/${weekKey}`);
+    const dateKey = format(selectedDate, "yyyy-MM-dd");
+    const actualRef = ref(db, `actual/${areaKey}/${dateKey}`);
+    const productionRef = ref(db, `production/${areaKey}/${dateKey}`);
+    const attendanceRef = ref(db, `attendance/${areaKey}/${dateKey}`);
 
     const unsubActual = onValue(actualRef, (snapshot) => {
       setActualData(snapshot.val() || {});
@@ -76,7 +96,7 @@ const AreaProductionTableTime = ({ area }) => {
       unsubProduction();
       unsubAttendance();
     };
-  }, [areaKey, weekKey]);
+  }, [areaKey, selectedDate]); // 🟢 đảm bảo cập nhật khi selectedDate thay đổi
 
   useEffect(() => {
     const fetchModelList = async () => {
@@ -99,7 +119,10 @@ const AreaProductionTableTime = ({ area }) => {
   }, [areaKey]);
 
   const handleDateChange = (e) => {
-    setSelectedDate(new Date(e.target.value));
+    const newDate = new Date(e.target.value);
+    if (!isNaN(newDate)) {
+      setSelectedDate(newDate);
+    }
   };
 
   const changeWeek = (direction) => {
@@ -113,7 +136,7 @@ const AreaProductionTableTime = ({ area }) => {
 
   const handleDataChange = (type, model, slot, e) => {
     const val = e.target.value;
-    // Chỉ cho phép nhập số hoặc để trống
+
     if (val === "" || /^[0-9]*$/.test(val)) {
       const numVal = val === "" ? 0 : Number(val);
 
@@ -122,6 +145,19 @@ const AreaProductionTableTime = ({ area }) => {
           const newData = { ...prev };
           if (!newData[model]) newData[model] = {};
           newData[model][slot] = numVal;
+
+          // Tính tổng actual
+          const total = Object.entries(newData[model])
+            .filter(([key]) => key !== "total")
+            .reduce((sum, [, value]) => sum + Number(value || 0), 0);
+
+          newData[model]["total"] = total;
+
+          // Ghi từng slot + total vào Firebase
+          const basePath = `actual/${areaKey}/${dateKey}/${model}`;
+          set(ref(db, `${basePath}/${slot}`), numVal);
+          set(ref(db, `${basePath}/total`), total);
+
           return newData;
         });
       } else {
@@ -129,17 +165,25 @@ const AreaProductionTableTime = ({ area }) => {
           const newData = { ...prev };
           if (!newData[model]) newData[model] = {};
           newData[model][slot] = numVal;
+
+          // Tính tổng production
+          const total = Object.entries(newData[model])
+            .filter(([key]) => key !== "total")
+            .reduce((sum, [, value]) => sum + Number(value || 0), 0);
+
+          newData[model]["total"] = total;
+
+          // Ghi từng slot + total vào Firebase
+          const basePath = `production/${areaKey}/${dateKey}/${model}`;
+          set(ref(db, `${basePath}/${slot}`), numVal);
+          set(ref(db, `${basePath}/total`), total);
+
           return newData;
         });
       }
-
-      // Lưu dữ liệu vào Firebase
-      const path = `${type}/${areaKey}/${weekKey}/${model}/${slot}`;
-      set(ref(db, path), numVal).catch(() => {
-        alert(`Lỗi cập nhật ${type === "actual" ? "thực tế" : "kế hoạch"}!`);
-      });
     }
   };
+
   useEffect(() => {
     const fetchModelList = async () => {
       try {
@@ -177,7 +221,7 @@ const AreaProductionTableTime = ({ area }) => {
     const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     saveAs(
       new Blob([wbout], { type: "application/octet-stream" }),
-      `SanLuongGio_${areaKey}_${weekKey}.xlsx`
+      `SanLuongGio_${areaKey}_${dateKey}.xlsx`
     );
   };
 
@@ -195,7 +239,6 @@ const AreaProductionTableTime = ({ area }) => {
       };
     });
   });
-
   return (
     <div className="mb-6">
       <div className="flex flex-wrap items-center justify-between mb-3 gap-2  ">
@@ -287,14 +330,8 @@ const AreaProductionTableTime = ({ area }) => {
         </thead>
         <tbody>
           {modelList.map((model) => {
-            const totalPlan = timeLabels.reduce(
-              (sum, slot) => sum + Number(productionData[model]?.[slot] ?? 0),
-              0
-            );
-            const totalActual = timeLabels.reduce(
-              (sum, slot) => sum + Number(actualData[model]?.[slot] ?? 0),
-              0
-            );
+            const totalPlan = Number(productionData[model]?.total ?? 0);
+            const totalActual = Number(actualData[model]?.total ?? 0);
             const averageRatio =
               totalPlan > 0
                 ? ((totalActual / totalPlan) * 100).toFixed(1)
@@ -302,14 +339,15 @@ const AreaProductionTableTime = ({ area }) => {
 
             return (
               <React.Fragment key={model}>
-                <tr className="bg-blue-50 hover:bg-blue-100">
+                {/* 🔷 KẾ HOẠCH */}
+                <tr className="bg-blue-100 hover:bg-blue-200 transition">
                   <td
                     rowSpan={3}
-                    className="border border-gray-300 px-3 py-2 font-semibold text-left text-blue-800"
+                    className="border border-gray-300 px-4 py-3 font-bold text-blue-900 text-left align-middle"
                   >
                     {model}
                   </td>
-                  <td className="border border-gray-300 px-2 py-1 font-semibold text-blue-800">
+                  <td className="border border-gray-300 px-3 py-2 font-semibold text-blue-800 text-left">
                     Kế hoạch
                   </td>
                   {timeLabels.map((slot) => (
@@ -323,16 +361,18 @@ const AreaProductionTableTime = ({ area }) => {
                         onChange={(e) =>
                           handleDataChange("production", model, slot, e)
                         }
-                        className="w-full text-center border border-blue-300 rounded px-1 py-0.5"
+                        className="w-full text-center border border-blue-400 rounded-md px-1 py-0.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
                       />
                     </td>
                   ))}
-                  <td className="border border-gray-300 px-2 py-1 text-center font-semibold text-blue-800">
+                  <td className="border border-gray-300 px-3 py-2 text-center font-bold text-blue-900 bg-blue-200">
                     {totalPlan}
                   </td>
                 </tr>
-                <tr className="bg-green-50 hover:bg-green-100">
-                  <td className="border border-gray-300 px-2 py-1 font-semibold text-green-800">
+
+                {/* 🟢 THỰC TẾ */}
+                <tr className="bg-green-100 hover:bg-green-200 transition">
+                  <td className="border border-gray-300 px-3 py-2 font-semibold text-green-800 text-left">
                     Thực tế
                   </td>
                   {timeLabels.map((slot) => (
@@ -346,16 +386,18 @@ const AreaProductionTableTime = ({ area }) => {
                         onChange={(e) =>
                           handleDataChange("actual", model, slot, e)
                         }
-                        className="w-full text-center border border-green-300 rounded px-1 py-0.5"
+                        className="w-full text-center border border-green-400 rounded-md px-1 py-0.5 bg-white focus:outline-none focus:ring-2 focus:ring-green-300"
                       />
                     </td>
                   ))}
-                  <td className="border border-gray-300 px-2 py-1 text-center font-semibold text-green-800">
+                  <td className="border border-gray-300 px-3 py-2 text-center font-bold text-green-900 bg-green-200">
                     {totalActual}
                   </td>
                 </tr>
-                <tr className="bg-yellow-50 hover:bg-yellow-100">
-                  <td className="border border-gray-300 px-2 py-1 font-semibold text-yellow-800">
+
+                {/* 🟡 % HOÀN THÀNH */}
+                <tr className="bg-yellow-100 hover:bg-yellow-200 transition">
+                  <td className="border border-gray-300 px-3 py-2 font-semibold text-yellow-800 text-left">
                     % Hoàn thành
                   </td>
                   {timeLabels.map((slot) => {
@@ -366,13 +408,13 @@ const AreaProductionTableTime = ({ area }) => {
                     return (
                       <td
                         key={slot}
-                        className="border border-gray-300 px-2 py-1 text-center font-semibold"
+                        className="border border-gray-300 px-2 py-1 text-center font-bold text-yellow-900"
                       >
                         {ratio}%
                       </td>
                     );
                   })}
-                  <td className="border border-gray-300 px-2 py-1 text-center font-semibold text-yellow-800">
+                  <td className="border border-gray-300 px-3 py-2 text-center font-bold text-yellow-900 bg-yellow-200">
                     {averageRatio}%
                   </td>
                 </tr>
@@ -382,75 +424,81 @@ const AreaProductionTableTime = ({ area }) => {
         </tbody>
       </table>
       <Modal
-              isOpen={modelEditOpen}
-              onRequestClose={() => setModelEditOpen(false)}
-              className="bg-white p-6 max-w-md mx-auto rounded shadow"
-              overlayClassName="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50"
-            >
-              <h2 className="text-lg font-bold mb-4">🛠 Quản lý Line</h2>
-              <ul className="space-y-2 max-h-60 overflow-y-auto">
-                {draftModelList.map((model, index) => (
-                  <li key={index} className="flex gap-2">
-                    <input
-                      value={model}
-                      onChange={(e) => {
-                        const updated = [...draftModelList];
-                        updated[index] = e.target.value;
-                        setDraftModelList(updated);
-                      }}
-                      className="border px-2 py-1 rounded flex-1"
-                    />
-                    <button onClick={() => setDraftModelList(draftModelList.filter((_, i) => i !== index))}>
-                      ❌
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <div className="flex mt-4 gap-2">
-                <input
-                  value={newModelName}
-                  onChange={(e) => setNewModelName(e.target.value)}
-                  placeholder="Thêm Line mới"
-                  className="border px-2 py-1 rounded flex-1"
-                />
-                <button
-                  onClick={() => {
-                    const trimmed = newModelName.trim();
-                    if (trimmed) {
-                      setDraftModelList([...draftModelList, trimmed]);
-                      setNewModelName("");
-                    }
-                  }}
-                  className="bg-green-600 text-white px-4 py-1 rounded"
-                >
-                  ➕
-                </button>
-              </div>
-              <div className="flex justify-end mt-4 gap-2">
-                <button
-                  onClick={() => setModelEditOpen(false)}
-                  className="bg-gray-300 px-4 py-1 rounded"
-                >
-                  Đóng
-                </button>
-                <button
-                  onClick={() => {
-                    set(ref(db, `assignments/${areaKey}/modelList`), draftModelList)
-                      .then(() => {
-                        showToast("✅ Đã cập nhật Line");
-                        setModelList(draftModelList);
-                        setModelEditOpen(false);
-                      })
-                      .catch(() => {
-                        showToast("❌ Lỗi khi lưu Line!");
-                      });
-                  }}
-                  className="bg-blue-600 text-white px-4 py-1 rounded"
-                >
-                  💾 Lưu
-                </button>
-              </div>
-            </Modal>
+        isOpen={modelEditOpen}
+        onRequestClose={() => setModelEditOpen(false)}
+        className="bg-white p-6 max-w-md mx-auto rounded shadow"
+        overlayClassName="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50"
+      >
+        <h2 className="text-lg font-bold mb-4">🛠 Quản lý Line</h2>
+        <ul className="space-y-2 max-h-60 overflow-y-auto">
+          {draftModelList.map((model, index) => (
+            <li key={index} className="flex gap-2">
+              <input
+                value={model}
+                onChange={(e) => {
+                  const updated = [...draftModelList];
+                  updated[index] = e.target.value;
+                  setDraftModelList(updated);
+                }}
+                className="border px-2 py-1 rounded flex-1"
+              />
+              <button
+                onClick={() =>
+                  setDraftModelList(
+                    draftModelList.filter((_, i) => i !== index)
+                  )
+                }
+              >
+                ❌
+              </button>
+            </li>
+          ))}
+        </ul>
+        <div className="flex mt-4 gap-2">
+          <input
+            value={newModelName}
+            onChange={(e) => setNewModelName(e.target.value)}
+            placeholder="Thêm Line mới"
+            className="border px-2 py-1 rounded flex-1"
+          />
+          <button
+            onClick={() => {
+              const trimmed = newModelName.trim();
+              if (trimmed) {
+                setDraftModelList([...draftModelList, trimmed]);
+                setNewModelName("");
+              }
+            }}
+            className="bg-green-600 text-white px-4 py-1 rounded"
+          >
+            ➕
+          </button>
+        </div>
+        <div className="flex justify-end mt-4 gap-2">
+          <button
+            onClick={() => setModelEditOpen(false)}
+            className="bg-gray-300 px-4 py-1 rounded"
+          >
+            Đóng
+          </button>
+          <button
+            onClick={() => {
+              set(ref(db, `assignments/${areaKey}/modelList`), draftModelList)
+                .then(() => {
+                  showToast("✅ Đã cập nhật Line");
+                  setModelList(draftModelList);
+                  setModelEditOpen(false);
+                })
+                .catch(() => {
+                  showToast("❌ Lỗi khi lưu Line!");
+                });
+            }}
+            className="bg-blue-600 text-white px-4 py-1 rounded"
+          >
+            💾 Lưu
+          </button>
+        </div>
+      </Modal>
 
       {/* Biểu đồ */}
       <ChartModal
@@ -472,14 +520,14 @@ const AreaProductionTableTime = ({ area }) => {
         timeSlots={timeSlots}
         areaKey={areaKey}
         modelList={modelList}
-        weekKey={weekKey}
+        dateKey={dateKey}
       />
 
       <AddEmployeeModal
         isOpen={addEmployeeModalOpen}
         onClose={() => setAddEmployeeModalOpen(false)}
         areaKey={areaKey}
-        weekKey={weekKey}
+        dateKey={dateKey}
         modelList={modelList}
         selectedDate={format(selectedDate, "yyyy-MM-dd")}
       />

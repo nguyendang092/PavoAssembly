@@ -27,12 +27,12 @@ const AreaProductionTable = ({ area, showToast }) => {
   const weekNumber = getWeek(selectedDate, { weekStartsOn: 1 });
   const year = getYear(selectedDate);
   const weekKey = `week_${year}_${weekNumber}`;
+  const dateKey = format(selectedDate, "yyyy-MM-dd");
   const [modelEditOpen, setModelEditOpen] = useState(false);
   const [newModelName, setNewModelName] = useState("");
   const startDateOfWeek = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const timeSlots = Array.from({ length: 6 }, (_, i) => {
     const date = addDays(startDateOfWeek, i);
-
     return {
       label: format(date, "EEEE"),
       date: format(date, "yyyy-MM-dd"),
@@ -40,35 +40,55 @@ const AreaProductionTable = ({ area, showToast }) => {
       fullDate: date,
     };
   });
+
   useEffect(() => {
-    if (modelEditOpen) {
-      setDraftModelList(modelList); // copy dữ liệu mỗi khi mở Modal
-    }
+    if (modelEditOpen) setDraftModelList(modelList);
   }, [modelEditOpen]);
+
+  // ✅ Load dữ liệu actual theo ngày
   useEffect(() => {
-    const actualRef = ref(db, `actual/${areaKey}/${weekKey}`);
-    const productionRef = ref(db, `production/${areaKey}/${weekKey}`);
-    const attendanceRef = ref(db, `attendance/${areaKey}/${weekKey}`);
-
+    const actualRef = ref(db, `actual/${areaKey}`);
     const unsubActual = onValue(actualRef, (snapshot) => {
-      setActualData(snapshot.val() || {});
+      const val = snapshot.val() || {};
+      const reorganized = {};
+      Object.entries(val).forEach(([date, modelData]) => {
+        Object.entries(modelData).forEach(([model, slotData]) => {
+          if (!reorganized[model]) reorganized[model] = {};
+          reorganized[model][date] = slotData;
+        });
+      });
+      setActualData(reorganized);
     });
+    return () => unsubActual();
+  }, [areaKey]);
 
+  // ✅ Load dữ liệu production theo ngày
+  useEffect(() => {
+    const productionRef = ref(db, `production/${areaKey}`);
     const unsubProduction = onValue(productionRef, (snapshot) => {
-      setProductionData(snapshot.val() || {});
+      const val = snapshot.val() || {};
+      const reorganized = {};
+      Object.entries(val).forEach(([date, modelData]) => {
+        Object.entries(modelData).forEach(([model, slotData]) => {
+          if (!reorganized[model]) reorganized[model] = {};
+          reorganized[model][date] = slotData;
+        });
+      });
+      setProductionData(reorganized);
     });
+    return () => unsubProduction();
+  }, [areaKey]);
 
+  // Load dữ liệu chấm công theo ngày
+  useEffect(() => {
+    const attendanceRef = ref(db, `attendance/${areaKey}/${dateKey}`);
     const unsubAttendance = onValue(attendanceRef, (snapshot) => {
       setAttendanceData(snapshot.val() || {});
     });
+    return () => unsubAttendance();
+  }, [areaKey, dateKey]);
 
-    return () => {
-      unsubActual();
-      unsubProduction();
-      unsubAttendance();
-    };
-  }, [areaKey, weekKey]);
-
+  // Load modelList
   useEffect(() => {
     const fetchModelList = async () => {
       try {
@@ -77,7 +97,6 @@ const AreaProductionTable = ({ area, showToast }) => {
           const data = snap.val();
           setModelList(data.modelList || []);
         } else {
-          console.warn("Không tìm thấy modelList cho", areaKey);
           setModelList([]);
         }
       } catch (error) {
@@ -85,13 +104,10 @@ const AreaProductionTable = ({ area, showToast }) => {
         setModelList([]);
       }
     };
-
     fetchModelList();
   }, [areaKey]);
 
-  const handleDateChange = (e) => {
-    setSelectedDate(new Date(e.target.value));
-  };
+  const handleDateChange = (e) => setSelectedDate(new Date(e.target.value));
 
   const changeWeek = (direction) => {
     setSelectedDate((prev) => {
@@ -102,68 +118,14 @@ const AreaProductionTable = ({ area, showToast }) => {
     });
   };
 
-  const handleActualChange = (model, slot, e) => {
-    const val = e.target.value;
-    if (val === "" || /^[0-9]*$/.test(val)) {
-      const numericVal = val === "" ? 0 : Number(val);
-      setActualData((prev) => {
-        const newData = { ...prev };
-        if (!newData[model]) newData[model] = {};
-        newData[model][slot] = val;
-
-        // Ghi vào actual (theo tuần)
-        set(
-          ref(db, `actual/${areaKey}/${weekKey}/${model}/${slot}`),
-          numericVal
-        ).catch(() => alert("Lỗi cập nhật thực tế!"));
-        return newData;
-      });
-    }
-  };
-
-  const handleProductionChange = (model, slot, e) => {
-    console.log(areaKey, weekKey, model, slot);
-    const val = e.target.value;
-    if (val === "" || /^[0-9]*$/.test(val)) {
-      setProductionData((prev) => {
-        const newData = { ...prev };
-        if (!newData[model]) newData[model] = {};
-        newData[model][slot] = val;
-        set(
-          ref(db, `production/${areaKey}/${weekKey}/${model}/${slot}`),
-          val === "" ? 0 : Number(val)
-        ).catch(() => alert("Lỗi cập nhật sản lượng!"));
-        return newData;
-      });
-    }
-  };
-  useEffect(() => {
-    const fetchModelList = async () => {
-      try {
-        const snap = await get(dbRef(db, `assignments/${areaKey}`));
-        if (snap.exists()) {
-          const data = snap.val();
-          setModelList(data.modelList || []);
-        } else {
-          console.warn("Không tìm thấy modelList cho", areaKey);
-          setModelList([]);
-        }
-      } catch (error) {
-        console.error("Lỗi khi lấy modelList:", error);
-        setModelList([]);
-      }
-    };
-
-    fetchModelList();
-  }, [areaKey]);
-
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
     const wsData = [["Model", "Ngày", "Kế hoạch", "Thực tế", "Tỉ lệ"]];
     modelList.forEach((model) => {
       timeSlots.forEach((slotObj) => {
-        const plan = productionData[model]?.[slotObj.label] || 0;
-        const actual = actualData[model]?.[slotObj.label] || 0;
+        const plan =
+          productionData[model]?.[slotObj.date]?.[slotObj.label] || 0;
+        const actual = actualData[model]?.[slotObj.date]?.[slotObj.label] || 0;
         const ratio =
           plan > 0 ? ((actual / plan) * 100).toFixed(1) + "%" : "0.0%";
         wsData.push([model, slotObj.display, plan, actual, ratio]);
@@ -178,18 +140,39 @@ const AreaProductionTable = ({ area, showToast }) => {
     );
   };
 
-  // Biến chartData dùng cho ChartModal
   const chartData = {};
+  const totalData = {};
+
   modelList.forEach((model) => {
-    chartData[model] = timeSlots.map((slotObj) => {
-      const plan = Number(productionData[model]?.[slotObj.label] || 0);
-      const actual = Number(actualData[model]?.[slotObj.label] || 0);
-      const ratio = plan > 0 ? Number(((actual / plan) * 100).toFixed(1)) : 0;
+    chartData[model] = timeSlots.map((slot) => {
+      const planData = productionData[model]?.[slot.date] || {};
+      const actualDataDay = actualData[model]?.[slot.date] || {};
+
+      const planTotal = planData.total || 0;
+      const actualTotal = actualDataDay.total || 0;
+      const ratio =
+        planTotal > 0
+          ? Number(((actualTotal / planTotal) * 100).toFixed(1))
+          : 0;
+
       return {
-        label: slotObj.display,
-        plan,
-        actual,
-        ratio,
+        label: slot.display,
+        plan: planTotal,
+        actual: actualTotal,
+        ratio: ratio,
+      };
+    });
+
+    totalData[model] = timeSlots.map((slot) => {
+      const planData = productionData[model]?.[slot.date] || {};
+      const actualDataDay = actualData[model]?.[slot.date] || {};
+      const totalPlan = typeof planData.total === "number" ? planData.total : 0;
+      const totalActual =
+        typeof actualDataDay.total === "number" ? actualDataDay.total : 0;
+      return {
+        label: slot.display,
+        totalPlan,
+        totalActual,
       };
     });
   });
@@ -287,14 +270,15 @@ const AreaProductionTable = ({ area, showToast }) => {
         </thead>
         <tbody>
           {modelList.map((model) => {
+            // Tính tổng cả tuần từ các total trong từng ngày
             const totalPlan = timeSlots.reduce(
-              (sum, slotObj) =>
-                sum + Number(productionData[model]?.[slotObj.label] || 0),
+              (sum, slot) =>
+                sum + Number(productionData[model]?.[slot.date]?.total || 0),
               0
             );
             const totalActual = timeSlots.reduce(
-              (sum, slotObj) =>
-                sum + Number(actualData[model]?.[slotObj.label] || 0),
+              (sum, slot) =>
+                sum + Number(actualData[model]?.[slot.date]?.total || 0),
               0
             );
             const averageRatio =
@@ -304,86 +288,72 @@ const AreaProductionTable = ({ area, showToast }) => {
 
             return (
               <React.Fragment key={model}>
-                <tr className="bg-blue-50 hover:bg-blue-100">
+                {/* Kế hoạch */}
+                <tr className="bg-blue-100 hover:bg-blue-200 transition">
                   <td
                     rowSpan={3}
-                    className="border border-gray-300 px-3 py-2 font-semibold text-left text-blue-800"
-                    style={{ verticalAlign: "middle" }}
+                    className="border border-gray-300 px-4 py-3 font-bold text-blue-800 text-left align-middle"
                   >
                     {model}
                   </td>
-                  <td className="border border-gray-300 px-2 py-1 text-left font-semibold text-blue-800">
+                  <td className="border border-gray-300 px-3 py-2 text-left font-semibold text-blue-700">
                     Kế hoạch
                   </td>
-                  {timeSlots.map((slotObj) => (
+                  {timeSlots.map((slot) => (
                     <td
-                      key={slotObj.date}
-                      className="border border-gray-300 px-2 py-1 text-center"
+                      key={slot.date}
+                      className="border border-gray-300 px-3 py-2 text-center text-blue-800 font-medium"
                     >
-                      <input
-                        type="text"
-                        value={productionData[model]?.[slotObj.label] || ""}
-                        onChange={(e) =>
-                          handleProductionChange(model, slotObj.label, e)
-                        }
-                        className="w-full text-center border border-blue-300 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        maxLength={5}
-                        inputMode="numeric"
-                      />
+                      {productionData[model]?.[slot.date]?.total ?? ""}
                     </td>
                   ))}
-                  <td className="border border-gray-300 px-2 py-1 text-center font-semibold text-blue-800">
+                  <td className="border border-gray-300 px-3 py-2 text-center font-bold text-blue-900 bg-blue-200">
                     {totalPlan}
                   </td>
                 </tr>
-                <tr className="bg-green-50 hover:bg-green-100">
-                  <td className="border border-gray-300 px-2 py-1 text-left font-semibold text-green-800">
+
+                {/* Thực tế */}
+                <tr className="bg-green-100 hover:bg-green-200 transition">
+                  <td className="border border-gray-300 px-3 py-2 text-left font-semibold text-green-700">
                     Thực tế
                   </td>
-                  {timeSlots.map((slotObj) => (
+                  {timeSlots.map((slot) => (
                     <td
-                      key={slotObj.date}
-                      className="border border-gray-300 px-2 py-1 text-center"
+                      key={slot.date}
+                      className="border border-gray-300 px-3 py-2 text-center text-green-800 font-medium"
                     >
-                      <input
-                        type="text"
-                        value={actualData[model]?.[slotObj.label] || ""}
-                        onChange={(e) =>
-                          handleActualChange(model, slotObj.label, e)
-                        }
-                        className="w-full text-center border border-green-300 rounded px-1 py-0.5 focus:outline-none focus:ring-2 focus:ring-green-400"
-                        maxLength={5}
-                        inputMode="numeric"
-                      />
+                      {actualData[model]?.[slot.date]?.total ?? ""}
                     </td>
                   ))}
-                  <td className="border border-gray-300 px-2 py-1 text-center font-semibold text-green-800">
+                  <td className="border border-gray-300 px-3 py-2 text-center font-bold text-green-900 bg-green-200">
                     {totalActual}
                   </td>
                 </tr>
-                <tr className="bg-yellow-50 hover:bg-yellow-100">
-                  <td className="border border-gray-300 px-2 py-1 text-left font-semibold text-yellow-800">
+
+                {/* % Hoàn thành */}
+                <tr className="bg-yellow-100 hover:bg-yellow-200 transition">
+                  <td className="border border-gray-300 px-3 py-2 text-left font-semibold text-yellow-700">
                     % Hoàn thành
                   </td>
                   {timeSlots.map((slotObj) => {
                     const plan = Number(
-                      productionData[model]?.[slotObj.label] || 0
+                      productionData[model]?.[slotObj.date]?.total || 0
                     );
                     const actual = Number(
-                      actualData[model]?.[slotObj.label] || 0
+                      actualData[model]?.[slotObj.date]?.total || 0
                     );
                     const ratio =
                       plan > 0 ? ((actual / plan) * 100).toFixed(1) : "0.0";
                     return (
                       <td
                         key={slotObj.date}
-                        className="border border-gray-300 px-2 py-1 text-center font-semibold"
+                        className="border border-gray-300 px-3 py-2 text-center font-bold text-yellow-800"
                       >
                         {ratio}%
                       </td>
                     );
                   })}
-                  <td className="border border-gray-300 px-2 py-1 text-center font-semibold text-yellow-800">
+                  <td className="border border-gray-300 px-3 py-2 text-center font-bold text-yellow-900 bg-yellow-200">
                     {averageRatio}%
                   </td>
                 </tr>
@@ -475,12 +445,12 @@ const AreaProductionTable = ({ area, showToast }) => {
         onClose={() => setModalIsOpen(false)}
         weekNumber={weekNumber}
         chartData={chartData}
+        totalData={totalData}
         modelList={modelList}
         area={area}
         selectedDate={format(selectedDate, "yyyy-MM-dd")}
       />
 
-      {/* Modal nhân viên */}
       <AttendanceModal
         isOpen={attendanceModalOpen}
         onClose={() => setAttendanceModalOpen(false)}
@@ -490,6 +460,7 @@ const AreaProductionTable = ({ area, showToast }) => {
         areaKey={areaKey}
         modelList={modelList}
         weekKey={weekKey}
+        dateKey={dateKey}
       />
       <AddEmployeeModal
         isOpen={addEmployeeModalOpen}
@@ -498,6 +469,7 @@ const AreaProductionTable = ({ area, showToast }) => {
         attendanceData={attendanceData}
         timeSlots={timeSlots}
         weekKey={weekKey}
+        dateKey={dateKey}
         modelList={modelList}
         selectedDate={format(selectedDate, "yyyy-MM-dd")}
       />
