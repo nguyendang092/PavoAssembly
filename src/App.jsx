@@ -3,6 +3,7 @@ import Employ from "./Employ";
 import Toast from "./Toast";
 import Navbar from "./Navbar";
 import TemperatureMonitor from "./TemperatureMonitor";
+import "./i18n";
 
 const App = () => {
   const [toastMessage, setToastMessage] = useState("");

@@ -321,24 +321,32 @@ const AddEmployeeModal = ({
         placeholder="Tên nhân viên"
         className="w-full border border-gray-300 rounded-md px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
       />
-      {/* Khoảng thời gian phân công */}
+       {/* Thời gian phân công */}
       <div className="flex gap-2 mb-3 items-center">
         <label className="whitespace-nowrap">Thời gian phân công:</label>
-        <input
-          type="time"
-          value={timePhanCongFrom}
-          onChange={(e) => setTimePhanCongFrom(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-          required
-        />
-        <span className="mx-1">-</span>
-        <input
-          type="time"
-          value={timePhanCongTo}
-          onChange={(e) => setTimePhanCongTo(e.target.value)}
-          className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-          required
-        />
+        {["from", "to"].map((type, idx) => {
+          const isDisabled = newEmployee.status === "Nghỉ phép";
+          const timeValue = type === "from" ? timePhanCongFrom : timePhanCongTo;
+          const setTime = type === "from" ? setTimePhanCongFrom : setTimePhanCongTo;
+
+          return (
+            <React.Fragment key={type}>
+              <input
+                type="time"
+                value={timeValue}
+                onChange={(e) => setTime(e.target.value)}
+                disabled={isDisabled}
+                required
+                className={`border rounded-md px-3 py-2 transition w-28 ${
+                  isDisabled
+                    ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                    : "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                }`}
+              />
+              {idx === 0 && <span className="mx-1">-</span>}
+            </React.Fragment>
+          );
+        })}
       </div>
       <select
         name="status"

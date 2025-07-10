@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { db } from "./firebase";
 import { ref, get } from "firebase/database";
-import { getDay } from "date-fns";
+import { getDay, getDaysInMonth } from "date-fns";
 import {
   LineChart,
   Line,
@@ -13,9 +13,9 @@ import {
   ReferenceLine,
   ReferenceArea,
 } from "recharts";
-import { getDaysInMonth } from "date-fns";
 import * as XLSX from "xlsx";
 import { saveAs } from "file-saver";
+import { useTranslation } from "react-i18next";
 
 const COLORS = [
   "#000000",
@@ -29,6 +29,7 @@ const COLORS = [
 const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
   const [chartData, setChartData] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const { t } = useTranslation();
 
   const getThreshold = () => {
     if (type === "temperature") return { min: 25, max: 35 };
@@ -47,23 +48,20 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
       const newAlerts = [];
 
       for (let d = 1; d <= daysInMonth; d++) {
-  const dateObj = new Date(year, month, d);
-  if (getDay(dateObj) === 0) continue; // Bỏ qua Chủ Nhật
+        const dateObj = new Date(year, month, d);
+        if (getDay(dateObj) === 0) continue; // Bỏ Chủ nhật
 
-  const dayKey = d.toString().padStart(2, "0");
-  result[dayKey] = { day: dayKey };
-  machines.forEach((machine) => {
-    result[dayKey][machine] = null;
-  });
-}
+        const dayKey = d.toString().padStart(2, "0");
+        result[dayKey] = { day: dayKey };
+        machines.forEach((machine) => {
+          result[dayKey][machine] = null;
+        });
+      }
 
       for (let i = 0; i < machines.length; i++) {
         const machine = machines[i];
         const snapshot = await get(
-          ref(
-            db,
-            `temperature_monitor/${selectedArea}/${machine}/${selectedMonth}/${type}`
-          )
+          ref(db, `temperature_monitor/${selectedArea}/${machine}/${selectedMonth}/${type}`)
         );
         if (snapshot.exists()) {
           const data = snapshot.val();
@@ -76,8 +74,9 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
                 day: `${dayKey}/${selectedMonth.split("-")[1]}`,
                 machine,
                 value: val,
-                status:
-                  val < threshold.min ? "Dưới tiêu chuẩn" : "Vượt tiêu chuẩn",
+                status: val < threshold.min
+                  ? t("chartView.underThreshold")
+                  : t("chartView.overThreshold"),
               });
             }
           });
@@ -92,12 +91,12 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
     };
 
     fetchData();
-  }, [selectedArea, selectedMonth, machines, type]);
+  }, [selectedArea, selectedMonth, machines, type, t]);
 
   const handleExportExcel = () => {
     const ws = XLSX.utils.json_to_sheet(chartData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Biểu đồ");
+    XLSX.utils.book_append_sheet(wb, ws, "Chart");
 
     const fileName = `${selectedArea}_${selectedMonth}_${type}.xlsx`;
     const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
@@ -112,9 +111,7 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
       {/* Thông báo cảnh báo */}
       {hasWarning && (
         <div className="mb-4 p-3 rounded bg-red-100 text-red-700 font-medium">
-          ⚠️ Có {alerts.length} giá trị vượt ngưỡng {threshold.min}
-          {type === "temperature" ? "°C" : "%"} - {threshold.max}
-          {type === "temperature" ? "°C" : "%"}
+          ⚠️ {t("chartView.warning", { count: alerts.length, min: threshold.min, max: threshold.max })}
         </div>
       )}
 
@@ -124,18 +121,12 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
           onClick={handleExportExcel}
           className="px-4 py-2 bg-green-600 text-white font-semibold rounded hover:bg-green-700 transition"
         >
-          📁 Xuất Excel
+          📁 {t("chartView.export")}
         </button>
       </div>
 
-      {/* Biểu đồ cố định kích thước */}
-      <div
-        className="mx-auto"
-        style={{
-          maxWidth: "1200px",
-          overflowX: "auto",
-        }}
-      >
+      {/* Biểu đồ */}
+      <div className="mx-auto" style={{ maxWidth: "1200px", overflowX: "auto" }}>
         <LineChart
           width={1200}
           height={420}
@@ -146,7 +137,7 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
           <XAxis
             dataKey="day"
             tick={{
-              fill: "#000000",
+              fill: "#000",
               fontSize: 12,
               fontFamily: "sans-serif",
               angle: -45,
@@ -162,83 +153,28 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
             domain={[threshold.min - 5, threshold.max + 5]}
             unit={type === "temperature" ? "°C" : "%"}
             tick={{
-              fill: "#000000",
+              fill: "#000",
               fontSize: 12,
-              fontFamily: "sans-serif",
               fontWeight: "bold",
+              fontFamily: "sans-serif",
             }}
             axisLine={{ stroke: "#999" }}
             tickLine={{ stroke: "#999" }}
           />
-          <ReferenceArea
-            y1={threshold.min}
-            y2={threshold.max}
-            strokeOpacity={0}
-            fill="rgba(214, 175, 163,0.4)" // xanh nhạt
-          />
+          <ReferenceArea y1={threshold.min} y2={threshold.max} fill="rgba(214,175,163,0.4)" />
           <Tooltip
-            contentStyle={{
-              fontFamily: "sans-serif",
-              fontSize: 13,
-              borderRadius: 6,
-            }}
+            contentStyle={{ fontSize: 13, fontFamily: "sans-serif", borderRadius: 6 }}
             formatter={(value) =>
-              value !== undefined && value !== null
+              value !== null && value !== undefined
                 ? `${value}${type === "temperature" ? "°C" : "%"}`
-                : "Không có dữ liệu"
+                : t("chartView.noData")
             }
           />
-          <Legend
-            verticalAlign="top"
-            wrapperStyle={{
-              fontSize: 15,
-              fontFamily: "sans-serif",
-              color: "#333",
-              marginTop: -10,
-            }}
-          />
-          <ReferenceLine
-            y={threshold.min}
-            stroke="red"
-            ifOverflow="extendDomain"
-            strokeDasharray="3 3"
-            label={({ viewBox }) => {
-              const { y } = viewBox;
-              return (
-                <text
-                  x={5} // 👈 cách trục Y 40px
-                  y={y}
-                  fill="red"
-                  fontSize={12}
-                  fontFamily="sans-serif"
-                  fontWeight="bold"
-                >
-                  {`Min (${threshold.min})`}
-                </text>
-              );
-            }}
-          />
-          <ReferenceLine
-            y={threshold.max}
-            stroke="red"
-            ifOverflow="extendDomain"
-            strokeDasharray="3 3"
-            label={({ viewBox }) => {
-              const { y } = viewBox;
-              return (
-                <text
-                  x={5} // 👈 cách trục Y 40px
-                  y={y}
-                  fill="red"
-                  fontSize={12}
-                  fontFamily="sans-serif"
-                  fontWeight="bold"
-                >
-                  {`Max (${threshold.max})`}
-                </text>
-              );
-            }}
-          />
+          <Legend verticalAlign="top" wrapperStyle={{ fontSize: 15, fontFamily: "sans-serif" }} />
+          <ReferenceLine y={threshold.min} stroke="red" strokeDasharray="3 3"
+            label={<text x={5} fill="red" fontSize={12} fontWeight="bold">{`Min (${threshold.min})`}</text>} />
+          <ReferenceLine y={threshold.max} stroke="red" strokeDasharray="3 3"
+            label={<text x={5} fill="red" fontSize={12} fontWeight="bold">{`Max (${threshold.max})`}</text>} />
           {machines.map((machine, index) => (
             <Line
               key={machine}
@@ -246,21 +182,18 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
               dataKey={machine}
               stroke={COLORS[index % COLORS.length]}
               strokeWidth={2}
-              connectNulls={true}
+              connectNulls
               dot={({ cx, cy, payload }) => {
                 const value = payload[machine];
-                if (value === null || value === undefined) return null;
-                const isOutOfRange =
-                  value < threshold.min || value > threshold.max;
+                if (value == null) return null;
+                const out = value < threshold.min || value > threshold.max;
                 return (
                   <circle
                     cx={cx}
                     cy={cy}
                     r={4}
-                    fill={isOutOfRange ? "red" : "white"}
-                    stroke={
-                      isOutOfRange ? "red" : COLORS[index % COLORS.length]
-                    }
+                    fill={out ? "red" : "white"}
+                    stroke={out ? "red" : COLORS[index % COLORS.length]}
                     strokeWidth={2}
                   />
                 );
@@ -270,32 +203,30 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
         </LineChart>
       </div>
 
-      {/* Bảng cảnh báo cụ thể */}
+      {/* Bảng chi tiết cảnh báo */}
       {hasWarning && (
         <div className="mt-2">
-          <h3 className="text-lg font-semibold mb-2">🔍 Chi tiết cảnh báo</h3>
+          <h3 className="text-lg font-semibold mb-2">🔍 {t("chartView.alertDetail")}</h3>
           <div className="overflow-auto border rounded">
             <table className="min-w-full text-sm text-left border-collapse">
               <thead className="bg-gray-100 text-gray-800">
                 <tr>
-                  <th className="px-4 py-2 border">Ngày</th>
-                  <th className="px-4 py-2 border">Máy</th>
-                  <th className="px-4 py-2 border">Giá trị</th>
-                  <th className="px-4 py-2 border">Trạng thái</th>
+                  <th className="px-4 py-2 border">{t("chartView.date")}</th>
+                  <th className="px-4 py-2 border">{t("chartView.machine")}</th>
+                  <th className="px-4 py-2 border">{t("chartView.value")}</th>
+                  <th className="px-4 py-2 border">{t("chartView.status")}</th>
                 </tr>
               </thead>
               <tbody>
-                {alerts.map((alert, index) => (
-                  <tr key={index} className="bg-white even:bg-gray-50">
+                {alerts.map((alert, i) => (
+                  <tr key={i} className="bg-white even:bg-gray-50">
                     <td className="px-4 py-2 border">{alert.day}</td>
                     <td className="px-4 py-2 border">{alert.machine}</td>
                     <td className="px-4 py-2 border">
                       {alert.value}
                       {type === "temperature" ? "°C" : "%"}
                     </td>
-                    <td className="px-4 py-2 border text-red-600">
-                      {alert.status}
-                    </td>
+                    <td className="px-4 py-2 border text-red-600">{alert.status}</td>
                   </tr>
                 ))}
               </tbody>

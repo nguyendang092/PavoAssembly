@@ -10,6 +10,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 
 Modal.setAppElement("#root");
 
@@ -49,6 +50,7 @@ const ChartModal = ({
   area = "",
   selectedDate = "",
 }) => {
+  const { t } = useTranslation();
   const [selectedModel, setSelectedModel] = useState(
     modelList.length > 0 ? modelList[0] : ""
   );
@@ -62,14 +64,6 @@ const ChartModal = ({
   const modelData = Array.isArray(chartData[selectedModel])
     ? chartData[selectedModel]
     : [];
-
-  const totalWeekPlan = totalData[selectedModel]
-    ? totalData[selectedModel].reduce((sum, d) => sum + (d.totalPlan || 0), 0)
-    : 0;
-
-  const totalWeekActual = totalData[selectedModel]
-    ? totalData[selectedModel].reduce((sum, d) => sum + (d.totalActual || 0), 0)
-    : 0;
 
   return (
     <Modal
@@ -90,18 +84,18 @@ const ChartModal = ({
       }}
     >
       <h2 className="text-3xl font-bold mb-4 uppercase text-center">
-        Sản lượng tuần {weekNumber} (📅 {weekNumber}주차 생산량) - {selectedDate}
+        {t("chart.title", { week: weekNumber })} - {selectedDate}
       </h2>
 
       {area && (
         <h3 className="text-xl text-center font-semibold mb-4">
-          📍 Leader: {area} (라인: {area})
+          {t("chart.leader", { area })}
         </h3>
       )}
 
       <div className="mb-4">
         <label className="font-semibold mr-2 uppercase">
-          Chọn line (작업 라인 선택):
+          {t("chart.selectModel")}:
         </label>
         <select
           value={selectedModel}
@@ -117,119 +111,100 @@ const ChartModal = ({
       </div>
 
       {modelData.length > 0 ? (
-        <>
-          <ResponsiveContainer width="100%" height={500}>
-            <LineChart
-              data={modelData}
-              margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
-            >
-              <CartesianGrid
-                strokeDasharray="0"
-                stroke="#909091"
-                vertical={false}
-                horizontal={false}
-              />
-              <XAxis
-                dataKey="label"
-                interval={0}
-                height={60}
-                tick={({ x, y, payload }) => (
-                  <text
-                    x={x}
-                    y={y + 20}
-                    textAnchor="middle"
-                    fontSize={18}
-                    fill="#333"
-                    fontWeight="bold"
-                  >
-                    {payload.value}
-                  </text>
-                )}
-              />
-              <YAxis
-                yAxisId="left"
-                label={{
-                  value: "Sản lượng".toUpperCase(),
-                  angle: -90,
-                  position: "insideLeft",
-                  offset: -10,
-                  fontWeight: "bold",
-                  fill: "#000000",
-                  fontFamily: "Arial",
-                }}
-                tick={({ x, y, payload }) => (
-                  <text
-                    x={x - 35}
-                    y={y}
-                    fontSize={14}
-                    fill="#000000"
-                    fontWeight="bold"
-                  >
-                    {payload.value}
-                  </text>
-                )}
-              />
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                domain={[0, 220]}
-                label={{
-                  value: "% Hoàn thành".toUpperCase(),
-                  angle: 90,
-                  position: "insideRight",
-                  offset: -10,
-                  fontWeight: "bold",
-                  fill: "#000000",
-                  fontFamily: "Arial",
-                }}
-                tick={({ x, y, payload }) => (
-                  <text
-                    x={x + 15}
-                    y={y}
-                    fontSize={14}
-                    fill="#333"
-                    fontWeight="bold"
-                  >
-                    {payload.value}
-                  </text>
-                )}
-              />
-              <Tooltip />
-              <Legend
-                verticalAlign="top"
-                wrapperStyle={{
-                  paddingBottom: "60px",
-                  fontSize: "18px",
-                  fontWeight: "bold",
-                  textTransform: "uppercase",
-                }}
-              />
-              <Line
-                yAxisId="left"
-                type="monotone"
-                dataKey="plan"
-                stroke="#0707f2"
-                strokeWidth={3}
-                name="Kế hoạch (계획)"
-                activeDot={{ r: 6 }}
-                label={CustomLabel1}
-              />
-              <Line
-                yAxisId="left"
-                type="monotone"
-                dataKey="actual"
-                stroke="#ef3bf5"
-                strokeWidth={3}
-                name="Thực tế (실적)"
-                activeDot={{ r: 6 }}
-                label={CustomLabel2}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </>
+        <ResponsiveContainer width="100%" height={500}>
+          <LineChart
+            data={modelData}
+            margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
+          >
+            <CartesianGrid strokeDasharray="0" stroke="#909091" vertical={false} horizontal={false} />
+            <XAxis
+              dataKey="label"
+              interval={0}
+              height={60}
+              tick={({ x, y, payload }) => (
+                <text
+                  x={x}
+                  y={y + 20}
+                  textAnchor="middle"
+                  fontSize={18}
+                  fill="#333"
+                  fontWeight="bold"
+                >
+                  {payload.value}
+                </text>
+              )}
+            />
+            <YAxis
+              yAxisId="left"
+              label={{
+                value: t("chart.quantity").toUpperCase(),
+                angle: -90,
+                position: "insideLeft",
+                offset: -10,
+                fontWeight: "bold",
+                fill: "#000000",
+                fontFamily: "Arial",
+              }}
+              tick={({ x, y, payload }) => (
+                <text x={x - 35} y={y} fontSize={14} fill="#000000" fontWeight="bold">
+                  {payload.value}
+                </text>
+              )}
+            />
+            <YAxis
+              yAxisId="right"
+              orientation="right"
+              domain={[0, 220]}
+              label={{
+                value: t("chart.completeRate").toUpperCase(),
+                angle: 90,
+                position: "insideRight",
+                offset: -10,
+                fontWeight: "bold",
+                fill: "#000000",
+                fontFamily: "Arial",
+              }}
+              tick={({ x, y, payload }) => (
+                <text x={x + 15} y={y} fontSize={14} fill="#333" fontWeight="bold">
+                  {payload.value}
+                </text>
+              )}
+            />
+            <Tooltip />
+            <Legend
+              verticalAlign="top"
+              wrapperStyle={{
+                paddingBottom: "60px",
+                fontSize: "18px",
+                fontWeight: "bold",
+                textTransform: "uppercase",
+              }}
+            />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="plan"
+              stroke="#0707f2"
+              strokeWidth={3}
+              name={`${t("chart.plan")} (계획)`}
+              activeDot={{ r: 6 }}
+              label={CustomLabel1}
+            />
+            <Line
+              yAxisId="left"
+              type="monotone"
+              dataKey="actual"
+              stroke="#ef3bf5"
+              strokeWidth={3}
+              name={`${t("chart.actual")} (실적)`}
+              activeDot={{ r: 6 }}
+              label={CustomLabel2}
+            />
+          </LineChart>
+        </ResponsiveContainer>
       ) : (
         <p className="text-center text-gray-500 italic">
-          Không có dữ liệu để hiển thị.
+          {t("chart.noData")}
         </p>
       )}
 
@@ -237,7 +212,7 @@ const ChartModal = ({
         onClick={onClose}
         className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
       >
-        Đóng
+        {t("chart.close")}
       </button>
     </Modal>
   );
