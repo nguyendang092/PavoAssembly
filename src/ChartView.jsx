@@ -61,7 +61,10 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
       for (let i = 0; i < machines.length; i++) {
         const machine = machines[i];
         const snapshot = await get(
-          ref(db, `temperature_monitor/${selectedArea}/${machine}/${selectedMonth}/${type}`)
+          ref(
+            db,
+            `temperature_monitor/${selectedArea}/${machine}/${selectedMonth}/${type}`
+          )
         );
         if (snapshot.exists()) {
           const data = snapshot.val();
@@ -74,9 +77,10 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
                 day: `${dayKey}/${selectedMonth.split("-")[1]}`,
                 machine,
                 value: val,
-                status: val < threshold.min
-                  ? t("chartView.underThreshold")
-                  : t("chartView.overThreshold"),
+                status:
+                  val < threshold.min
+                    ? t("chartView.underThreshold")
+                    : t("chartView.overThreshold"),
               });
             }
           });
@@ -111,7 +115,12 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
       {/* Thông báo cảnh báo */}
       {hasWarning && (
         <div className="mb-4 p-3 rounded bg-red-100 text-red-700 font-medium">
-          ⚠️ {t("chartView.warning", { count: alerts.length, min: threshold.min, max: threshold.max })}
+          ⚠️{" "}
+          {t("chartView.warning", {
+            count: alerts.length,
+            min: threshold.min,
+            max: threshold.max,
+          })}
         </div>
       )}
 
@@ -126,12 +135,15 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
       </div>
 
       {/* Biểu đồ */}
-      <div className="mx-auto" style={{ maxWidth: "1200px", overflowX: "auto" }}>
+      <div
+        className="mx-auto"
+        style={{ maxWidth: "1200px", overflowX: "auto" }}
+      >
         <LineChart
           width={1200}
           height={420}
           data={chartData}
-          margin={{ top: 30, right: 50, left: 30, bottom: 40 }}
+          margin={{ top: 20, right: 50, left: 30, bottom: 40 }}
         >
           <CartesianGrid vertical={false} horizontal={false} />
           <XAxis
@@ -161,20 +173,69 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
             axisLine={{ stroke: "#999" }}
             tickLine={{ stroke: "#999" }}
           />
-          <ReferenceArea y1={threshold.min} y2={threshold.max} fill="rgba(214,175,163,0.4)" />
+          <ReferenceArea
+            y1={threshold.min}
+            y2={threshold.max}
+            fill="rgba(214,175,163,0.4)"
+          />
           <Tooltip
-            contentStyle={{ fontSize: 13, fontFamily: "sans-serif", borderRadius: 6 }}
+            contentStyle={{
+              fontSize: 13,
+              fontFamily: "sans-serif",
+              borderRadius: 6,
+            }}
             formatter={(value) =>
               value !== null && value !== undefined
                 ? `${value}${type === "temperature" ? "°C" : "%"}`
                 : t("chartView.noData")
             }
           />
-          <Legend verticalAlign="top" wrapperStyle={{ fontSize: 15, fontFamily: "sans-serif" }} />
-          <ReferenceLine y={threshold.min} stroke="red" strokeDasharray="3 3"
-            label={<text x={5} fill="red" fontSize={12} fontWeight="bold">{`Min (${threshold.min})`}</text>} />
-          <ReferenceLine y={threshold.max} stroke="red" strokeDasharray="3 3"
-            label={<text x={5} fill="red" fontSize={12} fontWeight="bold">{`Max (${threshold.max})`}</text>} />
+          <Legend
+            verticalAlign="top"
+            wrapperStyle={{ fontSize: 15, fontFamily: "sans-serif"}}
+          />
+          <ReferenceLine
+  y={threshold.min}
+  stroke="red"
+  strokeDasharray="3 3"
+  label={({ viewBox }) => {
+    const { x, y } = viewBox;
+    return (
+      <text
+        x={x - 80}
+        y={y - 8}
+        fill="red"
+        fontSize={12}
+        fontWeight="bold"
+        textAnchor="start"
+      >
+        {`Min (${threshold.min})`}
+      </text>
+    );
+  }}
+/>
+
+<ReferenceLine
+  y={threshold.max}
+  stroke="red"
+  strokeDasharray="3 3"
+  label={({ viewBox }) => {
+    const { x, y } = viewBox;
+    return (
+      <text
+        x={x - 80}
+        y={y - 8}
+        fill="red"
+        fontSize={12}
+        fontWeight="bold"
+        textAnchor="start"
+      >
+        {`Max (${threshold.max})`}
+      </text>
+    );
+  }}
+/>
+
           {machines.map((machine, index) => (
             <Line
               key={machine}
@@ -206,7 +267,9 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
       {/* Bảng chi tiết cảnh báo */}
       {hasWarning && (
         <div className="mt-2">
-          <h3 className="text-lg font-semibold mb-2">🔍 {t("chartView.alertDetail")}</h3>
+          <h3 className="text-lg font-semibold mb-2">
+            🔍 {t("chartView.alertDetail")}
+          </h3>
           <div className="overflow-auto border rounded">
             <table className="min-w-full text-sm text-left border-collapse">
               <thead className="bg-gray-100 text-gray-800">
@@ -226,7 +289,9 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
                       {alert.value}
                       {type === "temperature" ? "°C" : "%"}
                     </td>
-                    <td className="px-4 py-2 border text-red-600">{alert.status}</td>
+                    <td className="px-4 py-2 border text-red-600">
+                      {alert.status}
+                    </td>
                   </tr>
                 ))}
               </tbody>
