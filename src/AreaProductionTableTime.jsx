@@ -10,6 +10,7 @@ import ChartModal from "./ChartModal";
 import AttendanceModal from "./AttendanceModal";
 import AddEmployeeModal from "./AddEmployeeModal";
 import { getAreaKey } from "./utils";
+import { useTranslation } from "react-i18next";
 
 Modal.setAppElement("#root");
 
@@ -22,6 +23,7 @@ const timeLabels = [
 ];
 
 const AreaProductionTableTime = ({ area }) => {
+  const { t } = useTranslation();
   const areaKey = getAreaKey(area);
   const [draftModelList, setDraftModelList] = useState([]);
   const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
@@ -55,7 +57,6 @@ const AreaProductionTableTime = ({ area }) => {
   }, [modelEditOpen, modelList]);
   useEffect(() => {
     const fetchData = async () => {
-      setIsLoading(true);
       const dateKey = format(selectedDate, "yyyy-MM-dd");
 
       const [actualSnap, productionSnap, attendanceSnap] = await Promise.all([
@@ -67,7 +68,6 @@ const AreaProductionTableTime = ({ area }) => {
       setActualData(actualSnap.val() || {});
       setProductionData(productionSnap.val() || {});
       setAttendanceData(attendanceSnap.val() || {});
-      setIsLoading(false);
     };
 
     fetchData();
@@ -206,7 +206,13 @@ const AreaProductionTableTime = ({ area }) => {
 
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
-    const wsData = [["Model", "Slot", "Kế hoạch", "Thực tế", "Tỉ lệ"]];
+    const wsData = [[
+      t("areaProduction.model"),
+      "Slot",
+      t("areaProduction.plan"),
+      t("areaProduction.actual"),
+      t("areaProduction.completeRate"),
+    ]];
     modelList.forEach((model) => {
       timeLabels.forEach((slot) => {
         const plan = Number(productionData[model]?.[slot] ?? 0);
@@ -247,19 +253,19 @@ const AreaProductionTableTime = ({ area }) => {
             onClick={() => setModelEditOpen(true)}
             className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 mr-2"
           >
-            ⚙️ Quản lý Line
+            {t("areaProduction.manageLine")}
           </button>
           <button
             onClick={() => changeWeek("prev")}
             className="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
           >
-            ← Tuần trước
+            {t("areaProduction.prevWeek")}
           </button>
           <button
             onClick={() => changeWeek("next")}
             className="ml-2 px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
           >
-            Tuần sau →
+            {t("areaProduction.nextWeek")}
           </button>
         </div>
         <div className="space-x-2">
@@ -267,36 +273,36 @@ const AreaProductionTableTime = ({ area }) => {
             onClick={() => setAttendanceModalOpen(true)}
             className="px-4 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
           >
-            🧑‍🤝‍🧑 Nhân viên
+            {t("areaProduction.employees")}
           </button>
           <button
             onClick={() => setAddEmployeeModalOpen(true)}
             className="px-4 py-1 bg-orange-500 text-white rounded hover:bg-orange-600"
           >
-            ➕ Thêm phân công
+            {t("areaProduction.addAssignment")}
           </button>
           <button
             onClick={() => setModalIsOpen(true)}
             className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            📊 Biểu đồ
+            {t("areaProduction.chart")}
           </button>
           <button
             onClick={exportToExcel}
             className="px-4 py-1 bg-green-500 text-white rounded hover:bg-green-600"
           >
-            📥 Xuất Excel
+            {t("areaProduction.exportExcel")}
           </button>
         </div>
       </div>
       <div className="text-sm text-gray-600 italic font-semibold mb-2">
-        Tuần {weekNumber} ({format(startDateOfWeek, "dd/MM/yyyy")} -{" "}
+        {t("areaProduction.week")} {weekNumber} ({format(startDateOfWeek, "dd/MM/yyyy")} -{" "}
         {format(addDays(startDateOfWeek, 6), "dd/MM/yyyy")})
       </div>
 
       <div className="flex items-center justify-between mb-4">
         <label className="font-semibold text-gray-800">
-          Chọn ngày :{" "}
+          {t("areaProduction.selectDate")} :{" "}
           <input
             type="date"
             value={format(selectedDate, "yyyy-MM-dd")}
@@ -305,16 +311,16 @@ const AreaProductionTableTime = ({ area }) => {
           />
         </label>
         <span className="text-sm text-gray-600 italic">
-          Tuần : {weekNumber} ({weekKey})
+          {t("areaProduction.week")} : {weekNumber} ({weekKey})
         </span>
       </div>
       <table className="w-full border-collapse text-sm text-gray-700">
         <thead>
           <tr className="bg-gray-200">
             <th className="border border-gray-300 px-3 py-2 text-left">
-              Model
+              {t("areaProduction.model")}
             </th>
-            <th className="border border-gray-300 px-3 py-2 text-left">Loại</th>
+            <th className="border border-gray-300 px-3 py-2 text-left">{t("areaProduction.type")}</th>
             {timeLabels.map((slot) => (
               <th
                 key={slot}
@@ -324,7 +330,7 @@ const AreaProductionTableTime = ({ area }) => {
               </th>
             ))}
             <th className="border border-gray-300 px-2 py-2 text-center">
-              Total
+              {t("areaProduction.total")}
             </th>
           </tr>
         </thead>
@@ -348,7 +354,7 @@ const AreaProductionTableTime = ({ area }) => {
                     {model}
                   </td>
                   <td className="border border-gray-300 px-3 py-2 font-semibold text-blue-800 text-left">
-                    Kế hoạch
+                    {t("areaProduction.plan")}
                   </td>
                   {timeLabels.map((slot) => (
                     <td
@@ -373,7 +379,7 @@ const AreaProductionTableTime = ({ area }) => {
                 {/* 🟢 THỰC TẾ */}
                 <tr className="bg-green-100 hover:bg-green-200 transition">
                   <td className="border border-gray-300 px-3 py-2 font-semibold text-green-800 text-left">
-                    Thực tế
+                    {t("areaProduction.actual")}
                   </td>
                   {timeLabels.map((slot) => (
                     <td
@@ -398,7 +404,7 @@ const AreaProductionTableTime = ({ area }) => {
                 {/* 🟡 % HOÀN THÀNH */}
                 <tr className="bg-yellow-100 hover:bg-yellow-200 transition">
                   <td className="border border-gray-300 px-3 py-2 font-semibold text-yellow-800 text-left">
-                    % Hoàn thành
+                    {t("areaProduction.completeRate")}
                   </td>
                   {timeLabels.map((slot) => {
                     const plan = Number(productionData[model]?.[slot] ?? 0);
@@ -429,7 +435,7 @@ const AreaProductionTableTime = ({ area }) => {
         className="bg-white p-6 max-w-md mx-auto rounded shadow"
         overlayClassName="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50"
       >
-        <h2 className="text-lg font-bold mb-4">🛠 Quản lý Line</h2>
+        <h2 className="text-lg font-bold mb-4">{t("areaProduction.manageLine")}</h2>
         <ul className="space-y-2 max-h-60 overflow-y-auto">
           {draftModelList.map((model, index) => (
             <li key={index} className="flex gap-2">
@@ -479,7 +485,7 @@ const AreaProductionTableTime = ({ area }) => {
             onClick={() => setModelEditOpen(false)}
             className="bg-gray-300 px-4 py-1 rounded"
           >
-            Đóng
+            {t("areaProduction.close")}
           </button>
           <button
             onClick={() => {
@@ -495,7 +501,7 @@ const AreaProductionTableTime = ({ area }) => {
             }}
             className="bg-blue-600 text-white px-4 py-1 rounded"
           >
-            💾 Lưu
+            {t("areaProduction.save")}
           </button>
         </div>
       </Modal>

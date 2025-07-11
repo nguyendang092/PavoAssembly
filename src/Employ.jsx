@@ -5,11 +5,12 @@ import AreaProductionTable from "./AreaProductionTable";
 import Toast from "./Toast";
 import AreaProductionTableTime from "./AreaProductionTableTime";
 import AddEmployeeForm from "./AddEmployeeModal";
+import { useTranslation } from "react-i18next";
 
 const Employ = ({ showToast, selectedLeader }) => {
   const [assignments, setAssignments] = useState([]);
   const [toastMessage, setToastMessage] = useState("");
-
+  const { t } = useTranslation();
   // Trạng thái chế độ xem cho từng khu vực: { "Ngọc Thành": "time", "Quang Long": "day", ... }
   const [viewModes, setViewModes] = useState({});
 
@@ -39,7 +40,7 @@ const Employ = ({ showToast, selectedLeader }) => {
       <div className="p-6 font-sans bg-gray-50 pt-24">
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 demo">
-            Bảng phân công & sản lượng
+            {t("employ.title")}
           </h1>
         </div>
 
@@ -53,7 +54,7 @@ const Employ = ({ showToast, selectedLeader }) => {
               return (
                 <div key={key} className="border p-4 bg-white rounded shadow">
                   <div className="flex justify-between items-center mb-2">
-                    <h2 className="text-xl font-semibold">LEADER: {a.area}</h2>
+                    <h2 className="text-xl font-semibold">{t("employ.leader")}: {a.area}</h2>
 
                     <div className="flex items-center gap-4">
                       <AddEmployeeForm />
@@ -68,7 +69,7 @@ const Employ = ({ showToast, selectedLeader }) => {
                               : "bg-gray-300"
                           }`}
                         >
-                          Giờ
+                          {t("employ.time")}
                         </button>
                         <button
                           onClick={() => toggleViewMode(a.area, "day")}
@@ -78,7 +79,7 @@ const Employ = ({ showToast, selectedLeader }) => {
                               : "bg-gray-300"
                           }`}
                         >
-                          Ngày
+                          {t("employ.day")}
                         </button>
                       </div>
                     </div>

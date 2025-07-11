@@ -106,7 +106,6 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
   return (
     <div className="mb-8 border rounded p-4 shadow-md max-w-full">
       <h3 className="text-xl font-semibold mb-2">{machine}</h3>
-
       <table className="w-full border text-sm min-w-max">
         <thead>
           <tr className="bg-gray-100">
