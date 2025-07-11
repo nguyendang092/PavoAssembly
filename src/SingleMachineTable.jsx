@@ -14,6 +14,11 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [saving, setSaving] = useState(false);
 
+  const goToPage = (page) => {
+  if (page >= 1 && page <= totalPages) {
+    setCurrentPage(page);
+  }
+};
   const daysInMonth = eachDayOfInterval({
     start: new Date(`${selectedMonth}-01`),
     end: endOfMonth(new Date(`${selectedMonth}-01`)),
@@ -23,16 +28,35 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
   const pagedDays = daysInMonth.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   useEffect(() => {
-    const path = `temperature_monitor/${area}/${machine}/${selectedMonth}`;
-    const dataRef = ref(db, path);
-    const unsubscribe = onValue(dataRef, (snapshot) => {
-      const val = snapshot.val() || { temperature: {}, humidity: {} };
-      setData(val);
-    });
+  const path = `temperature_monitor/${area}/${machine}/${selectedMonth}`;
+  const dataRef = ref(db, path);
+  const unsubscribe = onValue(dataRef, (snapshot) => {
+    const val = snapshot.val() || { temperature: {}, humidity: {} };
+    setData(val);
+  });
 
+  // 👇 Tự động chuyển đến trang chứa ngày hôm nay
+  const today = new Date();
+  const thisMonth = new Date(`${selectedMonth}-01`);
+  if (
+    today.getMonth() === thisMonth.getMonth() &&
+    today.getFullYear() === thisMonth.getFullYear()
+  ) {
+    const index = daysInMonth.findIndex(
+      (d) => format(d, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
+    );
+    if (index !== -1) {
+      const page = Math.floor(index / PAGE_SIZE) + 1;
+      setCurrentPage(page);
+    } else {
+      setCurrentPage(1);
+    }
+  } else {
     setCurrentPage(1);
-    return () => unsubscribe();
-  }, [area, machine, selectedMonth]);
+  }
+
+  return () => unsubscribe();
+}, [area, machine, selectedMonth]);
 
   const handleInputChange = (type, day, value) => {
     setData((prev) => {
