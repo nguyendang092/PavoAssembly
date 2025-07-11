@@ -95,7 +95,7 @@ const resources = {
         ngocThanh: "옥탄",
         chiThanh: "찌탄",
         muoi: "무이",
-        duyHinh: "쥐잉",
+        duyHinh: "힌",
         boloc: "필터",
       },
       temperatureMonitor: {
@@ -105,7 +105,7 @@ const resources = {
         month: "월",
         viewChart: "차트 보기",
         header: "온도 및 습도 모니터링",
-        noArea: "구역이 선택되지 않았습니다",
+        noArea: "구역 미선택",
         noMachine: "해당 구역에 등록된 측정 기기가 없습니다.",
         noChartArea: "차트를 표시할 구역이 선택되지 않았습니다.",
         temperature: "온도",
