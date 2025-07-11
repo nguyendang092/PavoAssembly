@@ -464,7 +464,7 @@ const AreaProductionTableTime = ({ area }) => {
           <input
             value={newModelName}
             onChange={(e) => setNewModelName(e.target.value)}
-            placeholder="Thêm Line mới"
+            placeholder={t("areaProduction.addNewLine")}
             className="border px-2 py-1 rounded flex-1"
           />
           <button
@@ -491,12 +491,12 @@ const AreaProductionTableTime = ({ area }) => {
             onClick={() => {
               set(ref(db, `assignments/${areaKey}/modelList`), draftModelList)
                 .then(() => {
-                  showToast("✅ Đã cập nhật Line");
+                  showToast(t("areaProduction.updated"));
                   setModelList(draftModelList);
                   setModelEditOpen(false);
                 })
                 .catch(() => {
-                  showToast("❌ Lỗi khi lưu Line!");
+                  showToast(t("areaProduction.errorSaving"));
                 });
             }}
             className="bg-blue-600 text-white px-4 py-1 rounded"
