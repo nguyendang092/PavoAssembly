@@ -122,7 +122,7 @@ export default function Navbar({ onSelectLeader, onLeaderMapReady }) {
               <li key={key}>
                 <button
                   onClick={() => handleSelect(key)}
-                  className={`block py-2 px-4 md:px-3 rounded-md transition-all duration-200 ${
+                  className={`block py-2 px-4 md:px-3 rounded-md transition-all duration-200 font-semibold text-2xl ${
                     key === activeLeaderKey
                       ? "bg-blue-100 text-blue-700 font-semibold underline underline-offset-4"
                       : "text-gray-800 hover:text-blue-600 hover:bg-blue-50"
