@@ -133,81 +133,90 @@ const AddEmployeeModal = ({
   };
 
   const handleAddOrUpdateEmployee = async () => {
-    // Ghép chuỗi timePhanCong
-    const timePhanCongTrimmedFrom = timePhanCongFrom.trim();
-    const timePhanCongTrimmedTo = timePhanCongTo.trim();
-    let timePhanCong = "";
-    if (timePhanCongTrimmedFrom && timePhanCongTrimmedTo) {
-      timePhanCong = `${timePhanCongTrimmedFrom} - ${timePhanCongTrimmedTo}`;
-    }
-    const modelValue =
-      inputModel.trim() !== "" ? inputModel.trim() : newEmployee.model.trim();
-    if (!newEmployee.name.trim() || !modelValue || !selectedDate) {
-      alert("Vui lòng nhập tên, line và ngày!");
+  const name = newEmployee.name.trim();
+  const status = newEmployee.status;
+  const joinDate = newEmployee.joinDate || selectedDate;
+  const modelValue = inputModel.trim() || newEmployee.model.trim();
+
+  // Nếu nghỉ phép: chỉ cần tên và ngày
+  if (status === "Nghỉ phép") {
+    if (!name || !selectedDate) {
+      alert("Vui lòng nhập tên và ngày nghỉ phép!");
       return;
     }
-    if (!timePhanCong) {
-      alert("Vui lòng nhập khoảng thời gian phân công (từ giờ - đến giờ)!");
+  } else {
+    // Nếu đi làm: cần tên + line + thời gian
+    const from = timePhanCongFrom.trim();
+    const to = timePhanCongTo.trim();
+
+    if (!name || !modelValue || !selectedDate) {
+      alert("Vui lòng nhập tên, line và ngày làm việc!");
       return;
     }
-    setIsSaving(true);
-    try {
-      let employeeId = newEmployee.employeeId;
 
-      // Nếu chưa có ID → tạo mới
-      if (!employeeId) {
-        employeeId = `PAVO${Date.now()}`;
-      }
+    if (!from || !to) {
+      alert("Vui lòng nhập thời gian phân công (từ - đến)!");
+      return;
+    }
+  }
 
-      const employeeRef = ref(db, `attendance/${areaKey}/${employeeId}`);
-      const employeeSnap = await get(employeeRef);
+  setIsSaving(true);
 
-      let existingData = {};
-      if (employeeSnap.exists()) {
-        existingData = employeeSnap.val();
-        if (existingData.status) {
-          delete existingData.status; // Xóa status ngoài schedules
-        }
-      }
-
-      let imageUrl = existingData.imageUrl || "";
-      if (imageFile) {
-        imageUrl = await uploadImageToStorage(imageFile, employeeId);
-      } else if (previewImage?.startsWith("http")) {
-        imageUrl = previewImage;
-      }
-
-      const updatedEmployee = {
-        name: newEmployee.name,
-        employeeId,
-        imageUrl,
-        schedules: {
-          ...(existingData.schedules || {}),
-          [dateKey]: {
-            model: modelValue,
-            joinDate: newEmployee.joinDate || selectedDate,
-            status: newEmployee.status,
-            timePhanCong,
-          },
-        },
-      };
-      await set(employeeRef, updatedEmployee);
-
-      if (!modelList.includes(modelValue)) {
-        const updatedModels = [...modelList, modelValue];
-        await set(ref(db, `models/${areaKey}`), updatedModels);
-        setModelList(updatedModels);
-      }
-
-      resetForm();
-      onClose();
-    } catch (err) {
-      console.error("Lỗi khi lưu:", err);
-      alert("Đã xảy ra lỗi.");
+  try {
+    let employeeId = newEmployee.employeeId;
+    if (!employeeId) {
+      employeeId = `PAVO${Date.now()}`;
     }
 
-    setIsSaving(false);
-  };
+    const employeeRef = ref(db, `attendance/${areaKey}/${employeeId}`);
+    const snapshot = await get(employeeRef);
+    let existingData = snapshot.exists() ? snapshot.val() : {};
+
+    let imageUrl = existingData.imageUrl || "";
+    if (imageFile) {
+      imageUrl = await uploadImageToStorage(imageFile, employeeId);
+    } else if (previewImage?.startsWith("http")) {
+      imageUrl = previewImage;
+    }
+
+    const scheduleData = {
+      joinDate,
+      status,
+    };
+
+    if (status === "Đi làm") {
+      scheduleData.model = modelValue;
+      scheduleData.timePhanCong = `${timePhanCongFrom.trim()} - ${timePhanCongTo.trim()}`;
+    }
+
+    const updatedEmployee = {
+      name,
+      employeeId,
+      imageUrl,
+      schedules: {
+        ...(existingData.schedules || {}),
+        [dateKey]: scheduleData,
+      },
+    };
+
+    await set(employeeRef, updatedEmployee);
+
+    if (status === "Đi làm" && !modelList.includes(modelValue)) {
+      const updatedModels = [...modelList, modelValue];
+      await set(ref(db, `models/${areaKey}`), updatedModels);
+      setModelList(updatedModels);
+    }
+
+    resetForm();
+    onClose();
+  } catch (err) {
+    console.error("🔥 Lỗi chi tiết:", err);
+    alert("❌ Lỗi khi lưu: " + (err.message || "Không rõ nguyên nhân"));
+  }
+
+  setIsSaving(false);
+};
+
 
   const resetForm = () => {
     setSelectedKey(null);
