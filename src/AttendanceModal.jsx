@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import Modal from "react-modal";
 import { ref, get, update, remove } from "firebase/database";
 import { db } from "./firebase";
+import { useTranslation } from "react-i18next";
 
 const formatName = (name) => {
   return name
@@ -30,7 +31,7 @@ const AttendanceModal = ({
   const getAreaKey = (areaName) =>
     areaKeyMapping[areaName] ||
     areaName.replace(/\s+/g, "").replace(/\//g, "_");
-
+  const { t } = useTranslation();
   const mappedAreaKey = getAreaKey(areaKey);
   const [employees, setEmployees] = useState({});
   const [editEmployeeId, setEditEmployeeId] = useState(null);
@@ -234,14 +235,17 @@ const AttendanceModal = ({
           onClick={onClose}
           className="absolute right-2 px-4 py-2 bg-gray-500 text-white rounded z-50 font-bold"
         >
-          Đóng
+          {t("attendanceModal.close")}
         </button>
       </div>
       <h3 className="text-2xl font-bold mb-4">
-        👥 Leader: {mappedAreaKey} : {selectedDate}
+        👥 {t("attendanceModal.leader")}: {mappedAreaKey} : {selectedDate}
       </h3>
       <h2 className="text-xl font-bold mb-2 bg-yellow-100 rounded px-3 py-2">
-        Tổng: {totalCount} người | 👷‍♂️ Đi làm: {countWorking} | 🌴 Nghỉ phép:{" "}
+        {t("attendanceModal.total")}: {totalCount}{" "}
+        {t("attendanceModal.totalPeople", { count: totalCount })} | 👷‍♂️{" "}
+        {t("attendanceModal.working")}: {countWorking} | 🌴{" "}
+        {t("attendanceModal.onLeave")}: {countLeave}
         {countLeave}
       </h2>
       <div className="flex flex-wrap gap-3 mb-4 text-sm">
@@ -250,7 +254,7 @@ const AttendanceModal = ({
           onChange={(e) => setFilterModel(e.target.value)}
           className="border px-3 py-1 rounded"
         >
-          <option value="">-- Tất cả line --</option>
+          <option value="">{t("attendanceModal.allLines")}</option>
           {modelList.map((m) => (
             <option key={m} value={m}>
               {m}
@@ -269,7 +273,7 @@ const AttendanceModal = ({
             checked={showOnlyLeave}
             onChange={(e) => setShowOnlyLeave(e.target.checked)}
           />{" "}
-          DSNV nghỉ phép
+          {t("attendanceModal.filterLeaveOnly")}
         </label>
         <button
           onClick={() => {
@@ -279,7 +283,7 @@ const AttendanceModal = ({
           }}
           className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400"
         >
-          Xóa bộ lọc
+          <button>{t("attendanceModal.clearFilters")}</button>
         </button>
       </div>
 
@@ -288,25 +292,40 @@ const AttendanceModal = ({
           emps.length > 0 && (
             <div key={model} className="mb-6">
               <div className="bg-blue-100 text-blue-800 font-bold px-3 py-2 rounded mb-1">
-                * Line: {model} — Tổng: {emps.length} người | 👷‍♂️ Đi làm:{" "}
-                {emps.filter((e) => e.status === "Đi làm").length} | 🌴 Nghỉ
-                phép: {emps.filter((e) => e.status === "Nghỉ phép").length}
+                {t("attendanceModal.line")}: {model} —{" "}
+                {t("attendanceModal.total")}: {emps.length} người | 👷‍♂️{" "}
+                {t("attendanceModal.working")}:{" "}
+                {emps.filter((e) => e.status === "Đi làm").length} | 🌴{" "}
+                {t("attendanceModal.onLeave")}:{" "}
+                {emps.filter((e) => e.status === "Nghỉ phép").length}
               </div>
               <table className="min-w-full border table-fixed text-sm">
                 <thead>
                   <tr className="bg-gray-100 font-semibold text-center">
-                    <th className="border px-2 py-1 w-[70px]">Ảnh</th>
-                    <th className="border px-2 py-1 w-[210px]">Họ & Tên</th>
-                    <th className="border px-2 py-1 w-[160px]">Mã NV</th>
+                    <th className="border px-2 py-1 w-[70px]">
+                      {t("attendanceModal.avatar")}
+                    </th>
+                    <th className="border px-2 py-1 w-[210px]">
+                      {t("attendanceModal.name")}
+                    </th>
+                    <th className="border px-2 py-1 w-[160px]">
+                      {t("attendanceModal.employeeId")}
+                    </th>
                     <th className="border px-2 py-1 w-[180px]">
-                      Thời gian phân line
+                      {t("attendanceModal.timeAssigned")}
                     </th>
-                    <th className="border px-2 py-1 w-[100px]">Trạng thái</th>
-                    <th className="border px-2 py-1 w-[170px]">Line</th>
+                    <th className="border px-2 py-1 w-[100px]">
+                      {t("attendanceModal.status")}
+                    </th>
                     <th className="border px-2 py-1 w-[170px]">
-                      Ngày phân công
+                      {t("attendanceModal.lineAssigned")}
                     </th>
-                    <th className="border px-2 py-1 w-[170px]">Hành động</th>
+                    <th className="border px-2 py-1 w-[170px]">
+                      {t("attendanceModal.assignedDate")}
+                    </th>
+                    <th className="border px-2 py-1 w-[170px]">
+                      {t("attendanceModal.actions")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -373,11 +392,17 @@ const AttendanceModal = ({
                               }
                               className="w-full border px-1 py-0.5"
                             >
-                              <option value="Đi làm">Đi làm</option>
-                              <option value="Nghỉ phép">Nghỉ phép</option>
+                              <option value="Đi làm">
+                                {t("attendanceModal.workingStatus")}
+                              </option>
+                              <option value="Nghỉ phép">
+                                {t("attendanceModal.leaveStatus")}
+                              </option>
                             </select>
+                          ) : emp.status === "Nghỉ phép" ? (
+                            t("attendanceModal.leaveStatus")
                           ) : (
-                            emp.status
+                            t("attendanceModal.workingStatus")
                           )}
                         </td>
                         <td className="border px-2 py-1">
@@ -390,7 +415,9 @@ const AttendanceModal = ({
                               className="w-full border px-1 py-0.5"
                               disabled={editEmployeeData.status === "Nghỉ phép"}
                             >
-                              <option value="">-- Chọn line --</option>
+                              <option value="">
+                                {t("attendanceModal.selectLine")}
+                              </option>
                               {modelList.map((m) => (
                                 <option key={m} value={m}>
                                   {m}
@@ -422,13 +449,13 @@ const AttendanceModal = ({
                                 onClick={handleSaveEdit}
                                 className="px-2 py-1 bg-green-500 text-white rounded"
                               >
-                                Lưu
+                                {t("attendanceModal.save")}
                               </button>
                               <button
                                 onClick={handleCancelEdit}
                                 className="px-2 py-1 bg-gray-400 text-white rounded"
                               >
-                                Hủy
+                                {t("attendanceModal.cancel")}
                               </button>
                             </>
                           ) : (
@@ -437,13 +464,13 @@ const AttendanceModal = ({
                                 onClick={() => handleEditClick(id)}
                                 className="px-2 py-1 bg-blue-600 text-white rounded"
                               >
-                                Sửa
+                                {t("attendanceModal.edit")}
                               </button>
                               <button
                                 onClick={() => handleDelete(id)}
                                 className="px-2 py-1 bg-red-600 text-white rounded"
                               >
-                                Xóa
+                                {t("attendanceModal.delete")}
                               </button>
                             </>
                           )}
