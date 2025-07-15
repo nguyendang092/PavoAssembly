@@ -192,55 +192,56 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
           />
           <Legend
             verticalAlign="top"
-            wrapperStyle={{ fontSize: 15, fontFamily: "sans-serif"}}
+            wrapperStyle={{ fontSize: 15, fontFamily: "sans-serif" }}
           />
           <ReferenceLine
-  y={threshold.min}
-  stroke="red"
-  strokeDasharray="3 3"
-  label={({ viewBox }) => {
-    const { x, y } = viewBox;
-    return (
-      <text
-        x={x - 80}
-        y={y - 8}
-        fill="red"
-        fontSize={12}
-        fontWeight="bold"
-        textAnchor="start"
-      >
-        {`Min (${threshold.min})`}
-      </text>
-    );
-  }}
-/>
+            y={threshold.min}
+            stroke="red"
+            strokeDasharray="3 3"
+            label={({ viewBox }) => {
+              const { x, y } = viewBox;
+              return (
+                <text
+                  x={x - 80}
+                  y={y - 8}
+                  fill="red"
+                  fontSize={12}
+                  fontWeight="bold"
+                  textAnchor="start"
+                >
+                  {`Min (${threshold.min})`}
+                </text>
+              );
+            }}
+          />
 
-<ReferenceLine
-  y={threshold.max}
-  stroke="red"
-  strokeDasharray="3 3"
-  label={({ viewBox }) => {
-    const { x, y } = viewBox;
-    return (
-      <text
-        x={x - 80}
-        y={y - 8}
-        fill="red"
-        fontSize={12}
-        fontWeight="bold"
-        textAnchor="start"
-      >
-        {`Max (${threshold.max})`}
-      </text>
-    );
-  }}
-/>
+          <ReferenceLine
+            y={threshold.max}
+            stroke="red"
+            strokeDasharray="3 3"
+            label={({ viewBox }) => {
+              const { x, y } = viewBox;
+              return (
+                <text
+                  x={x - 80}
+                  y={y - 8}
+                  fill="red"
+                  fontSize={12}
+                  fontWeight="bold"
+                  textAnchor="start"
+                >
+                  {`Max (${threshold.max})`}
+                </text>
+              );
+            }}
+          />
 
           {machines.map((machine, index) => (
             <Line
               key={machine}
               type="monotone"
               dataKey={machine}
+              name={t(`machineNames.${machine}`)}
               stroke={COLORS[index % COLORS.length]}
               strokeWidth={2}
               connectNulls
@@ -284,7 +285,10 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
                 {alerts.map((alert, i) => (
                   <tr key={i} className="bg-white even:bg-gray-50">
                     <td className="px-4 py-2 border">{alert.day}</td>
-                    <td className="px-4 py-2 border">{alert.machine}</td>
+                    <td className="px-4 py-2 border">
+                      {" "}
+                      {t(`machineNames.${alert.machine}`)}
+                    </td>
                     <td className="px-4 py-2 border">
                       {alert.value}
                       {type === "temperature" ? "°C" : "%"}

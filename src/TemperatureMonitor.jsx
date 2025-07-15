@@ -204,91 +204,96 @@ const TemperatureMonitor = () => {
 
           {/* Máy đo */}
           {selectedArea && (
-  <div className="mt-6">
-    <p className="uppercase text-sm text-white/70 tracking-wide mb-2">
-      {t("temperatureMonitor.area")}: {t(`areas.${selectedArea}`)}
-    </p>
-    <ul className="space-y-1">
-      {machines.map((machine) => (
-        <li
-          key={machine}
-          className="flex items-center justify-between bg-white/10 px-2 py-1 rounded"
-        >
-          {editingMachine === machine ? (
-            <>
-              <input
-                value={editMachineName}
-                onChange={(e) => setEditMachineName(e.target.value)}
-                className="flex-1 px-2 py-1 rounded text-black"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter")
-                    handleEditMachine(machine, editMachineName);
-                  if (e.key === "Escape") setEditingMachine(null);
-                }}
-                autoFocus
-              />
-              <button
-                onClick={() => handleEditMachine(machine, editMachineName)}
-              >
-                <FaCheck />
-              </button>
-            </>
-          ) : (
-            <>
-              <span>{t(`machineNames.${machine}`, { defaultValue: machine })}</span>
+            <div className="mt-6">
+              <p className="uppercase text-sm text-white/70 tracking-wide mb-2">
+                {t("temperatureMonitor.area")}: {t(`areas.${selectedArea}`)}
+              </p>
+              <ul className="space-y-1">
+                {machines.map((machine) => (
+                  <li
+                    key={machine}
+                    className="flex items-center justify-between bg-white/10 px-2 py-1 rounded"
+                  >
+                    {editingMachine === machine ? (
+                      <>
+                        <input
+                          value={editMachineName}
+                          onChange={(e) => setEditMachineName(e.target.value)}
+                          className="flex-1 px-2 py-1 rounded text-black"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter")
+                              handleEditMachine(machine, editMachineName);
+                            if (e.key === "Escape") setEditingMachine(null);
+                          }}
+                          autoFocus
+                        />
+                        <button
+                          onClick={() =>
+                            handleEditMachine(machine, editMachineName)
+                          }
+                        >
+                          <FaCheck />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <span>
+                          {t(`machineNames.${machine}`, {
+                            defaultValue: machine,
+                          })}
+                        </span>
 
-              <div className="flex space-x-2">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => {
+                              setEditingMachine(machine);
+                              setEditMachineName(machine);
+                            }}
+                          >
+                            <FaEdit />
+                          </button>
+                          <button onClick={() => handleDeleteMachine(machine)}>
+                            <FaTrash />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </li>
+                ))}
+              </ul>
+
+              {isAddingMachine ? (
+                <div className="flex space-x-1">
+                  <input
+                    type="text"
+                    value={newMachineName}
+                    onChange={(e) => setNewMachineName(e.target.value)}
+                    placeholder={t("temperatureMonitor.newMachine")}
+                    className="flex-1 px-2 py-1 rounded text-black"
+                  />
+                  <button onClick={handleAddMachine}>
+                    {t("temperatureMonitor.add")}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsAddingMachine(false);
+                      setNewMachineName("");
+                    }}
+                  >
+                    {t("temperatureMonitor.cancel")}
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={() => {
-                    setEditingMachine(machine);
-                    setEditMachineName(machine);
-                  }}
+                  onClick={() => setIsAddingMachine(true)}
+                  className="flex items-center space-x-1 text-indigo-300 hover:text-indigo-100"
                 >
-                  <FaEdit />
+                  <FaPlus />
+                  <span>{t("temperatureMonitor.addMachine")}</span>
                 </button>
-                <button onClick={() => handleDeleteMachine(machine)}>
-                  <FaTrash />
-                </button>
-              </div>
-            </>
+              )}
+            </div>
           )}
-        </li>
-      ))}
-    </ul>
-
-    {isAddingMachine ? (
-      <div className="flex space-x-1">
-        <input
-          type="text"
-          value={newMachineName}
-          onChange={(e) => setNewMachineName(e.target.value)}
-          placeholder={t("temperatureMonitor.newMachine")}
-          className="flex-1 px-2 py-1 rounded text-black"
-        />
-        <button onClick={handleAddMachine}>
-          {t("temperatureMonitor.add")}
-        </button>
-        <button
-          onClick={() => {
-            setIsAddingMachine(false);
-            setNewMachineName("");
-          }}
-        >
-          {t("temperatureMonitor.cancel")}
-        </button>
-      </div>
-    ) : (
-      <button
-        onClick={() => setIsAddingMachine(true)}
-        className="flex items-center space-x-1 text-indigo-300 hover:text-indigo-100"
-      >
-        <FaPlus />
-        <span>{t("temperatureMonitor.addMachine")}</span>
-      </button>
-    )}
-  </div>
-)}
-
 
           {/* Chọn tháng */}
           <div className="mt-6">

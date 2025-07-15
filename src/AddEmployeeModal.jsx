@@ -9,6 +9,8 @@ import {
   getDownloadURL,
 } from "firebase/storage";
 import imageCompression from "browser-image-compression";
+import { useTranslation } from "react-i18next";
+
 const formatName = (name) => {
   return name
     .trim()
@@ -21,11 +23,12 @@ const formatName = (name) => {
 const AddEmployeeModal = ({
   isOpen,
   onClose,
-  areaKey,
+  areaKey,  
   selectedDate, // dạng "YYYY-MM-DD"
   modelList = [],
   setModelList,
 }) => {
+  const { t } = useTranslation();
   const getToday = () => new Date().toISOString().slice(0, 10);
   const dateKey =
     selectedDate?.replace(/-/g, "") || getToday().replace(/-/g, "");
@@ -59,6 +62,7 @@ const AddEmployeeModal = ({
       joinDate: selectedDate || getToday(),
     }));
   }, [selectedDate]);
+
   useEffect(() => {
     const fetchExisting = async () => {
       const snapshot = await get(ref(db, `attendance/${areaKey}`));
@@ -81,11 +85,14 @@ const AddEmployeeModal = ({
     };
     fetchExisting();
   }, [areaKey, filterDate, filterDateKey]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setNewEmployee((prev) => {
       // Nếu đang set status = Nghỉ phép thì reset model
       if (name === "status" && value === "Nghỉ phép") {
+              setTimePhanCongFrom("");
+      setTimePhanCongTo("");
         return { ...prev, [name]: value, model: "" };
       }
       return { ...prev, [name]: value };
@@ -141,7 +148,7 @@ const AddEmployeeModal = ({
   // Nếu nghỉ phép: chỉ cần tên và ngày
   if (status === "Nghỉ phép") {
     if (!name || !selectedDate) {
-      alert("Vui lòng nhập tên và ngày nghỉ phép!");
+      alert(t("addEmployeeModal.alertLeaveMissing"));
       return;
     }
   } else {
@@ -150,12 +157,12 @@ const AddEmployeeModal = ({
     const to = timePhanCongTo.trim();
 
     if (!name || !modelValue || !selectedDate) {
-      alert("Vui lòng nhập tên, line và ngày làm việc!");
+       alert(t("addEmployeeModal.alertWorkingMissing"));
       return;
     }
 
     if (!from || !to) {
-      alert("Vui lòng nhập thời gian phân công (từ - đến)!");
+       alert(t("addEmployeeModal.alertMissingTime"));
       return;
     }
   }
@@ -211,13 +218,10 @@ const AddEmployeeModal = ({
     onClose();
   } catch (err) {
     console.error("🔥 Lỗi chi tiết:", err);
-    alert("❌ Lỗi khi lưu: " + (err.message || "Không rõ nguyên nhân"));
+     alert(t("addEmployeeModal.saveError", { message: err.message || "" }));
   }
-
   setIsSaving(false);
 };
-
-
   const resetForm = () => {
     setSelectedKey(null);
     setNewEmployee({
@@ -273,11 +277,11 @@ const AddEmployeeModal = ({
       overlayClassName="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
     >
       <h2 className="text-2xl font-extrabold mb-6 text-gray-900">
-        ➕ Thêm / ✏️ Cập nhật nhân viên
+        {t("addEmployeeModal.title")}
       </h2>
 
       <div className="mb-3 text-gray-700 text-sm">
-        Ngày phân công:{" "}
+        {t("addEmployeeModal.assignDate")}: {" "}
         <strong>
           <input
             type="date"
@@ -292,7 +296,7 @@ const AddEmployeeModal = ({
           type="text"
           value={searchKeyword}
           onChange={(e) => setSearchKeyword(e.target.value)}
-          placeholder="Tìm theo tên..."
+          placeholder={t("addEmployeeModal.searchPlaceholder")}
           className="w-full border border-gray-300 rounded-md px-3 py-2 mb-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
         />
         <ul className="space-y-1 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300">
@@ -327,12 +331,12 @@ const AddEmployeeModal = ({
         name="name"
         value={newEmployee.name}
         onChange={handleChange}
-        placeholder="Tên nhân viên"
+         placeholder={t("addEmployeeModal.namePlaceholder")}
         className="w-full border border-gray-300 rounded-md px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
       />
        {/* Thời gian phân công */}
       <div className="flex gap-2 mb-3 items-center">
-        <label className="whitespace-nowrap">Thời gian phân công:</label>
+        <label className="whitespace-nowrap">{t("addEmployeeModal.assignTime")}</label>
         {["from", "to"].map((type, idx) => {
           const isDisabled = newEmployee.status === "Nghỉ phép";
           const timeValue = type === "from" ? timePhanCongFrom : timePhanCongTo;
@@ -352,7 +356,7 @@ const AddEmployeeModal = ({
                     : "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 }`}
               />
-              {idx === 0 && <span className="mx-1">-</span>}
+              {idx === 0 && <span className="mx-1">{t("addEmployeeModal.fromToSeparator")}</span>}
             </React.Fragment>
           );
         })}
@@ -363,8 +367,8 @@ const AddEmployeeModal = ({
         onChange={handleChange}
         className="w-full border border-gray-300 rounded-md px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
       >
-        <option value="Đi làm">Đi làm</option>
-        <option value="Nghỉ phép">Nghỉ phép</option>
+        <option value="Đi làm">{t("addEmployeeModal.statusWorking")}</option>
+        <option value="Nghỉ phép">{t("addEmployeeModal.statusLeave")}</option>
       </select>
       <select
         name="model"
@@ -380,7 +384,7 @@ const AddEmployeeModal = ({
             : "border-gray-300"
         }`}
       >
-        <option value="">-- Chọn line --</option>
+        <option value="">{t("addEmployeeModal.selectLinePlaceholder")}</option>
         {modelList.map((model) => (
           <option key={model} value={model}>
             {model}
@@ -403,14 +407,14 @@ const AddEmployeeModal = ({
           className="px-5 py-2 rounded-md bg-gray-300 hover:bg-gray-400 transition disabled:opacity-50"
           disabled={isSaving}
         >
-          Hủy
+          {t("addEmployeeModal.cancel")}
         </button>
         <button
           onClick={handleAddOrUpdateEmployee}
           className="px-5 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50"
           disabled={isSaving}
         >
-          {isSaving ? "Đang lưu..." : selectedKey ? "Cập nhật" : "Lưu mới"}
+          {isSaving ? t("addEmployeeModal.saving") : selectedKey ? t("addEmployeeModal.update") : t("addEmployeeModal.saveNew")}
         </button>
       </div>
     </Modal>

@@ -116,7 +116,12 @@ const ChartModal = ({
             data={modelData}
             margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
           >
-            <CartesianGrid strokeDasharray="0" stroke="#909091" vertical={false} horizontal={false} />
+            <CartesianGrid
+              strokeDasharray="0"
+              stroke="#909091"
+              vertical={false}
+              horizontal={false}
+            />
             <XAxis
               dataKey="label"
               interval={0}
@@ -146,7 +151,13 @@ const ChartModal = ({
                 fontFamily: "Arial",
               }}
               tick={({ x, y, payload }) => (
-                <text x={x - 35} y={y} fontSize={14} fill="#000000" fontWeight="bold">
+                <text
+                  x={x - 35}
+                  y={y}
+                  fontSize={14}
+                  fill="#000000"
+                  fontWeight="bold"
+                >
                   {payload.value}
                 </text>
               )}
@@ -165,7 +176,13 @@ const ChartModal = ({
                 fontFamily: "Arial",
               }}
               tick={({ x, y, payload }) => (
-                <text x={x + 15} y={y} fontSize={14} fill="#333" fontWeight="bold">
+                <text
+                  x={x + 15}
+                  y={y}
+                  fontSize={14}
+                  fill="#333"
+                  fontWeight="bold"
+                >
                   {payload.value}
                 </text>
               )}
@@ -203,9 +220,7 @@ const ChartModal = ({
           </LineChart>
         </ResponsiveContainer>
       ) : (
-        <p className="text-center text-gray-500 italic">
-          {t("chart.noData")}
-        </p>
+        <p className="text-center text-gray-500 italic">{t("chart.noData")}</p>
       )}
 
       <button
