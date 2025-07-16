@@ -36,8 +36,6 @@ const AttendanceModal = ({
   const [employees, setEmployees] = useState({});
   const [editEmployeeId, setEditEmployeeId] = useState(null);
   const [editEmployeeData, setEditEmployeeData] = useState({});
-  const [editImageFile, setEditImageFile] = useState(null);
-  const [editImagePreview, setEditImagePreview] = useState(null);
   const [filterModel, setFilterModel] = useState("");
   const [filterDate, setFilterDate] = useState(selectedDate || "");
   const [showOnlyLeave, setShowOnlyLeave] = useState(false);
@@ -101,44 +99,24 @@ const AttendanceModal = ({
   };
 
   const handleChange = (field, value) => {
-    if (field === "name") {
-      value = formatName(value);
-    }
-    setEditEmployeeData((prev) => {
-      if (field === "status" && value === "Nghỉ phép") {
-        return { ...prev, status: value, model: "" };
-      }
-      return { ...prev, [field]: value };
-    });
-  };
+  if (field === "name") {
+    value = formatName(value);
+  }
 
-  const cropToSquare = async (file) => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      img.onload = () => {
-        const size = Math.min(img.width, img.height);
-        const canvas = document.createElement("canvas");
-        canvas.width = size;
-        canvas.height = size;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(
-          img,
-          (img.width - size) / 2,
-          (img.height - size) / 2,
-          size,
-          size,
-          0,
-          0,
-          size,
-          size
-        );
-        canvas.toBlob((blob) => {
-          resolve(new File([blob], file.name, { type: file.type }));
-        }, file.type);
+  setEditEmployeeData((prev) => {
+    if (field === "status" && value === "Nghỉ phép") {
+      return {
+        ...prev,
+        status: value,
+        model: "",
+        startTime: "",
+        endTime: "",
       };
-    });
-  };
+    }
+    return { ...prev, [field]: value };
+  });
+};
+
 
   const handleCancelEdit = () => {
     setEditEmployeeId(null);
@@ -367,6 +345,7 @@ const AttendanceModal = ({
                                 }
                                 className="border px-1 py-0.5 w-[80px]"
                                 lang="vi"
+                                disabled={editEmployeeData.status === "Nghỉ phép"}
                               />
                               <span>-</span>
                               <input
@@ -377,6 +356,7 @@ const AttendanceModal = ({
                                 }
                                 className="border px-1 py-0.5 w-[80px]"
                                 lang="vi"
+                                disabled={editEmployeeData.status === "Nghỉ phép"}
                               />
                             </div>
                           ) : (

@@ -11,6 +11,7 @@ import AttendanceModal from "./AttendanceModal";
 import AddEmployeeModal from "./AddEmployeeModal";
 import { getAreaKey } from "./utils";
 import { useTranslation } from "react-i18next";
+import MultiPlanModal from "./MultiPlanModal";
 
 Modal.setAppElement("#root");
 
@@ -23,6 +24,7 @@ const timeLabels = [
 ];
 
 const AreaProductionTableTime = ({ area }) => {
+  const [multiPlanModalOpen, setMultiPlanModalOpen] = useState(false);
   const { t } = useTranslation();
   const areaKey = getAreaKey(area);
   const [draftModelList, setDraftModelList] = useState([]);
@@ -206,13 +208,15 @@ const AreaProductionTableTime = ({ area }) => {
 
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
-    const wsData = [[
-      t("areaProduction.model"),
-      "Slot",
-      t("areaProduction.plan"),
-      t("areaProduction.actual"),
-      t("areaProduction.completeRate"),
-    ]];
+    const wsData = [
+      [
+        t("areaProduction.model"),
+        "Slot",
+        t("areaProduction.plan"),
+        t("areaProduction.actual"),
+        t("areaProduction.completeRate"),
+      ],
+    ];
     modelList.forEach((model) => {
       timeLabels.forEach((slot) => {
         const plan = Number(productionData[model]?.[slot] ?? 0);
@@ -267,6 +271,12 @@ const AreaProductionTableTime = ({ area }) => {
           >
             {t("areaProduction.nextWeek")}
           </button>
+          <button
+            onClick={() => setMultiPlanModalOpen(true)}
+            className="px-3 py-1 ml-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+          >
+            {t("areaProduction.chosemanyDay")}
+          </button>
         </div>
         <div className="space-x-2">
           <button
@@ -296,7 +306,8 @@ const AreaProductionTableTime = ({ area }) => {
         </div>
       </div>
       <div className="text-sm text-gray-600 italic font-semibold mb-2">
-        {t("areaProduction.week")} {weekNumber} ({format(startDateOfWeek, "dd/MM/yyyy")} -{" "}
+        {t("areaProduction.week")} {weekNumber} (
+        {format(startDateOfWeek, "dd/MM/yyyy")} -{" "}
         {format(addDays(startDateOfWeek, 6), "dd/MM/yyyy")})
       </div>
 
@@ -320,7 +331,9 @@ const AreaProductionTableTime = ({ area }) => {
             <th className="border border-gray-300 px-3 py-2 text-left">
               {t("areaProduction.model")}
             </th>
-            <th className="border border-gray-300 px-3 py-2 text-left">{t("areaProduction.type")}</th>
+            <th className="border border-gray-300 px-3 py-2 text-left">
+              {t("areaProduction.type")}
+            </th>
             {timeLabels.map((slot) => (
               <th
                 key={slot}
@@ -435,7 +448,9 @@ const AreaProductionTableTime = ({ area }) => {
         className="bg-white p-6 max-w-md mx-auto rounded shadow"
         overlayClassName="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50"
       >
-        <h2 className="text-lg font-bold mb-4">{t("areaProduction.manageLine")}</h2>
+        <h2 className="text-lg font-bold mb-4">
+          {t("areaProduction.manageLine")}
+        </h2>
         <ul className="space-y-2 max-h-60 overflow-y-auto">
           {draftModelList.map((model, index) => (
             <li key={index} className="flex gap-2">
@@ -536,6 +551,12 @@ const AreaProductionTableTime = ({ area }) => {
         dateKey={dateKey}
         modelList={modelList}
         selectedDate={format(selectedDate, "yyyy-MM-dd")}
+      />
+      <MultiPlanModal
+        isOpen={multiPlanModalOpen}
+        onClose={() => setMultiPlanModalOpen(false)}
+        areaKey={areaKey}
+        modelList={modelList}
       />
     </div>
   );

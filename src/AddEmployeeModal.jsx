@@ -23,7 +23,7 @@ const formatName = (name) => {
 const AddEmployeeModal = ({
   isOpen,
   onClose,
-  areaKey,  
+  areaKey,
   selectedDate, // dạng "YYYY-MM-DD"
   modelList = [],
   setModelList,
@@ -91,8 +91,8 @@ const AddEmployeeModal = ({
     setNewEmployee((prev) => {
       // Nếu đang set status = Nghỉ phép thì reset model
       if (name === "status" && value === "Nghỉ phép") {
-              setTimePhanCongFrom("");
-      setTimePhanCongTo("");
+        setTimePhanCongFrom("");
+        setTimePhanCongTo("");
         return { ...prev, [name]: value, model: "" };
       }
       return { ...prev, [name]: value };
@@ -140,88 +140,88 @@ const AddEmployeeModal = ({
   };
 
   const handleAddOrUpdateEmployee = async () => {
-  const name = newEmployee.name.trim();
-  const status = newEmployee.status;
-  const joinDate = newEmployee.joinDate || selectedDate;
-  const modelValue = inputModel.trim() || newEmployee.model.trim();
+    const name = newEmployee.name.trim();
+    const status = newEmployee.status;
+    const joinDate = newEmployee.joinDate || selectedDate;
+    const modelValue = inputModel.trim() || newEmployee.model.trim();
 
-  // Nếu nghỉ phép: chỉ cần tên và ngày
-  if (status === "Nghỉ phép") {
-    if (!name || !selectedDate) {
-      alert(t("addEmployeeModal.alertLeaveMissing"));
-      return;
-    }
-  } else {
-    // Nếu đi làm: cần tên + line + thời gian
-    const from = timePhanCongFrom.trim();
-    const to = timePhanCongTo.trim();
+    // Nếu nghỉ phép: chỉ cần tên và ngày
+    if (status === "Nghỉ phép") {
+      if (!name || !selectedDate) {
+        alert(t("addEmployeeModal.alertLeaveMissing"));
+        return;
+      }
+    } else {
+      // Nếu đi làm: cần tên + line + thời gian
+      const from = timePhanCongFrom.trim();
+      const to = timePhanCongTo.trim();
 
-    if (!name || !modelValue || !selectedDate) {
-       alert(t("addEmployeeModal.alertWorkingMissing"));
-      return;
-    }
+      if (!name || !modelValue || !selectedDate) {
+        alert(t("addEmployeeModal.alertWorkingMissing"));
+        return;
+      }
 
-    if (!from || !to) {
-       alert(t("addEmployeeModal.alertMissingTime"));
-      return;
-    }
-  }
-
-  setIsSaving(true);
-
-  try {
-    let employeeId = newEmployee.employeeId;
-    if (!employeeId) {
-      employeeId = `PAVO${Date.now()}`;
+      if (!from || !to) {
+        alert(t("addEmployeeModal.alertMissingTime"));
+        return;
+      }
     }
 
-    const employeeRef = ref(db, `attendance/${areaKey}/${employeeId}`);
-    const snapshot = await get(employeeRef);
-    let existingData = snapshot.exists() ? snapshot.val() : {};
+    setIsSaving(true);
 
-    let imageUrl = existingData.imageUrl || "";
-    if (imageFile) {
-      imageUrl = await uploadImageToStorage(imageFile, employeeId);
-    } else if (previewImage?.startsWith("http")) {
-      imageUrl = previewImage;
+    try {
+      let employeeId = newEmployee.employeeId;
+      if (!employeeId) {
+        employeeId = `PAVO${Date.now()}`;
+      }
+
+      const employeeRef = ref(db, `attendance/${areaKey}/${employeeId}`);
+      const snapshot = await get(employeeRef);
+      let existingData = snapshot.exists() ? snapshot.val() : {};
+
+      let imageUrl = existingData.imageUrl || "";
+      if (imageFile) {
+        imageUrl = await uploadImageToStorage(imageFile, employeeId);
+      } else if (previewImage?.startsWith("http")) {
+        imageUrl = previewImage;
+      }
+
+      const scheduleData = {
+        joinDate,
+        status,
+      };
+
+      if (status === "Đi làm") {
+        scheduleData.model = modelValue;
+        scheduleData.timePhanCong = `${timePhanCongFrom.trim()} - ${timePhanCongTo.trim()}`;
+      }
+
+      const updatedEmployee = {
+        name,
+        employeeId,
+        imageUrl,
+        schedules: {
+          ...(existingData.schedules || {}),
+          [dateKey]: scheduleData,
+        },
+      };
+
+      await set(employeeRef, updatedEmployee);
+
+      if (status === "Đi làm" && !modelList.includes(modelValue)) {
+        const updatedModels = [...modelList, modelValue];
+        await set(ref(db, `models/${areaKey}`), updatedModels);
+        setModelList(updatedModels);
+      }
+
+      resetForm();
+      onClose();
+    } catch (err) {
+      console.error("🔥 Lỗi chi tiết:", err);
+      alert(t("addEmployeeModal.saveError", { message: err.message || "" }));
     }
-
-    const scheduleData = {
-      joinDate,
-      status,
-    };
-
-    if (status === "Đi làm") {
-      scheduleData.model = modelValue;
-      scheduleData.timePhanCong = `${timePhanCongFrom.trim()} - ${timePhanCongTo.trim()}`;
-    }
-
-    const updatedEmployee = {
-      name,
-      employeeId,
-      imageUrl,
-      schedules: {
-        ...(existingData.schedules || {}),
-        [dateKey]: scheduleData,
-      },
-    };
-
-    await set(employeeRef, updatedEmployee);
-
-    if (status === "Đi làm" && !modelList.includes(modelValue)) {
-      const updatedModels = [...modelList, modelValue];
-      await set(ref(db, `models/${areaKey}`), updatedModels);
-      setModelList(updatedModels);
-    }
-
-    resetForm();
-    onClose();
-  } catch (err) {
-    console.error("🔥 Lỗi chi tiết:", err);
-     alert(t("addEmployeeModal.saveError", { message: err.message || "" }));
-  }
-  setIsSaving(false);
-};
+    setIsSaving(false);
+  };
   const resetForm = () => {
     setSelectedKey(null);
     setNewEmployee({
@@ -281,7 +281,7 @@ const AddEmployeeModal = ({
       </h2>
 
       <div className="mb-3 text-gray-700 text-sm">
-        {t("addEmployeeModal.assignDate")}: {" "}
+        {t("addEmployeeModal.assignDate")}:{" "}
         <strong>
           <input
             type="date"
@@ -331,16 +331,19 @@ const AddEmployeeModal = ({
         name="name"
         value={newEmployee.name}
         onChange={handleChange}
-         placeholder={t("addEmployeeModal.namePlaceholder")}
+        placeholder={t("addEmployeeModal.namePlaceholder")}
         className="w-full border border-gray-300 rounded-md px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
       />
-       {/* Thời gian phân công */}
+      {/* Thời gian phân công */}
       <div className="flex gap-2 mb-3 items-center">
-        <label className="whitespace-nowrap">{t("addEmployeeModal.assignTime")}</label>
+        <label className="whitespace-nowrap">
+          {t("addEmployeeModal.assignTime")}
+        </label>
         {["from", "to"].map((type, idx) => {
           const isDisabled = newEmployee.status === "Nghỉ phép";
           const timeValue = type === "from" ? timePhanCongFrom : timePhanCongTo;
-          const setTime = type === "from" ? setTimePhanCongFrom : setTimePhanCongTo;
+          const setTime =
+            type === "from" ? setTimePhanCongFrom : setTimePhanCongTo;
 
           return (
             <React.Fragment key={type}>
@@ -356,7 +359,11 @@ const AddEmployeeModal = ({
                     : "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 }`}
               />
-              {idx === 0 && <span className="mx-1">{t("addEmployeeModal.fromToSeparator")}</span>}
+              {idx === 0 && (
+                <span className="mx-1">
+                  {t("addEmployeeModal.fromToSeparator")}
+                </span>
+              )}
             </React.Fragment>
           );
         })}
@@ -414,7 +421,11 @@ const AddEmployeeModal = ({
           className="px-5 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-50"
           disabled={isSaving}
         >
-          {isSaving ? t("addEmployeeModal.saving") : selectedKey ? t("addEmployeeModal.update") : t("addEmployeeModal.saveNew")}
+          {isSaving
+            ? t("addEmployeeModal.saving")
+            : selectedKey
+            ? t("addEmployeeModal.update")
+            : t("addEmployeeModal.saveNew")}
         </button>
       </div>
     </Modal>
