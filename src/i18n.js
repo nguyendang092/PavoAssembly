@@ -14,6 +14,7 @@ const resources = {
         muoi: "Muội",
         duyHinh: "Duy Hinh",
         boloc: "Bộ Lọc",
+        chart: "Biểu đồ"
       },
       temperatureMonitor: {
         dashboard: "Bảng điều khiển",
@@ -134,6 +135,7 @@ const resources = {
         "LOGO CỬA RA VÀO": "LOGO CỬA RA VÀO",
         "ASSY_3 CỬA RA VÀO": "ASSY_3 CỬA RA VÀO",
         "ASSY_5 CỬA RA VÀO": "ASSY_5 CỬA RA VÀO",
+        "ASSY_4 CỬA RA VÀO": "ASSY_4 CỬA RA VÀO",
       },
       attendanceModal: {
         leader: "Leader",
@@ -331,6 +333,7 @@ const resources = {
         "LOGO CỬA RA VÀO": "출입문 로고",
         "ASSY_3 CỬA RA VÀO": "ASSY_3 출입문",
         "ASSY_5 CỬA RA VÀO": "ASSY-5 출입문",
+        "ASSY_4 CỬA RA VÀO": "ASSY-4 출입문",
       },
       attendanceModal: {
         leader: "리더",
