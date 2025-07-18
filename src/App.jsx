@@ -3,6 +3,7 @@ import Employ from "./Employ";
 import Toast from "./Toast";
 import Navbar from "./Navbar";
 import TemperatureMonitor from "./TemperatureMonitor";
+import { FaArrowCircleUp } from "react-icons/fa"; // ✅ Icon mũi tên lên
 import "./i18n";
 
 const App = () => {
@@ -17,15 +18,19 @@ const App = () => {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
+      setIsScrolled(window.scrollY > 100);
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <div>
-      {/* ✅ Navbar cố định */}
+      {/* Navbar cố định */}
       <div
         className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
           isScrolled ? "bg-white/30 backdrop-blur-md shadow-md" : "bg-transparent"
@@ -37,7 +42,7 @@ const App = () => {
         />
       </div>
 
-      {/* ✅ Nội dung scroll bình thường */}
+      {/* Nội dung */}
       <div className="pt-2">
         {selectedLeader === "nhietdo" ? (
           <TemperatureMonitor />
@@ -46,8 +51,18 @@ const App = () => {
         )}
       </div>
 
-      {/* ✅ Toast luôn hiển thị */}
+      {/* Toast */}
       <Toast message={toastMessage} onClose={() => setToastMessage("")} />
+
+      {/* ✅ Nút Back to Top bo tròn, icon đẹp */}
+      {isScrolled && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 text-blue-600 hover:text-white bg-white hover:bg-blue-600 rounded-full shadow-lg p-3 transition duration-300"
+        >
+          <FaArrowCircleUp size={24} />
+        </button>
+      )}
     </div>
   );
 };
