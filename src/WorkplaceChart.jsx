@@ -38,7 +38,7 @@ const extraLabelPlugin = {
         if (!bar || value === 0) return;
 
         ctx.save();
-        ctx.font = "bold 13px Arial";
+        ctx.font = "bold 10px Arial";
         ctx.fillStyle = "#000";
         ctx.textBaseline = "middle";
 
@@ -144,18 +144,9 @@ export default function WorkplaceChart() {
 
       setRawData(jsonData);
       processExcelData(jsonData);
-
-      try {
-        await uploadToFirebase(jsonData);
-        alert("✅ Upload dữ liệu thành công!");
-      } catch (error) {
-        alert("❌ Upload lỗi: " + error.message);
-      }
     };
-
     reader.readAsBinaryString(file);
   };
-
   const processExcelData = (data) => {
     const grouped = {};
     data.forEach((row) => {
@@ -167,16 +158,13 @@ export default function WorkplaceChart() {
     const latestWeek = Math.max(...Object.keys(grouped));
     setSelectedWeek(latestWeek.toString());
   };
-
   useEffect(() => {
     if (!selectedWeek || !weekData[selectedWeek]) {
       setChartData(null);
       setDataMap({});
       return;
     }
-
     const rows = weekData[selectedWeek];
-
     const daysSet = new Set();
     rows.forEach((r) => r.time_monthday && daysSet.add(r.time_monthday));
     const days = Array.from(daysSet).sort((a, b) => new Date(a) - new Date(b));
@@ -192,7 +180,6 @@ export default function WorkplaceChart() {
         Night: { normal: 0, rework: 0 },
       }));
     });
-
     rows.forEach((row) => {
       const dayIndex = days.indexOf(row.time_monthday);
       const area = row.WorkplaceName;
@@ -204,7 +191,6 @@ export default function WorkplaceChart() {
         map[area][dayIndex][shift][type] += val;
       }
     });
-
     if (map["CNC"]) {
       for (let i = 0; i < days.length; i++) {
         const currentDay = map["CNC"][i].Day;
@@ -214,16 +200,13 @@ export default function WorkplaceChart() {
         currentDay.rework += nextNight.rework;
       }
     }
-
     setDataMap(map);
-
     const filteredAreas = areas.filter((area) =>
       map[area].some(
         ({ Day, Night }) =>
           Day.normal + Day.rework + Night.normal + Night.rework > 0
       )
     );
-
     const datasets = filteredAreas.map((area, i) => {
       let dataArr;
       if (area === "CNC") {
@@ -234,7 +217,6 @@ export default function WorkplaceChart() {
             Day.normal + Day.rework + Night.normal + Night.rework
         );
       }
-
       return {
         label: area,
         data: dataArr,
@@ -253,7 +235,6 @@ export default function WorkplaceChart() {
         borderRadius: 6,
       };
     });
-
     const labels = days.map((d) => format(parseISO(d), "dd/MM"));
     setChartData({ labels, datasets });
   }, [selectedWeek, weekData]);
@@ -261,14 +242,12 @@ export default function WorkplaceChart() {
   const exportToExcel = () => {
     const headers = ["Khu vực", "Ngày", "Normal", "Rework", "Tổng"];
     const rows = [];
-
     Object.entries(dataMap)
       .filter(([area]) => selectedArea === "" || selectedArea === area)
       .forEach(([area, dayArr]) => {
         dayArr.forEach((dayData, idx) => {
           const label = chartData.labels[idx];
           let normal, rework;
-
           if (area === "CNC") {
             normal = dayData.Day.normal;
             rework = dayData.Day.rework;
@@ -278,18 +257,14 @@ export default function WorkplaceChart() {
           }
           const total = normal + rework;
           if (total === 0) return;
-
           rows.push([area, label, normal, rework, total]);
         });
       });
-
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Sản lượng chi tiết");
-
     XLSX.writeFile(wb, `san_luong_chi_tiet_tuan_${selectedWeek}.xlsx`);
   };
-
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
@@ -340,9 +315,8 @@ export default function WorkplaceChart() {
           </>
         )}
       </div>
-
       {/* Chart và bảng tổng */}
-      <div className="flex-1 p-6 flex gap-6" style={{ height: "80vh" }}>
+      <div className="flex-1 p-6 flex gap-6" style={{ height: "91vh" }}>
         {/* Chart */}
         <div style={{ flex: "7", overflowY: "auto" }}>
           {chartData ? (
@@ -385,7 +359,7 @@ export default function WorkplaceChart() {
                           ? label.slice(0, 15) + "..."
                           : label;
                       },
-                      font: { size: 12, weight: "bold" },
+                      font: { size: 15, weight: "bold" },
                       color: "#000",
                     },
                     grid: { display: false },
@@ -400,7 +374,6 @@ export default function WorkplaceChart() {
             </p>
           )}
         </div>
-
         {/* Bảng tổng */}
         <div
           style={{
@@ -436,7 +409,6 @@ export default function WorkplaceChart() {
               </select>
             </div>
           </div>
-
           {chartData ? (
             tableView === "detailed" ? (
               <>
@@ -492,11 +464,9 @@ export default function WorkplaceChart() {
                             normal = Day.normal + Night.normal;
                             rework = Day.rework + Night.rework;
                           }
-
                           totalNormal += normal;
                           totalRework += rework;
                         });
-
                         return (
                           <React.Fragment key={area}>
                             <tr
@@ -523,14 +493,12 @@ export default function WorkplaceChart() {
                                 {(totalNormal + totalRework).toLocaleString()}
                               </td>
                             </tr>
-
                             {chartData.labels.map((label, idx) => {
                               const { Day, Night } = dayArr[idx] || {
                                 Day: { normal: 0, rework: 0 },
                                 Night: { normal: 0, rework: 0 },
                               };
                               let normal, rework;
-
                               if (area === "CNC") {
                                 normal = Day.normal;
                                 rework = Day.rework;
@@ -538,10 +506,8 @@ export default function WorkplaceChart() {
                                 normal = Day.normal + Night.normal;
                                 rework = Day.rework + Night.rework;
                               }
-
                               const total = normal + rework;
                               if (total === 0) return null;
-
                               return (
                                 <tr
                                   key={idx}
