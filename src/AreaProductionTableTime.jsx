@@ -250,7 +250,7 @@ const AreaProductionTableTime = ({ area }) => {
     });
   });
   return (
-    <div className="mb-6">
+    <div className="mb-1">
       <div className="flex flex-wrap items-center justify-between mb-3 gap-2  ">
         <div>
           <button

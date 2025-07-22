@@ -37,7 +37,7 @@ const Employ = ({ showToast, selectedLeader }) => {
 
   return (
     <>
-      <div className="p-6 font-sans bg-gray-50 pt-24">
+      <div className="font-sans bg-gray-50 pt-6 mx-4">
         <div className="flex justify-between items-center mb-2">
           <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 demo">
             {t("employ.title")}

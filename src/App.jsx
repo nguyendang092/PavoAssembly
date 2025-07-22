@@ -5,6 +5,8 @@ import Navbar from "./Navbar";
 import TemperatureMonitor from "./TemperatureMonitor";
 import { FaArrowCircleUp } from "react-icons/fa"; // ✅ Icon mũi tên lên
 import "./i18n";
+import WorkplaceChart from "./WorkplaceChart";
+import ModelProductionChart from "./ModelProductionChart";
 
 const App = () => {
   const [toastMessage, setToastMessage] = useState("");
@@ -33,7 +35,9 @@ const App = () => {
       {/* Navbar cố định */}
       <div
         className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
-          isScrolled ? "bg-white/30 backdrop-blur-md shadow-md" : "bg-transparent"
+          isScrolled
+            ? "bg-white/30 backdrop-blur-md shadow-md"
+            : "bg-transparent"
         }`}
       >
         <Navbar
@@ -42,14 +46,17 @@ const App = () => {
         />
       </div>
 
-      {/* Nội dung */}
-      <div className="pt-2">
-        {selectedLeader === "nhietdo" ? (
-          <TemperatureMonitor />
-        ) : (
-          <Employ showToast={showToast} selectedLeader={selectedLeader} />
-        )}
-      </div>
+     <div className="pt-16">
+    {selectedLeader === "nhietdo" ? (
+      <TemperatureMonitor />
+    ) : selectedLeader === "bieudo" ? (
+      <WorkplaceChart />
+    ) : selectedLeader === "model" ? (
+      <ModelProductionChart />
+    ) : (
+      <Employ showToast={showToast} selectedLeader={selectedLeader} />
+    )}
+  </div>
 
       {/* Toast */}
       <Toast message={toastMessage} onClose={() => setToastMessage("")} />

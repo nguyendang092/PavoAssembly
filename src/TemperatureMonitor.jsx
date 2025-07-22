@@ -53,6 +53,7 @@ const TemperatureMonitor = () => {
     });
     return () => unsubscribe();
   }, []);
+  
   const machines =
     selectedArea && areas[selectedArea]?.machines
       ? areas[selectedArea].machines
@@ -153,7 +154,7 @@ const TemperatureMonitor = () => {
       {/* Sidebar */}
       <div className="w-72 h-screen fixed top-0 left-0 bg-gradient-to-b from-indigo-600 to-purple-600 text-white p-6 space-y-6 shadow z-10 overflow-y-auto">
         <div className="space-y-2">
-          <div className="flex items-center space-x-3 bg-white/20 rounded px-3 py-2">
+          <div className="flex items-center space-x-3 bg-white/20 rounded">
             <HiHome className="text-xl" />
             <span className="font-semibold">
               {t("temperatureMonitor.dashboard")}

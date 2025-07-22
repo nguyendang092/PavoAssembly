@@ -1,14 +1,15 @@
+/* Đây là component hiển thị navbar */
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-
 export default function Navbar({ onSelectLeader, onLeaderMapReady }) {
   const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [language, setLanguage] = useState(i18n.language || "vi");
-  const [activeLeaderKey, setActiveLeaderKey] = useState("temperature");
+  const [activeLeaderKey, setActiveLeaderKey] = useState("bieudo");
 
   const leaderMap = {
     temperature: "nhietdo",
+    bieudo: "bieudo",
     ngocThanh: "NgocThanh",
     chiThanh: "ChiThanh",
     muoi: "Muoi",
@@ -125,7 +126,7 @@ export default function Navbar({ onSelectLeader, onLeaderMapReady }) {
                 <li key={key}>
                   <button
                     onClick={() => handleSelect(key)}
-                    className={`block py-2 px-4 md:px-3 rounded-md transition-all duration-200 font-semibold text-xl ${
+                    className={`block py-2 px-4 md:px-3 rounded-md transition-all duration-200 font-semibold text-sm uppercase ${
                       key === activeLeaderKey
                         ? "bg-blue-100 text-blue-700 font-semibold underline underline-offset-4"
                         : "text-gray-800 hover:text-blue-600 hover:bg-blue-50"

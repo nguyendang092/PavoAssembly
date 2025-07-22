@@ -14,7 +14,8 @@ const resources = {
         muoi: "Muội",
         duyHinh: "Duy Hinh",
         boloc: "Bộ Lọc",
-        chart: "Biểu đồ"
+        chart: "Biểu đồ",
+        bieudo: "Sản lượng"
       },
       temperatureMonitor: {
         dashboard: "Bảng điều khiển",
@@ -212,6 +213,7 @@ const resources = {
         muoi: "무이",
         duyHinh: "힌",
         boloc: "필터",
+        bieudo: "생산량"
       },
       temperatureMonitor: {
         dashboard: "대시보드",
