@@ -67,13 +67,12 @@ const resources = {
         Press: " PRESS",
         "Hair Line": "HAIRLINE",
         "CO KHI CONG NGHIEP HAI AU": "CO KHI CONG NGHIEP HAI AU",
-        "MTS VIET NAM CO.,LTD": "MTS VIET NAM CO.,LTD",
+        "MTS VIET NAM CO_,LTD": "MTS VIET NAM CO_,LTD",
         "NHẬT PHÁT TUẤN": "NHẬT PHÁT TUẤN",
-        "YOUNGJIN VIET NAM CO.,LTD": "YOUNGJIN VIET NAM CO.,LTD",
+        "YOUNGJIN VIET NAM CO_,LTD": "YOUNGJIN VIET NAM CO_,LTD",
         "UNKIM CO.,LTD": "UNKIM CO.,LTD",
-        "THIEN MY INDUSTRIES CO., LTD": "THIEN MY INDUSTRIES CO., LTD",
-        "BRANCH OF PU KYONG VIETNAM CO., LTD":
-          "BRANCH OF PU KYONG VIETNAM CO., LTD",
+        "THIEN MY INDUSTRIES CO_, LTD": "THIEN MY INDUSTRIES CO_, LTD",
+        "BRANCH OF PU KYONG VIETNAM CO_, LTD": "BRANCH OF PU KYONG VIETNAM CO_, LTD",
       },
       chart: {
         title: "Sản lượng tuần {{week}}",
