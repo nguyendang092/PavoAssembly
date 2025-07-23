@@ -224,7 +224,6 @@ const AttendanceModal = ({
         {t("attendanceModal.totalPeople", { count: totalCount })} | 👷‍♂️{" "}
         {t("attendanceModal.working")}: {countWorking} | 🌴{" "}
         {t("attendanceModal.onLeave")}: {countLeave}
-        {countLeave}
       </h2>
       <div className="flex flex-wrap gap-3 mb-4 text-sm">
         <select
