@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { Bar } from "react-chartjs-2";
-
+import { useTranslation } from "react-i18next";
 import {
   Chart as ChartJS,
   BarElement,
@@ -52,6 +52,7 @@ const extraLabelPlugin = {
 };
 
 export default function WorkplaceChart() {
+  const { t } = useTranslation();
   const [selectedArea, setSelectedArea] = useState("");
   const [weekData, setWeekData] = useState({});
   const [selectedWeek, setSelectedWeek] = useState("");
@@ -124,8 +125,8 @@ export default function WorkplaceChart() {
       } = row;
 
       const safeWorkplaceName = sanitizeKey(WorkplaceName);
-  const path = `bar/${safeWorkplaceName}/${Week}/${ReworkorNot}/${time_monthday}/${WorkingLight}`;
-  updates[path] = Total_Product;
+      const path = `bar/${safeWorkplaceName}/${Week}/${ReworkorNot}/${time_monthday}/${WorkingLight}`;
+      updates[path] = Total_Product;
     });
 
     await update(ref(db), updates);
@@ -195,7 +196,9 @@ export default function WorkplaceChart() {
       for (let i = 0; i < days.length; i++) {
         const currentDay = map["CNC"][i].Day;
         const nextNight =
-          i + 1 < days.length ? map["CNC"][i + 1].Night : { normal: 0, rework: 0 };
+          i + 1 < days.length
+            ? map["CNC"][i + 1].Night
+            : { normal: 0, rework: 0 };
         currentDay.normal += nextNight.normal;
         currentDay.rework += nextNight.rework;
       }
@@ -270,10 +273,10 @@ export default function WorkplaceChart() {
       {/* Sidebar */}
       <div className="w-64 min-h-screen p-6 bg-gradient-to-b from-indigo-600 to-purple-600 shadow-md border-r">
         <h2 className="text-2xl font-bold text-white mb-6 uppercase flex items-center gap-2">
-          📁 Menu
+          {t("workplaceChart.menuTitle")}
         </h2>
         <label className="block text-white font-medium mb-2">
-          Chọn file Excel
+          {t("workplaceChart.chooseExcel")}
         </label>
         <input
           type="file"
@@ -286,7 +289,9 @@ export default function WorkplaceChart() {
         />
         {Object.keys(weekData).length > 0 && (
           <>
-            <label className="block text-white font-medium mb-2">Chọn tuần</label>
+            <label className="block text-white font-medium mb-2">
+              {t("workplaceChart.selectWeek")}
+            </label>
             <select
               value={selectedWeek}
               onChange={(e) => setSelectedWeek(e.target.value)}
@@ -294,23 +299,25 @@ export default function WorkplaceChart() {
             >
               {Object.keys(weekData).map((week) => (
                 <option key={week} value={week}>
-                  Tuần {week}
+                  {t("workplaceChart.week")} {week}
                 </option>
               ))}
             </select>
             <button
               onClick={() => {
                 if (!rawData) {
-                  alert("Vui lòng chọn file Excel trước!");
+                  alert(t("workplaceChart.pleaseSelectExcel"));
                   return;
                 }
                 uploadToFirebase(rawData)
                   .then(() => alert("✅ Upload dữ liệu thành công!"))
-                  .catch((error) => alert("❌ Upload lỗi: " + error.message));
+                  .catch((error) =>
+                    alert(t("workplaceChart.uploadError") + error.message)
+                  );
               }}
               className="mt-4 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 text-sm font-semibold"
             >
-              ⬆️ Upload Firebase
+              {t("workplaceChart.uploadFirebase")}
             </button>
           </>
         )}
@@ -370,7 +377,7 @@ export default function WorkplaceChart() {
             />
           ) : (
             <p className="text-gray-500">
-              📂 Vui lòng chọn file Excel để hiển thị biểu đồ.
+              {t("workplaceChart.pleaseSelectExcel")}
             </p>
           )}
         </div>
@@ -391,7 +398,9 @@ export default function WorkplaceChart() {
           }}
         >
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold">Sản lượng theo khu vực</h3>
+            <h3 className="text-xl font-bold">
+              {t("workplaceChart.outputByArea")}
+            </h3>
 
             <div className="flex items-center gap-4">
               <select
@@ -400,10 +409,10 @@ export default function WorkplaceChart() {
                 className="border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none"
                 style={{ minWidth: 140 }}
               >
-                <option value="">-- Chọn khu vực --</option>
+                <option value="">{t("workplaceChart.selectArea")}</option>
                 {Object.keys(dataMap).map((area) => (
                   <option key={area} value={area}>
-                    {area}
+                    {t(`areas.${area}`)}
                   </option>
                 ))}
               </select>
@@ -419,25 +428,25 @@ export default function WorkplaceChart() {
                   <thead>
                     <tr className="uppercase">
                       <th className="border-b pb-1" style={{ width: "40%" }}>
-                        Khu vực / Ngày
+                        {t("workplaceChart.areaDay")}
                       </th>
                       <th
                         className="border-b pb-1 text-right"
                         style={{ width: "30%" }}
                       >
-                        Normal
+                        {t("workplaceChart.normal")}
                       </th>
                       <th
                         className="border-b pb-1 text-right"
                         style={{ width: "15%" }}
                       >
-                        Rework
+                        {t("workplaceChart.rework")}
                       </th>
                       <th
                         className="border-b pb-1 text-right font-bold"
                         style={{ width: "25%" }}
                       >
-                        Tổng
+                        {t("workplaceChart.total")}
                       </th>
                     </tr>
                   </thead>
@@ -470,10 +479,12 @@ export default function WorkplaceChart() {
                         return (
                           <React.Fragment key={area}>
                             <tr
-                              className="bg-gray-200 font-semibold"
-                              style={{ fontSize: "1rem" }}
+                              className="bg-gray-200 font-semibold uppercase"
+                              style={{ fontSize: "0.9rem" }}
                             >
-                              <td style={{ padding: "6px 8px" }}>{area}</td>
+                              <td style={{ padding: "6px 8px" }}>
+                                {t(`areas.${area}`)}
+                              </td>
                               <td
                                 className="text-right"
                                 style={{ padding: "6px 8px" }}
@@ -555,7 +566,7 @@ export default function WorkplaceChart() {
                     onClick={exportToExcel}
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                   >
-                    Xuất Excel
+                    {t("workplaceChart.exportExcel")}
                   </button>
                 </div>
               </>
@@ -616,7 +627,7 @@ export default function WorkplaceChart() {
                       <tr
                         key={area}
                         className="font-semibold"
-                        style={{ fontSize: "2rem" }}
+                        style={{ fontSize: "1rem" }}
                       >
                         <td style={{ padding: "6px 8px" }}>{area}</td>
                         <td
