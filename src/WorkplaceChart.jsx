@@ -285,22 +285,6 @@ export default function WorkplaceChart() {
                   </option>
                 ))}
               </select>
-              <button
-                onClick={() => {
-                  if (!rawData) {
-                    alert(t("workplaceChart.pleaseSelectExcel"));
-                    return;
-                  }
-                  uploadToFirebase(rawData)
-                    .then(() => alert("✅ Upload dữ liệu thành công!"))
-                    .catch((error) =>
-                      alert(t("workplaceChart.uploadError") + error.message)
-                    );
-                }}
-                className="mt-4 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 text-sm font-semibold"
-              >
-                {t("workplaceChart.uploadFirebase")}
-              </button>
             </>
           )}
         </div>
@@ -318,6 +302,22 @@ export default function WorkplaceChart() {
             file:bg-blue-50 file:text-blue-700
             hover:file:bg-blue-100"
           />
+          <button
+                onClick={() => {
+                  if (!rawData) {
+                    alert(t("workplaceChart.pleaseSelectExcel"));
+                    return;
+                  }
+                  uploadToFirebase(rawData)
+                    .then(() => alert("✅ Upload dữ liệu thành công!"))
+                    .catch((error) =>
+                      alert(t("workplaceChart.uploadError") + error.message)
+                    );
+                }}
+                className="mt-1 w-full text-white py-2 rounded hover:bg-purple-700 text-sm font-semibold"
+              >
+                {t("workplaceChart.uploadFirebase")}
+              </button>
         </div>
       </div>
       {/* Chart và bảng tổng */}
