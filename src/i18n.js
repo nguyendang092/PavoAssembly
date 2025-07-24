@@ -72,7 +72,8 @@ const resources = {
         "YOUNGJIN VIET NAM CO_,LTD": "YOUNGJIN VIET NAM CO_,LTD",
         "UNKIM CO.,LTD": "UNKIM CO.,LTD",
         "THIEN MY INDUSTRIES CO_, LTD": "THIEN MY INDUSTRIES CO_, LTD",
-        "BRANCH OF PU KYONG VIETNAM CO_, LTD": "BRANCH OF PU KYONG VIETNAM CO_, LTD",
+        "BRANCH OF PU KYONG VIETNAM CO_, LTD":
+          "BRANCH OF PU KYONG VIETNAM CO_, LTD",
       },
       chart: {
         title: "Sản lượng tuần {{week}}",
@@ -213,7 +214,7 @@ const resources = {
       },
       workplaceChart: {
         menuTitle: "📁 Menu",
-        chooseExcel: "Chọn file Excel",
+        chooseExcel: "Upload file",
         selectWeek: "Chọn tuần",
         uploadFirebase: "⬆️ Upload Firebase",
         uploadSuccess: "✅ Upload dữ liệu thành công!",
@@ -443,7 +444,7 @@ const resources = {
       },
       workplaceChart: {
         menuTitle: "📁 메뉴",
-        chooseExcel: "Excel 파일 선택",
+        chooseExcel: "파일 업로드",
         selectWeek: "주차 선택",
         uploadFirebase: "⬆️ Firebase에 업로드",
         uploadSuccess: "✅ 데이터 업로드에 성공했습니다!",

@@ -11,11 +11,10 @@ import {
   Legend,
   Tooltip,
 } from "chart.js";
-import { format, parseISO,getISOWeek } from "date-fns";
+import { format, parseISO, getISOWeek } from "date-fns";
 import ChartDataLabels from "chartjs-plugin-datalabels";
 import { getDatabase, ref, update, get } from "firebase/database";
 import { db } from "./firebase"; // đường dẫn tới file cấu hình firebase của bạn
-
 ChartJS.register(
   BarElement,
   CategoryScale,
@@ -24,7 +23,6 @@ ChartJS.register(
   Tooltip,
   ChartDataLabels
 );
-
 const extraLabelPlugin = {
   id: "extraLabelPlugin",
   afterDatasetsDraw(chart) {
@@ -36,12 +34,10 @@ const extraLabelPlugin = {
       meta.data.forEach((bar, index) => {
         const value = dataset.data[index];
         if (!bar || value === 0) return;
-
         ctx.save();
         ctx.font = "bold 10px Arial";
         ctx.fillStyle = "#000";
         ctx.textBaseline = "middle";
-
         const x = bar.x + 10;
         const y = bar.y + bar.height / 8;
         ctx.fillText(`${shortName}: ${value.toLocaleString()}`, x, y);
@@ -50,7 +46,6 @@ const extraLabelPlugin = {
     });
   },
 };
-
 export default function WorkplaceChart() {
   const { t } = useTranslation();
   const [selectedArea, setSelectedArea] = useState("");
@@ -60,7 +55,6 @@ export default function WorkplaceChart() {
   const [dataMap, setDataMap] = useState({});
   const [tableView, setTableView] = useState("detailed");
   const [rawData, setRawData] = useState(null);
-
   // Load dữ liệu từ Firebase khi component mount
   useEffect(() => {
     const loadDataFromFirebase = async () => {
@@ -105,10 +99,8 @@ export default function WorkplaceChart() {
         alert("Lỗi load dữ liệu Firebase: " + error.message);
       }
     };
-
     loadDataFromFirebase();
   }, []);
-
   const uploadToFirebase = async (data) => {
     const updates = {};
     const sanitizeKey = (key) => key.replace(/[.#$/\[\]]/g, "_");
@@ -121,19 +113,15 @@ export default function WorkplaceChart() {
         WorkingLight,
         Total_Product,
       } = row;
-
       const safeWorkplaceName = sanitizeKey(WorkplaceName);
       const path = `bar/${safeWorkplaceName}/${Week}/${ReworkorNot}/${time_monthday}/${WorkingLight}`;
       updates[path] = Total_Product;
     });
-
     await update(ref(db), updates);
   };
-
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
-
     reader.onload = async (evt) => {
       const bstr = evt.target.result;
       const workbook = XLSX.read(bstr, { type: "binary" });
@@ -157,106 +145,95 @@ export default function WorkplaceChart() {
     const latestWeek = Math.max(...Object.keys(grouped));
     setSelectedWeek(latestWeek.toString());
   };
-
   useEffect(() => {
-  if (!selectedWeek || !weekData[selectedWeek]) {
-    setChartData(null);
-    setDataMap({});
-    return;
-  }
-
-  const rows = weekData[selectedWeek].filter((r) => {
-    if (!r.time_monthday) return false;
-    try {
-      return getISOWeek(parseISO(r.time_monthday)).toString() === selectedWeek;
-    } catch {
-      return false;
+    if (!selectedWeek || !weekData[selectedWeek]) {
+      setChartData(null);
+      setDataMap({});
+      return;
     }
-  });
+    const rows = weekData[selectedWeek].filter((r) => {
+      if (!r.time_monthday) return false;
+      try {
+        return (
+          getISOWeek(parseISO(r.time_monthday)).toString() === selectedWeek
+        );
+      } catch {
+        return false;
+      }
+    });
+    const daysSet = new Set();
+    rows.forEach((r) => r.time_monthday && daysSet.add(r.time_monthday));
+    const days = Array.from(daysSet).sort((a, b) => new Date(a) - new Date(b));
+    const areaSet = new Set();
+    rows.forEach((r) => r.WorkplaceName && areaSet.add(r.WorkplaceName));
+    const areas = Array.from(areaSet);
+    const map = {};
+    areas.forEach((area) => {
+      map[area] = days.map(() => ({
+        Day: { normal: 0, rework: 0 },
+        Night: { normal: 0, rework: 0 },
+      }));
+    });
+    rows.forEach((row) => {
+      const dayIndex = days.indexOf(row.time_monthday);
+      const area = row.WorkplaceName;
+      const shift = row.WorkingLight || "Day";
+      const val = Number(row.Total_Product) || 0;
+      const type = row.ReworkorNot === "Rework" ? "rework" : "normal";
 
-  const daysSet = new Set();
-  rows.forEach((r) => r.time_monthday && daysSet.add(r.time_monthday));
-  const days = Array.from(daysSet).sort((a, b) => new Date(a) - new Date(b));
-
-  const areaSet = new Set();
-  rows.forEach((r) => r.WorkplaceName && areaSet.add(r.WorkplaceName));
-  const areas = Array.from(areaSet);
-
-  const map = {};
-  areas.forEach((area) => {
-    map[area] = days.map(() => ({
-      Day: { normal: 0, rework: 0 },
-      Night: { normal: 0, rework: 0 },
-    }));
-  });
-
-  rows.forEach((row) => {
-    const dayIndex = days.indexOf(row.time_monthday);
-    const area = row.WorkplaceName;
-    const shift = row.WorkingLight || "Day";
-    const val = Number(row.Total_Product) || 0;
-    const type = row.ReworkorNot === "Rework" ? "rework" : "normal";
-
-    if (dayIndex !== -1 && map[area]) {
-      map[area][dayIndex][shift][type] += val;
+      if (dayIndex !== -1 && map[area]) {
+        map[area][dayIndex][shift][type] += val;
+      }
+    });
+    if (map["CNC"]) {
+      for (let i = 0; i < days.length; i++) {
+        const currentDay = map["CNC"][i].Day;
+        const nextNight =
+          i + 1 < days.length
+            ? map["CNC"][i + 1].Night
+            : { normal: 0, rework: 0 };
+        currentDay.normal += nextNight.normal;
+        currentDay.rework += nextNight.rework;
+      }
     }
-  });
-
-  if (map["CNC"]) {
-    for (let i = 0; i < days.length; i++) {
-      const currentDay = map["CNC"][i].Day;
-      const nextNight =
-        i + 1 < days.length
-          ? map["CNC"][i + 1].Night
-          : { normal: 0, rework: 0 };
-      currentDay.normal += nextNight.normal;
-      currentDay.rework += nextNight.rework;
-    }
-  }
-
-  setDataMap(map);
-
-  const filteredAreas = areas.filter((area) =>
-    map[area].some(
-      ({ Day, Night }) =>
-        Day.normal + Day.rework + Night.normal + Night.rework > 0
-    )
-  );
-
-  const datasets = filteredAreas.map((area, i) => {
-    let dataArr;
-    if (area === "CNC") {
-      dataArr = map[area].map(({ Day }) => Day.normal + Day.rework);
-    } else {
-      dataArr = map[area].map(
+    setDataMap(map);
+    const filteredAreas = areas.filter((area) =>
+      map[area].some(
         ({ Day, Night }) =>
-          Day.normal + Day.rework + Night.normal + Night.rework
-      );
-    }
-    return {
-      label: area,
-      data: dataArr,
-      backgroundColor: [
-        "#4e79a7",
-        "#f28e2c",
-        "#e15759",
-        "#76b7b2",
-        "#59a14f",
-        "#edc949",
-        "#af7aa1",
-        "#ff9da7",
-        "#9c755f",
-        "#bab0ab",
-      ][i % 10],
-      borderRadius: 6,
-    };
-  });
-
-  const labels = days.map((d) => format(parseISO(d), "dd/MM"));
-  setChartData({ labels, datasets });
-}, [selectedWeek, weekData]);
-
-
+          Day.normal + Day.rework + Night.normal + Night.rework > 0
+      )
+    );
+    const datasets = filteredAreas.map((area, i) => {
+      let dataArr;
+      if (area === "CNC") {
+        dataArr = map[area].map(({ Day }) => Day.normal + Day.rework);
+      } else {
+        dataArr = map[area].map(
+          ({ Day, Night }) =>
+            Day.normal + Day.rework + Night.normal + Night.rework
+        );
+      }
+      return {
+        label: area,
+        data: dataArr,
+        backgroundColor: [
+          "#4e79a7",
+          "#f28e2c",
+          "#e15759",
+          "#76b7b2",
+          "#59a14f",
+          "#edc949",
+          "#af7aa1",
+          "#ff9da7",
+          "#9c755f",
+          "#bab0ab",
+        ][i % 10],
+        borderRadius: 6,
+      };
+    });
+    const labels = days.map((d) => format(parseISO(d), "dd/MM"));
+    setChartData({ labels, datasets });
+  }, [selectedWeek, weekData]);
   const exportToExcel = () => {
     const headers = ["Khu vực", "Ngày", "Normal", "Rework", "Tổng"];
     const rows = [];
@@ -284,61 +261,67 @@ export default function WorkplaceChart() {
     XLSX.writeFile(wb, `san_luong_chi_tiet_tuan_${selectedWeek}.xlsx`);
   };
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex bg-gray-50 overflow-hidden">
       {/* Sidebar */}
-      <div className="w-64 min-h-screen p-6 bg-gradient-to-b from-indigo-600 to-purple-600 shadow-md border-r">
-        <h2 className="text-2xl font-bold text-white mb-6 uppercase flex items-center gap-2">
-          {t("workplaceChart.menuTitle")}
-        </h2>
-        <label className="block text-white font-medium mb-2">
-          {t("workplaceChart.chooseExcel")}
-        </label>
-        <input
-          type="file"
-          accept=".xlsx, .xls"
-          onChange={handleFileUpload}
-          className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
+      <div className="w-64 flex flex-col p-6 bg-gradient-to-b from-indigo-600 to-purple-600 shadow-md border-r overflow-hidden">
+        {/* Nội dung chính */}
+        <div className="flex-grow">
+          <h2 className="text-2xl font-bold text-white mb-6 uppercase flex items-center gap-2">
+            {t("workplaceChart.menuTitle")}
+          </h2>
+          {Object.keys(weekData).length > 0 && (
+            <>
+              <label className="block text-white font-medium mb-2">
+                {t("workplaceChart.selectWeek")}
+              </label>
+              <select
+                value={selectedWeek}
+                onChange={(e) => setSelectedWeek(e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none mb-4"
+              >
+                {Object.keys(weekData).map((week) => (
+                  <option key={week} value={week}>
+                    {t("workplaceChart.week")} {week}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={() => {
+                  if (!rawData) {
+                    alert(t("workplaceChart.pleaseSelectExcel"));
+                    return;
+                  }
+                  uploadToFirebase(rawData)
+                    .then(() => alert("✅ Upload dữ liệu thành công!"))
+                    .catch((error) =>
+                      alert(t("workplaceChart.uploadError") + error.message)
+                    );
+                }}
+                className="mt-4 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 text-sm font-semibold"
+              >
+                {t("workplaceChart.uploadFirebase")}
+              </button>
+            </>
+          )}
+        </div>
+        {/* Chọn file luôn hiển thị dưới cùng */}
+        <div className="p-6 -mx-6 mt-1">
+          <label className="block text-white font-medium mb-2">
+            {t("workplaceChart.chooseExcel")}
+          </label>
+          <input
+            type="file"
+            accept=".xlsx, .xls"
+            onChange={handleFileUpload}
+            className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
             file:rounded-md file:border-0 file:text-sm file:font-semibold
             file:bg-blue-50 file:text-blue-700
-            hover:file:bg-blue-100 mb-6"
-        />
-        {Object.keys(weekData).length > 0 && (
-          <>
-            <label className="block text-white font-medium mb-2">
-              {t("workplaceChart.selectWeek")}
-            </label>
-            <select
-              value={selectedWeek}
-              onChange={(e) => setSelectedWeek(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none mb-4"
-            >
-              {Object.keys(weekData).map((week) => (
-                <option key={week} value={week}>
-                  {t("workplaceChart.week")} {week}
-                </option>
-              ))}
-            </select>
-            <button
-              onClick={() => {
-                if (!rawData) {
-                  alert(t("workplaceChart.pleaseSelectExcel"));
-                  return;
-                }
-                uploadToFirebase(rawData)
-                  .then(() => alert("✅ Upload dữ liệu thành công!"))
-                  .catch((error) =>
-                    alert(t("workplaceChart.uploadError") + error.message)
-                  );
-              }}
-              className="mt-4 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 text-sm font-semibold"
-            >
-              {t("workplaceChart.uploadFirebase")}
-            </button>
-          </>
-        )}
+            hover:file:bg-blue-100"
+          />
+        </div>
       </div>
       {/* Chart và bảng tổng */}
-      <div className="flex-1 p-4 flex gap-6" style={{ height: "91vh" }}>
+      <div className="flex-1 p-4 flex gap-6" style={{ height: "93vh" }}>
         {/* Chart */}
         <div style={{ flex: "7", overflowY: "auto" }}>
           {chartData ? (
@@ -367,7 +350,7 @@ export default function WorkplaceChart() {
                     stacked: false,
                     barPercentage: 0.2,
                     categoryPercentage: 0.5,
-                    grid: { display: false },
+                    grid: { display: false, color: "#000" },
                     ticks: {
                       color: "#000",
                       font: { weight: "bold", size: 15 },
@@ -384,13 +367,16 @@ export default function WorkplaceChart() {
                       font: { size: 15, weight: "bold" },
                       color: "#000",
                     },
-                    grid: { display: false },
+                    grid: {
+                      display: true,
+                      color: "#000",
+                      lineWidth: 0.8,
+                    },
                   },
                 },
               }}
               plugins={[ChartDataLabels, extraLabelPlugin]}
             />
-            
           ) : (
             <p className="text-gray-500">
               {t("workplaceChart.pleaseSelectExcel")}
@@ -474,7 +460,6 @@ export default function WorkplaceChart() {
                       .map(([area, dayArr]) => {
                         let totalNormal = 0;
                         let totalRework = 0;
-
                         chartData.labels.forEach((_, idx) => {
                           const { Day, Night } = dayArr[idx] || {
                             Day: {},
@@ -638,7 +623,6 @@ export default function WorkplaceChart() {
                       totalNormal += normal;
                       totalRework += rework;
                     });
-
                     return (
                       <tr
                         key={area}

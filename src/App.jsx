@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useLayoutEffect } from "react";
 import Employ from "./Employ";
 import Toast from "./Toast";
 import Navbar from "./Navbar";
@@ -18,13 +18,17 @@ const App = () => {
     setToastMessage(message);
   };
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 100);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+ useLayoutEffect(() => {
+  window.scrollTo({ top: 0, behavior: "auto" });
+}, []);
+
+useEffect(() => {
+  const handleScroll = () => {
+    setIsScrolled(window.scrollY > 100);
+  };
+  window.addEventListener("scroll", handleScroll);
+  return () => window.removeEventListener("scroll", handleScroll);
+}, []);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -46,7 +50,7 @@ const App = () => {
         />
       </div>
 
-     <div className="pt-16">
+     <div className="pt-16 overflow-hidden">
     {selectedLeader === "nhietdo" ? (
       <TemperatureMonitor />
     ) : selectedLeader === "bieudo" ? (
