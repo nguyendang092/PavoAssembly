@@ -41,16 +41,15 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const result = {};
       const year = parseInt(selectedMonth.split("-")[0], 10);
       const month = parseInt(selectedMonth.split("-")[1], 10) - 1;
       const daysInMonth = getDaysInMonth(new Date(year, month));
       const newAlerts = [];
+      const result = {};
 
       for (let d = 1; d <= daysInMonth; d++) {
         const dateObj = new Date(year, month, d);
-        if (getDay(dateObj) === 0) continue; // Bỏ Chủ nhật
-
+        if (getDay(dateObj) === 0) continue;
         const dayKey = d.toString().padStart(2, "0");
         result[dayKey] = { day: dayKey };
         machines.forEach((machine) => {
@@ -58,19 +57,24 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
         });
       }
 
-      for (let i = 0; i < machines.length; i++) {
-        const machine = machines[i];
-        const snapshot = await get(
+      const promises = machines.map((machine) =>
+        get(
           ref(
             db,
             `temperature_monitor/${selectedArea}/${machine}/${selectedMonth}/${type}`
           )
-        );
-        if (snapshot.exists()) {
-          const data = snapshot.val();
-          Object.entries(data).forEach(([day, value]) => {
-            const dayKey = day.padStart(2, "0");
-            const val = parseFloat(value);
+        ).then((snapshot) => ({ machine, data: snapshot.exists() ? snapshot.val() : null }))
+      );
+
+      const results = await Promise.all(promises);
+
+      results.forEach(({ machine, data }) => {
+        if (!data) return;
+
+        Object.entries(data).forEach(([day, value]) => {
+          const dayKey = day.padStart(2, "0");
+          const val = parseFloat(value);
+          if (result[dayKey]) {
             result[dayKey][machine] = val;
             if (val < threshold.min || val > threshold.max) {
               newAlerts.push({
@@ -83,9 +87,9 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
                     : t("chartView.overThreshold"),
               });
             }
-          });
-        }
-      }
+          }
+        });
+      });
 
       const sortedData = Object.values(result).sort(
         (a, b) => parseInt(a.day) - parseInt(b.day)
@@ -101,7 +105,6 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
     const ws = XLSX.utils.json_to_sheet(chartData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Chart");
-
     const fileName = `${selectedArea}_${selectedMonth}_${type}.xlsx`;
     const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     const blob = new Blob([excelBuffer], { type: "application/octet-stream" });
@@ -112,7 +115,6 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
 
   return (
     <div className="overflow-x-auto">
-      {/* Thông báo cảnh báo */}
       {hasWarning && (
         <div className="mb-4 p-3 rounded bg-red-100 text-red-700 font-medium">
           ⚠️{" "}
@@ -124,7 +126,6 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
         </div>
       )}
 
-      {/* Nút xuất Excel */}
       <div className="mb-4 text-right">
         <button
           onClick={handleExportExcel}
@@ -134,11 +135,7 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
         </button>
       </div>
 
-      {/* Biểu đồ */}
-      <div
-        className="mx-auto"
-        style={{ maxWidth: "1200px", overflowX: "auto" }}
-      >
+      <div className="mx-auto" style={{ maxWidth: "1200px", overflowX: "auto" }}>
         <LineChart
           width={1200}
           height={420}
@@ -214,7 +211,6 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
               );
             }}
           />
-
           <ReferenceLine
             y={threshold.max}
             stroke="red"
@@ -235,7 +231,6 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
               );
             }}
           />
-
           {machines.map((machine, index) => (
             <Line
               key={machine}
@@ -265,7 +260,6 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
         </LineChart>
       </div>
 
-      {/* Bảng chi tiết cảnh báo */}
       {hasWarning && (
         <div className="mt-2">
           <h3 className="text-lg font-semibold mb-2">
@@ -286,7 +280,6 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
                   <tr key={i} className="bg-white even:bg-gray-50">
                     <td className="px-4 py-2 border">{alert.day}</td>
                     <td className="px-4 py-2 border">
-                      {" "}
                       {t(`machineNames.${alert.machine}`)}
                     </td>
                     <td className="px-4 py-2 border">

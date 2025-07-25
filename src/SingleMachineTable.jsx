@@ -26,8 +26,10 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
 
   const totalPages = Math.ceil(daysInMonth.length / PAGE_SIZE);
   const pagedDays = daysInMonth.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-
+  
   useEffect(() => {
+  if (!area || !machine || !selectedMonth) return;
+
   const path = `temperature_monitor/${area}/${machine}/${selectedMonth}`;
   const dataRef = ref(db, path);
   const unsubscribe = onValue(dataRef, (snapshot) => {
@@ -35,7 +37,6 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
     setData(val);
   });
 
-  // 👇 Tự động chuyển đến trang chứa ngày hôm nay
   const today = new Date();
   const thisMonth = new Date(`${selectedMonth}-01`);
   if (
@@ -57,6 +58,7 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
 
   return () => unsubscribe();
 }, [area, machine, selectedMonth]);
+
 
   const handleInputChange = (type, day, value) => {
     setData((prev) => {
@@ -132,11 +134,18 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
                 </td>
                 <td className="border px-2 py-1 text-center">
                   <input
-                    type="number"
-                    className="w-full border px-1 py-0.5 text-center rounded"
-                    value={data.humidity?.[day] || ""}
-                    onChange={(e) => handleInputChange("humidity", day, e.target.value)}
-                  />
+  type="number"
+  inputMode="decimal"
+  className="w-full border px-1 py-0.5 text-center rounded"
+  value={data.temperature?.[day] || ""}
+  onChange={(e) => {
+    const val = e.target.value;
+    if (!isNaN(val) || val === "") {
+      handleInputChange("temperature", day, val);
+    }
+  }}
+/>
+
                 </td>
               </tr>
             );

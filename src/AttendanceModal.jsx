@@ -99,24 +99,23 @@ const AttendanceModal = ({
   };
 
   const handleChange = (field, value) => {
-  if (field === "name") {
-    value = formatName(value);
-  }
-
-  setEditEmployeeData((prev) => {
-    if (field === "status" && value === "Nghỉ phép") {
-      return {
-        ...prev,
-        status: value,
-        model: "",
-        startTime: "",
-        endTime: "",
-      };
+    if (field === "name") {
+      value = formatName(value);
     }
-    return { ...prev, [field]: value };
-  });
-};
 
+    setEditEmployeeData((prev) => {
+      if (field === "status" && value === "Nghỉ phép") {
+        return {
+          ...prev,
+          status: value,
+          model: "",
+          startTime: "",
+          endTime: "",
+        };
+      }
+      return { ...prev, [field]: value };
+    });
+  };
 
   const handleCancelEdit = () => {
     setEditEmployeeId(null);
@@ -344,7 +343,9 @@ const AttendanceModal = ({
                                 }
                                 className="border px-1 py-0.5 w-[80px]"
                                 lang="vi"
-                                disabled={editEmployeeData.status === "Nghỉ phép"}
+                                disabled={
+                                  editEmployeeData.status === "Nghỉ phép"
+                                }
                               />
                               <span>-</span>
                               <input
@@ -355,7 +356,9 @@ const AttendanceModal = ({
                                 }
                                 className="border px-1 py-0.5 w-[80px]"
                                 lang="vi"
-                                disabled={editEmployeeData.status === "Nghỉ phép"}
+                                disabled={
+                                  editEmployeeData.status === "Nghỉ phép"
+                                }
                               />
                             </div>
                           ) : (

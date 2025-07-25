@@ -46,13 +46,13 @@ const TemperatureMonitor = () => {
   };
 
   useEffect(() => {
-    const areasRef = ref(db, "areas");
-    const unsubscribe = onValue(areasRef, (snapshot) => {
-      const data = snapshot.val() || {};
-      setAreas(data); // ✅ giữ nguyên key gốc từ Firebase
-    });
-    return () => unsubscribe();
-  }, []);
+  const areasRef = ref(db, "areas");
+  const unsubscribe = onValue(areasRef, (snapshot) => {
+    const data = snapshot.val() || {};
+    setAreas(data);
+  });
+  return () => unsubscribe();
+}, []);
   
   const machines =
     selectedArea && areas[selectedArea]?.machines
@@ -163,7 +163,7 @@ const TemperatureMonitor = () => {
         </div>
 
         <div className="space-y-4">
-          <p className="uppercase text-sm text-white/70 tracking-wide">
+          <p className="uppercase text-sm text-white tracking-wide pt-2">
             {t("temperatureMonitor.filters")}
           </p>
 
