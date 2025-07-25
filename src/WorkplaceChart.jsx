@@ -2,7 +2,9 @@
 import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { Bar } from "react-chartjs-2";
+import { FiUpload } from "react-icons/fi"; // import biểu tượng upload
 import { useTranslation } from "react-i18next";
+import DetailedModal from "./DetailedModal";
 import {
   Chart as ChartJS,
   BarElement,
@@ -47,6 +49,10 @@ const extraLabelPlugin = {
   },
 };
 export default function WorkplaceChart() {
+  const [detailData, setDetailData] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalArea, setModalArea] = useState("");
+  const [modalWeek, setModalWeek] = useState(getCurrentWeekNumber());
   const { t } = useTranslation();
   const [selectedArea, setSelectedArea] = useState("");
   const [weekData, setWeekData] = useState({});
@@ -55,6 +61,14 @@ export default function WorkplaceChart() {
   const [dataMap, setDataMap] = useState({});
   const [tableView, setTableView] = useState("detailed");
   const [rawData, setRawData] = useState(null);
+
+  function getCurrentWeekNumber() {
+  const today = new Date();
+  const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
+  const pastDaysOfYear = (today - firstDayOfYear) / 86400000;
+  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+}
+
   // Load dữ liệu từ Firebase khi component mount
   useEffect(() => {
     const loadDataFromFirebase = async () => {
@@ -101,6 +115,11 @@ export default function WorkplaceChart() {
     };
     loadDataFromFirebase();
   }, []);
+  const openDetailModal = (area) => {
+    setModalArea(area);
+    setIsModalOpen(true);
+  };
+  const closeDetailModal = () => setIsModalOpen(false);
   const uploadToFirebase = async (data) => {
     const updates = {};
     const sanitizeKey = (key) => key.replace(/[.#$/\[\]]/g, "_");
@@ -134,6 +153,69 @@ export default function WorkplaceChart() {
     };
     reader.readAsBinaryString(file);
   };
+  const handleDetailUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const workbook = XLSX.read(bstr, { type: "binary" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(sheet);
+        setDetailData(jsonData);
+        alert("📁 Đã đọc file chi tiết, sẵn sàng upload.");
+      } catch (err) {
+        alert("❌ Lỗi khi đọc file: " + err.message);
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+  const handleDetailUploadToFirebase = async () => {
+    if (!detailData) {
+      alert("❗ Vui lòng chọn file chi tiết trước khi upload.");
+      return;
+    }
+
+    const updates = {};
+
+    detailData.forEach((row, index) => {
+      const model = row["ItemCode"]; // Thay cho "Model"
+      const area = row["WorkplaceName"]; // Thay cho "Name"
+      const week = row["Week"]; // Giữ nguyên
+      const date = row["ProductionEfficiencyDate"]; // Thay cho "Date"
+      const total = row["GoodProductEfficiency"]; // Thay cho "Total"
+
+      if (!model || !area || !week || !date) {
+        console.warn(`⚠️ Bỏ qua dòng ${index + 2}: thiếu dữ liệu`, {
+          model,
+          area,
+          week,
+          date,
+        });
+        return;
+      }
+
+      const safeArea = area.replace(/[.#$/\[\]]/g, "_");
+      const safeModel = model.replace(/[.#$/\[\]]/g, "_");
+      const path = `details/${safeArea}/${week}/${safeModel}/${date}`;
+      const totalValue = Number(total);
+      updates[path] = isNaN(totalValue) ? 0 : totalValue;
+    });
+    if (Object.keys(updates).length === 0) {
+      alert("❌ Không có dữ liệu hợp lệ để upload.");
+      return;
+    }
+    try {
+      await update(ref(db), updates);
+      alert("✅ Upload chi tiết thành công!");
+      setDetailData(null);
+    } catch (error) {
+      alert("❌ Lỗi khi upload: " + error.message);
+    }
+  };
+
   const processExcelData = (data) => {
     const grouped = {};
     data.forEach((row) => {
@@ -288,36 +370,72 @@ export default function WorkplaceChart() {
             </>
           )}
         </div>
-        {/* Chọn file luôn hiển thị dưới cùng */}
-        <div className="p-6 -mx-6 mt-1">
-          <label className="block text-white font-medium mb-2">
-            {t("workplaceChart.chooseExcel")}
-          </label>
-          <input
-            type="file"
-            accept=".xlsx, .xls"
-            onChange={handleFileUpload}
-            className="block w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
-            file:rounded-md file:border-0 file:text-sm file:font-semibold
-            file:bg-blue-50 file:text-blue-700
-            hover:file:bg-blue-100"
-          />
-          <button
-                onClick={() => {
-                  if (!rawData) {
-                    alert(t("workplaceChart.pleaseSelectExcel"));
-                    return;
-                  }
-                  uploadToFirebase(rawData)
-                    .then(() => alert("✅ Upload dữ liệu thành công!"))
-                    .catch((error) =>
-                      alert(t("workplaceChart.uploadError") + error.message)
-                    );
-                }}
-                className="mt-1 w-full text-white py-2 rounded hover:bg-purple-700 text-sm font-semibold"
-              >
-                {t("workplaceChart.uploadFirebase")}
-              </button>
+        {/* Đây là đoạn upload */}
+        <div className="flex flex-col gap-3 w-full px-1">
+          <div className="flex items-center justify-between gap-2 backdrop-blur rounded-lg p-1 shadow-md">
+            <label
+              htmlFor="file-upload-total"
+              className="cursor-pointer p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
+              title="Chọn file"
+            >
+              <FiUpload size={18} />
+            </label>
+            <span className="text-white text-sm font-medium flex-1 text-center">
+              {t("workplaceChart.chooseExceltotal")}
+            </span>
+            {/* Nút upload */}
+            <button
+              onClick={() => {
+                if (!rawData) {
+                  alert(t("workplaceChart.pleaseSelectExcel"));
+                  return;
+                }
+                uploadToFirebase(rawData)
+                  .then(() => alert("✅ Upload dữ liệu thành công!"))
+                  .catch((error) =>
+                    alert(t("workplaceChart.uploadError") + error.message)
+                  );
+              }}
+              className="hover:bg-purple-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition"
+            >
+              {t("workplaceChart.uploadFirebase")}
+            </button>
+            <input
+              id="file-upload-total"
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={handleFileUpload}
+              className="hidden"
+            />
+          </div>
+          {/* Chi tiết */}
+          <div className="flex items-center justify-between gap-2 backdrop-blur rounded-lg p-1 shadow-md">
+            {/* Icon upload */}
+            <label
+              htmlFor="file-upload-detail"
+              className="cursor-pointer p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
+              title="Chọn file"
+            >
+              <FiUpload size={18} />
+            </label>
+            <span className="text-white text-sm font-medium flex-1 text-center">
+              {t("workplaceChart.chooseExceldetail")}
+            </span>
+            <button
+              onClick={handleDetailUploadToFirebase}
+              disabled={!detailData}
+              className=" hover:bg-purple-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition disabled:opacity-50"
+            >
+              {t("workplaceChart.uploadFirebase")}
+            </button>
+            <input
+              id="file-upload-detail"
+              type="file"
+              accept=".xlsx, .xls"
+              onChange={handleDetailUpload}
+              className="hidden"
+            />
+          </div>
         </div>
       </div>
       {/* Chart và bảng tổng */}
@@ -562,10 +680,17 @@ export default function WorkplaceChart() {
                   </tbody>
                 </table>
                 {/* Nút xuất Excel */}
-                <div className="mt-4 flex justify-end">
+                <div className="mt-4 flex justify-end gap-3">
+                  <button
+  onClick={() => openDetailModal("Assembly", getCurrentWeekNumber())}
+  className="bg-blue-600 text-white px-4 py-2 rounded"
+>
+  👁 Xem chi tiết
+</button>
+
                   <button
                     onClick={exportToExcel}
-                    className="font-bold text-white px-2 py-2 bg-green-600 rounded hover:bg-green-700"
+                    className="font-bold text-white px-3 py-2 bg-green-600 rounded hover:bg-green-700"
                   >
                     {t("workplaceChart.exportExcel")}
                   </button>
@@ -659,6 +784,11 @@ export default function WorkplaceChart() {
           )}
         </div>
       </div>
+      <DetailedModal
+        isOpen={isModalOpen}
+        onClose={closeDetailModal}
+        area={modalArea}
+      />
     </div>
   );
 }
