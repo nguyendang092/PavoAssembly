@@ -51,15 +51,15 @@ const ChartModal = ({
   selectedDate = "",
 }) => {
   const { t } = useTranslation();
-  const [selectedModel, setSelectedModel] = useState(
-    modelList.length > 0 ? modelList[0] : ""
-  );
+  const [selectedModel, setSelectedModel] = useState("");
 
   useEffect(() => {
-    if (modelList.length > 0 && !modelList.includes(selectedModel)) {
+    if (isOpen && modelList.length > 0) {
       setSelectedModel(modelList[0]);
+    } else if (!isOpen) {
+      setSelectedModel("");
     }
-  }, [modelList, selectedModel]);
+  }, [isOpen, modelList]);
 
   const modelData = Array.isArray(chartData[selectedModel])
     ? chartData[selectedModel]

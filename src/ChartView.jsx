@@ -40,6 +40,7 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
   const threshold = getThreshold();
 
   useEffect(() => {
+    let isMounted = true;
     const fetchData = async () => {
       const year = parseInt(selectedMonth.split("-")[0], 10);
       const month = parseInt(selectedMonth.split("-")[1], 10) - 1;
@@ -94,11 +95,18 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
       const sortedData = Object.values(result).sort(
         (a, b) => parseInt(a.day) - parseInt(b.day)
       );
-      setChartData(sortedData);
-      setAlerts(newAlerts);
+      if (isMounted) {
+        setChartData(sortedData);
+        setAlerts(newAlerts);
+      }
     };
 
     fetchData();
+    return () => {
+      isMounted = false;
+      setChartData([]);
+      setAlerts([]);
+    };
   }, [selectedArea, selectedMonth, machines, type, t]);
 
   const handleExportExcel = () => {

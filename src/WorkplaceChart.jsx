@@ -25,6 +25,13 @@ ChartJS.register(
   Tooltip,
   ChartDataLabels
 );
+const getCurrentWeekNumber = () => {
+  const today = new Date();
+  const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
+  const pastDaysOfYear = (today - firstDayOfYear) / 86400000;
+  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+};
+
 const extraLabelPlugin = {
   id: "extraLabelPlugin",
   afterDatasetsDraw(chart) {
@@ -140,6 +147,7 @@ export default function WorkplaceChart() {
   };
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = async (evt) => {
       const bstr = evt.target.result;
@@ -147,7 +155,6 @@ export default function WorkplaceChart() {
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
       const jsonData = XLSX.utils.sheet_to_json(sheet);
-
       setRawData(jsonData);
       processExcelData(jsonData);
     };
@@ -156,7 +163,6 @@ export default function WorkplaceChart() {
   const handleDetailUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {

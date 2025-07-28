@@ -17,7 +17,7 @@ const Employ = ({ showToast, selectedLeader }) => {
   // Lấy danh sách assignments từ Firebase
   useEffect(() => {
     const assignmentsRef = ref(db, "assignments");
-    onValue(assignmentsRef, (snapshot) => {
+    const unsubscribe = onValue(assignmentsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
         setAssignments(Object.values(data));
@@ -25,6 +25,7 @@ const Employ = ({ showToast, selectedLeader }) => {
         setAssignments([]);
       }
     });
+    return () => unsubscribe();
   }, []);
 
   // Chuyển đổi giữa chế độ "time" và "day" theo khu vực
@@ -100,7 +101,9 @@ const Employ = ({ showToast, selectedLeader }) => {
         </div>
 
         {/* Toast thông báo */}
-        <Toast message={toastMessage} onClose={() => setToastMessage("")} />
+        {showToast ? null : (
+          <Toast message={toastMessage} onClose={() => setToastMessage("")} />
+        )}
       </div>
     </>
   );

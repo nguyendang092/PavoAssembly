@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Modal from "react-modal";
-import { ref, set, get } from "firebase/database";
+import { ref, set, get, update } from "firebase/database";
 import { db } from "./firebase";
 import {
   getStorage,
@@ -10,28 +10,29 @@ import {
 } from "firebase/storage";
 import imageCompression from "browser-image-compression";
 import { useTranslation } from "react-i18next";
+// import { debounce } from "lodash";
 
 const formatName = (name) => {
   return name
     .trim()
     .toLowerCase()
-    .replace(/\s+/g, " ") // bỏ thừa khoảng trắng
+    .replace(/\s+/g, " ")
     .split(" ")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
 };
+
 const AddEmployeeModal = ({
   isOpen,
   onClose,
   areaKey,
-  selectedDate, // dạng "YYYY-MM-DD"
+  selectedDate,
   modelList = [],
   setModelList,
 }) => {
   const { t } = useTranslation();
   const getToday = () => new Date().toISOString().slice(0, 10);
-  const dateKey =
-    selectedDate?.replace(/-/g, "") || getToday().replace(/-/g, "");
+  const dateKey = selectedDate?.replace(/-/g, "") || getToday().replace(/-/g, "");
 
   const [filterDate, setFilterDate] = useState(selectedDate || "");
   const filterDateKey = filterDate?.replace(/-/g, "") || "";
@@ -44,16 +45,18 @@ const AddEmployeeModal = ({
     imageUrl: "",
     employeeId: "",
   });
-  // 2 state riêng cho thời gian phân công từ - đến
+
   const [timePhanCongFrom, setTimePhanCongFrom] = useState("");
   const [timePhanCongTo, setTimePhanCongTo] = useState("");
   const [selectedKey, setSelectedKey] = useState(null);
   const [existingEmployees, setExistingEmployees] = useState([]);
   const [searchKeyword, setSearchKeyword] = useState("");
-  const [inputModel, setInputModel] = useState("");
+  // const [inputModel, setInputModel] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const attendanceCache = useRef({});
 
   useEffect(() => {
     setFilterDate(selectedDate || getToday());
@@ -64,9 +67,17 @@ const AddEmployeeModal = ({
   }, [selectedDate]);
 
   useEffect(() => {
-    const fetchExisting = async () => {
+    const cacheKey = `${areaKey}_${filterDateKey}`;
+    if (attendanceCache.current[cacheKey]) {
+      setExistingEmployees(attendanceCache.current[cacheKey]);
+      return;
+    }
+    const fetchData = async () => {
       const snapshot = await get(ref(db, `attendance/${areaKey}`));
-      if (!snapshot.exists()) return setExistingEmployees([]);
+      if (!snapshot.exists()) {
+        setExistingEmployees([]);
+        return;
+      }
       const data = snapshot.val();
       const filtered = Object.entries(data)
         .filter(([_, val]) => val?.schedules?.[filterDateKey])
@@ -81,15 +92,15 @@ const AddEmployeeModal = ({
             employeeId: key,
           };
         });
+      attendanceCache.current[cacheKey] = filtered;
       setExistingEmployees(filtered);
     };
-    fetchExisting();
-  }, [areaKey, filterDate, filterDateKey]);
+    fetchData();
+  }, [areaKey, filterDateKey]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setNewEmployee((prev) => {
-      // Nếu đang set status = Nghỉ phép thì reset model
       if (name === "status" && value === "Nghỉ phép") {
         setTimePhanCongFrom("");
         setTimePhanCongTo("");
@@ -126,6 +137,7 @@ const AddEmployeeModal = ({
       };
     });
   };
+
   const uploadImageToStorage = async (file, employeeId) => {
     const squareFile = await cropToSquare(file);
     const compressedFile = await imageCompression(squareFile, {
@@ -143,16 +155,14 @@ const AddEmployeeModal = ({
     const name = newEmployee.name.trim();
     const status = newEmployee.status;
     const joinDate = newEmployee.joinDate || selectedDate;
-    const modelValue = inputModel.trim() || newEmployee.model.trim();
+    const modelValue = newEmployee.model.trim();
 
-    // Nếu nghỉ phép: chỉ cần tên và ngày
     if (status === "Nghỉ phép") {
       if (!name || !selectedDate) {
         alert(t("addEmployeeModal.alertLeaveMissing"));
         return;
       }
     } else {
-      // Nếu đi làm: cần tên + line + thời gian
       const from = timePhanCongFrom.trim();
       const to = timePhanCongTo.trim();
 
@@ -170,19 +180,16 @@ const AddEmployeeModal = ({
     setIsSaving(true);
 
     try {
-      let employeeId = newEmployee.employeeId;
-      if (!employeeId) {
-        employeeId = `PAVO${Date.now()}`;
-      }
+      let employeeId = newEmployee.employeeId || `PAVO${Date.now()}`;
 
       const employeeRef = ref(db, `attendance/${areaKey}/${employeeId}`);
       const snapshot = await get(employeeRef);
-      let existingData = snapshot.exists() ? snapshot.val() : {};
+      const existingData = snapshot.exists() ? snapshot.val() : {};
 
       let imageUrl = existingData.imageUrl || "";
       if (imageFile) {
         imageUrl = await uploadImageToStorage(imageFile, employeeId);
-      } else if (previewImage?.startsWith("http")) {
+      } else if (typeof previewImage === "string" && previewImage.startsWith("http")) {
         imageUrl = previewImage;
       }
 
@@ -206,13 +213,21 @@ const AddEmployeeModal = ({
         },
       };
 
-      await set(employeeRef, updatedEmployee);
+      const updates = {};
+      updates[`attendance/${areaKey}/${employeeId}`] = updatedEmployee;
 
-      if (status === "Đi làm" && !modelList.includes(modelValue)) {
-        const updatedModels = [...modelList, modelValue];
-        await set(ref(db, `models/${areaKey}`), updatedModels);
+      // Thêm model mới nếu hợp lệ và chưa có trong modelList
+      if (
+        status === "Đi làm" &&
+        modelValue &&
+        !modelList.map((m) => m.trim().toLowerCase()).includes(modelValue.toLowerCase())
+      ) {
+        const updatedModels = [...modelList, modelValue].filter((v, i, arr) => v && arr.indexOf(v) === i);
+        updates[`models/${areaKey}`] = updatedModels;
         setModelList(updatedModels);
       }
+
+      await update(ref(db), updates);
 
       resetForm();
       onClose();
@@ -220,14 +235,16 @@ const AddEmployeeModal = ({
       console.error("🔥 Lỗi chi tiết:", err);
       alert(t("addEmployeeModal.saveError", { message: err.message || "" }));
     }
+
     setIsSaving(false);
   };
+
   const resetForm = () => {
     setSelectedKey(null);
     setNewEmployee({
       name: "",
       status: "Đi làm",
-      joinDate: selectedDate || getToday(),
+      joinDate: filterDate || getToday(),
       model: "",
       imageUrl: "",
       employeeId: "",
@@ -237,6 +254,14 @@ const AddEmployeeModal = ({
     setTimePhanCongFrom("");
     setTimePhanCongTo("");
   };
+
+  // Reset form khi modal đóng
+  useEffect(() => {
+    if (!isOpen) {
+      resetForm();
+    }
+    // eslint-disable-next-line
+  }, [isOpen]);
 
   const handleSelectEmployee = (emp) => {
     setNewEmployee({
@@ -248,8 +273,7 @@ const AddEmployeeModal = ({
       employeeId: emp.employeeId || emp.key || "",
     });
 
-    // Nếu có timePhanCong, tách thành from - to
-    if (emp.timePhanCong && emp.timePhanCong.includes(" - ")) {
+    if (emp.timePhanCong?.includes(" - ")) {
       const [from, to] = emp.timePhanCong.split(" - ");
       setTimePhanCongFrom(from);
       setTimePhanCongTo(to);
@@ -263,7 +287,7 @@ const AddEmployeeModal = ({
   };
 
   const filteredEmployees = existingEmployees.filter((emp) =>
-    emp.name.toLowerCase().includes(searchKeyword.toLowerCase())
+    formatName(emp.name).toLowerCase().includes(searchKeyword.trim().toLowerCase())
   );
 
   return (
@@ -380,11 +404,8 @@ const AddEmployeeModal = ({
       <select
         name="model"
         value={newEmployee.model}
-        onChange={(e) => {
-          handleChange(e);
-          setInputModel("");
-        }}
-        disabled={newEmployee.status === "Nghỉ phép"} // disable khi nghỉ phép
+        onChange={handleChange}
+        disabled={newEmployee.status === "Nghỉ phép"}
         className={`w-full border rounded-md px-4 py-3 mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition ${
           newEmployee.status === "Nghỉ phép"
             ? "bg-gray-200 cursor-not-allowed"

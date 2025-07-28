@@ -57,23 +57,7 @@ const AreaProductionTableTime = ({ area }) => {
       setDraftModelList(modelList);
     }
   }, [modelEditOpen, modelList]);
-  useEffect(() => {
-    const fetchData = async () => {
-      const dateKey = format(selectedDate, "yyyy-MM-dd");
-
-      const [actualSnap, productionSnap, attendanceSnap] = await Promise.all([
-        get(ref(db, `actual/${areaKey}/${dateKey}`)),
-        get(ref(db, `production/${areaKey}/${dateKey}`)),
-        get(ref(db, `attendance/${areaKey}/${dateKey}`)),
-      ]);
-
-      setActualData(actualSnap.val() || {});
-      setProductionData(productionSnap.val() || {});
-      setAttendanceData(attendanceSnap.val() || {});
-    };
-
-    fetchData();
-  }, [selectedDate, areaKey]);
+  // Đã có useEffect realtime bên dưới, không cần fetchData nữa
 
   useEffect(() => {
     const dateKey = format(selectedDate, "yyyy-MM-dd");

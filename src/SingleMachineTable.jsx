@@ -13,6 +13,7 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
   const [data, setData] = useState({ temperature: {}, humidity: {} });
   const [currentPage, setCurrentPage] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) {
@@ -31,13 +32,19 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
   );
 
   useEffect(() => {
+    let isMounted = true;
     if (!area || !machine || !selectedMonth) return;
+    setLoading(true);
 
     const path = `temperature_monitor/${area}/${machine}/${selectedMonth}`;
     const dataRef = ref(db, path);
     const unsubscribe = onValue(dataRef, (snapshot) => {
+      if (!isMounted) return;
       const val = snapshot.val() || { temperature: {}, humidity: {} };
       setData(val);
+      setLoading(false);
+    }, (err) => {
+      if (isMounted) setLoading(false);
     });
 
     const today = new Date();
@@ -59,10 +66,28 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
       setCurrentPage(1);
     }
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+      // Không setState nếu đã unmount
+    };
   }, [area, machine, selectedMonth]);
 
+  // Validate: chỉ cho phép số >= 0, tối đa 2 chữ số thập phân
+  const validateValue = (val) => {
+    if (val === "") return true;
+    const num = Number(val);
+    if (isNaN(num) || num < 0) return false;
+    // Tối đa 2 số sau dấu phẩy
+    if (/\./.test(val)) {
+      const [, decimal] = val.split(".");
+      if (decimal && decimal.length > 2) return false;
+    }
+    return true;
+  };
+
   const handleInputChange = (type, day, value) => {
+    if (!validateValue(value)) return;
     setData((prev) => {
       const updated = { ...prev };
       if (!updated[type]) updated[type] = {};
@@ -74,14 +99,16 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const promises = [];
       for (const type of ["temperature", "humidity"]) {
         const entries = data[type] || {};
         for (const [day, val] of Object.entries(entries)) {
           const path = `temperature_monitor/${area}/${machine}/${selectedMonth}/${type}/${day}`;
           const valueToSave = val === "" ? null : parseFloat(val);
-          await set(ref(db, path), valueToSave);
+          promises.push(set(ref(db, path), valueToSave));
         }
       }
+      await Promise.all(promises);
       if (showToast)
         showToast(t("temperatureMonitor.saveSuccess", { machine }));
     } catch (error) {
@@ -113,92 +140,97 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
       <h3 className="text-xl font-semibold mb-2">
         {t(`machineNames.${machine}`)}
       </h3>
-      <table className="w-full border text-sm min-w-max">
-        <thead>
-          <tr className="bg-gray-100">
-            <th className="border px-2 py-1">{t("temperatureMonitor.date")}</th>
-            <th className="border px-2 py-1">
-              {t("temperatureMonitor.temperature")}
-            </th>
-            <th className="border px-2 py-1">
-              {t("temperatureMonitor.humidity")}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {pagedDays.map((date) => {
-            const day = format(date, "dd");
-            return (
-              <tr key={day}>
-                <td className="border px-2 py-1 text-center font-semibold text-gray-800">
-                  {formatDate(date)}
-                </td>
-                <td className="border px-2 py-1 text-center">
-                  <input
-                    type="number"
-                    className="w-full border px-1 py-0.5 text-center rounded"
-                    value={data.temperature?.[day] || ""}
-                    onChange={(e) =>
-                      handleInputChange("temperature", day, e.target.value)
-                    }
-                  />
-                </td>
-                <td className="border px-2 py-1 text-center">
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    className="w-full border px-1 py-0.5 text-center rounded"
-                    value={data.humidity?.[day] || ""}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (!isNaN(val) || val === "") {
-                        handleInputChange("humidity", day, val);
-                      }
-                    }}
-                  />
-                </td>
+      {loading ? (
+        <div className="text-center py-8 text-lg text-gray-500">
+          {t("temperatureMonitor.loading")}
+        </div>
+      ) : (
+        <>
+          <table className="w-full border text-sm min-w-max">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border px-2 py-1">{t("temperatureMonitor.date")}</th>
+                <th className="border px-2 py-1">
+                  {t("temperatureMonitor.temperature")}
+                </th>
+                <th className="border px-2 py-1">
+                  {t("temperatureMonitor.humidity")}
+                </th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            </thead>
+            <tbody>
+              {pagedDays.map((date) => {
+                const day = format(date, "dd");
+                return (
+                  <tr key={day}>
+                    <td className="border px-2 py-1 text-center font-semibold text-gray-800">
+                      {formatDate(date)}
+                    </td>
+                    <td className="border px-2 py-1 text-center">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="w-full border px-1 py-0.5 text-center rounded"
+                        value={data.temperature?.[day] || ""}
+                        onChange={(e) => handleInputChange("temperature", day, e.target.value)}
+                      />
+                    </td>
+                    <td className="border px-2 py-1 text-center">
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        inputMode="decimal"
+                        className="w-full border px-1 py-0.5 text-center rounded"
+                        value={data.humidity?.[day] || ""}
+                        onChange={(e) => handleInputChange("humidity", day, e.target.value)}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
 
-      {/* Pagination */}
-      <div className="flex justify-center items-center mt-4 space-x-2">
-        <button
-          onClick={() => goToPage(currentPage - 1)}
-          disabled={currentPage === 1}
-          className="px-3 py-1 border rounded disabled:opacity-50"
-        >
-          {t("temperatureMonitor.previous")}
-        </button>
-        <span>
-          {t("temperatureMonitor.page", {
-            current: currentPage,
-            total: totalPages,
-          })}
-        </span>
-        <button
-          onClick={() => goToPage(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className="px-3 py-1 border rounded disabled:opacity-50"
-        >
-          {t("temperatureMonitor.next")}
-        </button>
-      </div>
+          {/* Pagination */}
+          <div className="flex justify-center items-center mt-4 space-x-2">
+            <button
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="px-3 py-1 border rounded disabled:opacity-50"
+            >
+              {t("temperatureMonitor.previous")}
+            </button>
+            <span>
+              {t("temperatureMonitor.page", {
+                current: currentPage,
+                total: totalPages,
+              })}
+            </span>
+            <button
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1 border rounded disabled:opacity-50"
+            >
+              {t("temperatureMonitor.next")}
+            </button>
+          </div>
 
-      {/* Save Button */}
-      <div className="flex justify-center mt-6">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-        >
-          {saving
-            ? t("temperatureMonitor.saving")
-            : t("temperatureMonitor.save")}
-        </button>
-      </div>
+          {/* Save Button */}
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving
+                ? t("temperatureMonitor.saving")
+                : t("temperatureMonitor.save")}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };

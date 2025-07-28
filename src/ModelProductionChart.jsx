@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import * as XLSX from "xlsx";
 import {
   BarChart,
@@ -13,7 +13,7 @@ import { getISOWeek, parseISO } from "date-fns";
 
 const ModelProductionChart = () => {
   const [rawData, setRawData] = useState([]);
-  const [chartData, setChartData] = useState([]);
+  // chartData được tính toán qua useMemo bên dưới
   const [areas, setAreas] = useState([]);
   const [selectedArea, setSelectedArea] = useState("");
   const [filterMode, setFilterMode] = useState("current");
@@ -31,74 +31,59 @@ const ModelProductionChart = () => {
       const workbook = XLSX.read(data, { type: "array" });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(sheet);
-
-      setRawData(json);
-
-      const areaList = [...new Set(json.map((row) => row.WorkplaceName))];
+      // Lọc bỏ dòng thiếu trường cần thiết
+      const validRows = json.filter(row => row.WorkplaceName && row.ItemCode && row.Week);
+      setRawData(validRows);
+      const areaList = [...new Set(validRows.map((row) => row.WorkplaceName))];
       setAreas(areaList);
-      const initialArea = areaList[0];
+      const initialArea = areaList[0] || "";
       setSelectedArea(initialArea);
-
-      processChartData(json, initialArea, filterMode, selectedWeek);
     };
-
     reader.readAsArrayBuffer(file);
   };
 
   const handleAreaChange = (e) => {
-    const area = e.target.value;
-    setSelectedArea(area);
-    processChartData(rawData, area, filterMode, selectedWeek);
+    setSelectedArea(e.target.value);
   };
 
   const handleFilterChange = (e) => {
-    const mode = e.target.value;
-    setFilterMode(mode);
-    processChartData(rawData, selectedArea, mode, selectedWeek);
+    setFilterMode(e.target.value);
   };
 
   const handleWeekChange = (e) => {
     const weekStr = e.target.value;
-    const date = new Date(weekStr + "-1"); // Add weekday to get correct ISO week
-    const week = getISOWeek(date);
-    setSelectedWeek(week);
-    processChartData(rawData, selectedArea, filterMode, week);
+    const date = new Date(weekStr + "-1");
+    setSelectedWeek(getISOWeek(date));
   };
 
-  const processChartData = (data, area, mode, week) => {
-    const filtered = data.filter((row) => {
-      if (row.WorkplaceName !== area) return false;
-      if (mode === "current" && parseInt(row.Week) !== week) return false;
+  const chartData = useMemo(() => {
+    if (!selectedArea) return [];
+    const filtered = rawData.filter((row) => {
+      if (row.WorkplaceName !== selectedArea) return false;
+      if (filterMode === "current" && parseInt(row.Week) !== selectedWeek) return false;
       return true;
     });
-
     const grouped = {};
-    const weekSet = new Set();
-
     filtered.forEach((row) => {
       const model = row.ItemCode;
       const weekKey = `Week_${row.Week}`;
       const qty = parseInt(row.GoodProductEfficiency || 0);
-
       if (!model || isNaN(qty)) return;
-
-      if (!grouped[model]) {
-        grouped[model] = { model };
-      }
+      if (!grouped[model]) grouped[model] = { model };
       grouped[model][weekKey] = (grouped[model][weekKey] || 0) + qty;
-      weekSet.add(weekKey);
     });
+    return Object.values(grouped);
+  }, [rawData, selectedArea, filterMode, selectedWeek]);
 
-    setChartData(Object.values(grouped));
-  };
-
-  const allWeeks = Array.from(
-    new Set(
-      chartData.flatMap((row) =>
-        Object.keys(row).filter((k) => k.startsWith("Week_"))
+  const allWeeks = useMemo(() => {
+    return Array.from(
+      new Set(
+        chartData.flatMap((row) =>
+          Object.keys(row).filter((k) => k.startsWith("Week_"))
+        )
       )
-    )
-  ).sort();
+    ).sort();
+  }, [chartData]);
 
   const colors = [
     "#8884d8",

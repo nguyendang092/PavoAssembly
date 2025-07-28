@@ -55,10 +55,12 @@ export default function DetailedModal({ isOpen, onClose, area }) {
   }, [selectedDate]);
   useEffect(() => {
     if (!selectedArea || !selectedWeek || !selectedDate) return;
+    let isMounted = true;
     const fetchData = async () => {
       setLoading(true);
       const path = `details/${selectedArea}/${selectedWeek}`;
       const snapshot = await get(child(ref(db), path));
+      if (!isMounted) return;
       if (snapshot.exists()) {
         const data = snapshot.val();
         const details = [];
@@ -76,6 +78,9 @@ export default function DetailedModal({ isOpen, onClose, area }) {
       setLoading(false);
     };
     fetchData();
+    return () => {
+      isMounted = false;
+    };
   }, [selectedArea, selectedWeek, selectedDate]);
   const filteredData = allDetailData.filter((item) =>
     item.model.toLowerCase().includes(selectedModel.toLowerCase())
@@ -90,6 +95,13 @@ export default function DetailedModal({ isOpen, onClose, area }) {
       },
     ],
   };
+  useEffect(() => {
+    if (!isOpen) {
+      setAllDetailData([]);
+      setSelectedModel("");
+      setVisibleCount(10);
+    }
+  }, [isOpen]);
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">

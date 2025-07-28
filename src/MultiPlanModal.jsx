@@ -27,32 +27,42 @@ const { t } = useTranslation();
     setSelectedDates(days);
   };
 
+  const [isSaving, setIsSaving] = useState(false);
   const handleApply = async () => {
-    for (const date of selectedDates) {
-      const dateKey = format(date, "yyyy-MM-dd");
-
-      for (const model of modelList) {
-        const modelPlan = planData[model] || {};
-        const total = Object.values(modelPlan).reduce(
-          (sum, val) => sum + Number(val || 0),
-          0
-        );
-
-        for (const [slot, value] of Object.entries(modelPlan)) {
-          await set(
-            ref(db, `production/${areaKey}/${dateKey}/${model}/${slot}`),
-            Number(value || 0)
-          );
-        }
-
-        await set(
-          ref(db, `production/${areaKey}/${dateKey}/${model}/total`),
-          total
-        );
-      }
+    if (!selectedDates.length) {
+      alert(t("multiPlanModal.noDate"));
+      return;
     }
-    alert(t("multiPlanModal.success"));
-    onClose();
+    if (!modelList.length) {
+      alert(t("multiPlanModal.noModel"));
+      return;
+    }
+    setIsSaving(true);
+    try {
+      for (const date of selectedDates) {
+        const dateKey = format(date, "yyyy-MM-dd");
+        for (const model of modelList) {
+          const modelPlan = planData[model] || {};
+          let total = 0;
+          const updates = {};
+          for (const slot of timeLabels) {
+            const value = Number(modelPlan[slot] || 0);
+            updates[`production/${areaKey}/${dateKey}/${model}/${slot}`] = value;
+            total += value;
+          }
+          updates[`production/${areaKey}/${dateKey}/${model}/total`] = total;
+          // Ghi 1 lần cho model này
+          for (const path in updates) {
+            await set(ref(db, path), updates[path]);
+          }
+        }
+      }
+      alert(t("multiPlanModal.success"));
+      onClose();
+    } catch (err) {
+      alert(t("multiPlanModal.error"));
+    }
+    setIsSaving(false);
   };
 
   return (
@@ -138,14 +148,16 @@ const { t } = useTranslation();
         <button
           onClick={onClose}
           className="bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold px-5 py-1.5 rounded transition"
+          disabled={isSaving}
         >
           {t("multiPlanModal.cancel")}
         </button>
         <button
           onClick={handleApply}
           className="bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-1.5 rounded transition"
+          disabled={isSaving}
         >
-          {t("multiPlanModal.apply")}
+          {isSaving ? t("multiPlanModal.saving") : t("multiPlanModal.apply")}
         </button>
       </div>
     </Modal>

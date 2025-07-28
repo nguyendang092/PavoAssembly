@@ -53,6 +53,7 @@ const resources = {
         saving: "Đang lưu...",
         saveSuccess: "✅ Đã lưu dữ liệu cho máy {{machine}}",
         saveFail: "❌ Lưu dữ liệu thất bại!",
+        searchMachine: "🔍 Tìm máy",
       },
       areas: {
         ANODIZING: "ANODIZING",
@@ -283,6 +284,7 @@ const resources = {
         saving: "저장 중...",
         saveSuccess: "✅ {{machine}} 데이터가 저장되었습니다",
         saveFail: "❌ 데이터 저장 실패!",
+        searchMachine: "🔍 기기 검색",
       },
       areas: {
         ANODIZING: "아노다이징",

@@ -39,6 +39,23 @@ const AttendanceModal = ({
   const [filterModel, setFilterModel] = useState("");
   const [filterDate, setFilterDate] = useState(selectedDate || "");
   const [showOnlyLeave, setShowOnlyLeave] = useState(false);
+
+  // Reset filter & edit state when modal open/close or selectedDate changes
+  useEffect(() => {
+    if (isOpen) {
+      setFilterModel("");
+      setFilterDate(selectedDate || "");
+      setShowOnlyLeave(false);
+      setEditEmployeeId(null);
+      setEditEmployeeData({});
+    }
+    // Cleanup state when modal closes
+    if (!isOpen) {
+      setEmployees({});
+      setEditEmployeeId(null);
+      setEditEmployeeData({});
+    }
+  }, [isOpen, selectedDate]);
   const dateKey = selectedDate?.replace(/-/g, "") || "";
   const filterDateKey = filterDate.replace(/-/g, "");
 

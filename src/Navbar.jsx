@@ -18,10 +18,12 @@ export default function Navbar({ onSelectLeader, onLeaderMapReady }) {
 
   useEffect(() => {
     if (onLeaderMapReady) onLeaderMapReady(leaderMap);
+    // eslint-disable-next-line
   }, []);
   useEffect(() => {
     const leader = leaderMap[activeLeaderKey];
     if (onSelectLeader && leader) onSelectLeader(leader);
+    // eslint-disable-next-line
   }, [activeLeaderKey]);
 
   const flagMap = {
@@ -32,6 +34,7 @@ export default function Navbar({ onSelectLeader, onLeaderMapReady }) {
   const toggleMenu = () => setIsOpen(!isOpen);
   const handleSelect = (key) => {
     setActiveLeaderKey(key);
+    setIsOpen(false); // Đóng menu khi chọn leader trên mobile
   };
 
   const [langPopupOpen, setLangPopupOpen] = useState(false);
