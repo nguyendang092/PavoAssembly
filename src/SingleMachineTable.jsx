@@ -15,50 +15,52 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
   const [saving, setSaving] = useState(false);
 
   const goToPage = (page) => {
-  if (page >= 1 && page <= totalPages) {
-    setCurrentPage(page);
-  }
-};
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
   const daysInMonth = eachDayOfInterval({
     start: new Date(`${selectedMonth}-01`),
     end: endOfMonth(new Date(`${selectedMonth}-01`)),
   }).filter((date) => getDay(date) !== 0); // loại Chủ Nhật
 
   const totalPages = Math.ceil(daysInMonth.length / PAGE_SIZE);
-  const pagedDays = daysInMonth.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  
+  const pagedDays = daysInMonth.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
+
   useEffect(() => {
-  if (!area || !machine || !selectedMonth) return;
+    if (!area || !machine || !selectedMonth) return;
 
-  const path = `temperature_monitor/${area}/${machine}/${selectedMonth}`;
-  const dataRef = ref(db, path);
-  const unsubscribe = onValue(dataRef, (snapshot) => {
-    const val = snapshot.val() || { temperature: {}, humidity: {} };
-    setData(val);
-  });
+    const path = `temperature_monitor/${area}/${machine}/${selectedMonth}`;
+    const dataRef = ref(db, path);
+    const unsubscribe = onValue(dataRef, (snapshot) => {
+      const val = snapshot.val() || { temperature: {}, humidity: {} };
+      setData(val);
+    });
 
-  const today = new Date();
-  const thisMonth = new Date(`${selectedMonth}-01`);
-  if (
-    today.getMonth() === thisMonth.getMonth() &&
-    today.getFullYear() === thisMonth.getFullYear()
-  ) {
-    const index = daysInMonth.findIndex(
-      (d) => format(d, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
-    );
-    if (index !== -1) {
-      const page = Math.floor(index / PAGE_SIZE) + 1;
-      setCurrentPage(page);
+    const today = new Date();
+    const thisMonth = new Date(`${selectedMonth}-01`);
+    if (
+      today.getMonth() === thisMonth.getMonth() &&
+      today.getFullYear() === thisMonth.getFullYear()
+    ) {
+      const index = daysInMonth.findIndex(
+        (d) => format(d, "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
+      );
+      if (index !== -1) {
+        const page = Math.floor(index / PAGE_SIZE) + 1;
+        setCurrentPage(page);
+      } else {
+        setCurrentPage(1);
+      }
     } else {
       setCurrentPage(1);
     }
-  } else {
-    setCurrentPage(1);
-  }
 
-  return () => unsubscribe();
-}, [area, machine, selectedMonth]);
-
+    return () => unsubscribe();
+  }, [area, machine, selectedMonth]);
 
   const handleInputChange = (type, day, value) => {
     setData((prev) => {
@@ -80,7 +82,8 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
           await set(ref(db, path), valueToSave);
         }
       }
-      if (showToast) showToast(t("temperatureMonitor.saveSuccess", { machine }));
+      if (showToast)
+        showToast(t("temperatureMonitor.saveSuccess", { machine }));
     } catch (error) {
       console.error("Lỗi lưu dữ liệu:", error);
       if (showToast) showToast(t("temperatureMonitor.saveFail"));
@@ -107,13 +110,19 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
 
   return (
     <div className="mb-8 border rounded p-4 shadow-md max-w-full">
-      <h3 className="text-xl font-semibold mb-2">{t(`machineNames.${machine}`)}</h3>
+      <h3 className="text-xl font-semibold mb-2">
+        {t(`machineNames.${machine}`)}
+      </h3>
       <table className="w-full border text-sm min-w-max">
         <thead>
           <tr className="bg-gray-100">
             <th className="border px-2 py-1">{t("temperatureMonitor.date")}</th>
-            <th className="border px-2 py-1">{t("temperatureMonitor.temperature")}</th>
-            <th className="border px-2 py-1">{t("temperatureMonitor.humidity")}</th>
+            <th className="border px-2 py-1">
+              {t("temperatureMonitor.temperature")}
+            </th>
+            <th className="border px-2 py-1">
+              {t("temperatureMonitor.humidity")}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -129,23 +138,24 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
                     type="number"
                     className="w-full border px-1 py-0.5 text-center rounded"
                     value={data.temperature?.[day] || ""}
-                    onChange={(e) => handleInputChange("temperature", day, e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("temperature", day, e.target.value)
+                    }
                   />
                 </td>
                 <td className="border px-2 py-1 text-center">
                   <input
-  type="number"
-  inputMode="decimal"
-  className="w-full border px-1 py-0.5 text-center rounded"
-  value={data.temperature?.[day] || ""}
-  onChange={(e) => {
-    const val = e.target.value;
-    if (!isNaN(val) || val === "") {
-      handleInputChange("temperature", day, val);
-    }
-  }}
-/>
-
+                    type="number"
+                    inputMode="decimal"
+                    className="w-full border px-1 py-0.5 text-center rounded"
+                    value={data.humidity?.[day] || ""}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (!isNaN(val) || val === "") {
+                        handleInputChange("humidity", day, val);
+                      }
+                    }}
+                  />
                 </td>
               </tr>
             );
@@ -163,7 +173,10 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
           {t("temperatureMonitor.previous")}
         </button>
         <span>
-          {t("temperatureMonitor.page", { current: currentPage, total: totalPages })}
+          {t("temperatureMonitor.page", {
+            current: currentPage,
+            total: totalPages,
+          })}
         </span>
         <button
           onClick={() => goToPage(currentPage + 1)}
@@ -181,7 +194,9 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
           disabled={saving}
           className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
         >
-          {saving ? t("temperatureMonitor.saving") : t("temperatureMonitor.save")}
+          {saving
+            ? t("temperatureMonitor.saving")
+            : t("temperatureMonitor.save")}
         </button>
       </div>
     </div>
