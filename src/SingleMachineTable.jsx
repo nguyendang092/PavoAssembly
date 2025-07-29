@@ -5,10 +5,11 @@ import { format, eachDayOfInterval, endOfMonth } from "date-fns";
 import { getDay } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { ko } from "date-fns/locale";
-
+import { useUser } from "./UserContext";
 const PAGE_SIZE = 10;
 
 const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
+  const { user } = useUser();
   const { t, i18n } = useTranslation();
   const [data, setData] = useState({ temperature: {}, humidity: {} });
   const [currentPage, setCurrentPage] = useState(1);
@@ -174,6 +175,7 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
                         className="w-full border px-1 py-0.5 text-center rounded"
                         value={data.temperature?.[day] || ""}
                         onChange={(e) => handleInputChange("temperature", day, e.target.value)}
+                        disabled={!user}
                       />
                     </td>
                     <td className="border px-2 py-1 text-center">
@@ -185,6 +187,7 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
                         className="w-full border px-1 py-0.5 text-center rounded"
                         value={data.humidity?.[day] || ""}
                         onChange={(e) => handleInputChange("humidity", day, e.target.value)}
+                        disabled={!user}
                       />
                     </td>
                   </tr>
@@ -218,17 +221,19 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
           </div>
 
           {/* Save Button */}
-          <div className="flex justify-center mt-6">
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-            >
-              {saving
-                ? t("temperatureMonitor.saving")
-                : t("temperatureMonitor.save")}
-            </button>
-          </div>
+          {user && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
+              >
+                {saving
+                  ? t("temperatureMonitor.saving")
+                  : t("temperatureMonitor.save")}
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

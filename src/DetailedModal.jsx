@@ -15,7 +15,11 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 function getCurrentWeekNumber() {
   const now = new Date();
   const start = new Date(now.getFullYear(), 0, 1);
-  const diff = (now - start + (start.getTimezoneOffset() - now.getTimezoneOffset()) * 60000) / 86400000;
+  const diff =
+    (now -
+      start +
+      (start.getTimezoneOffset() - now.getTimezoneOffset()) * 60000) /
+    86400000;
   return Math.ceil((diff + start.getDay() + 1) / 7);
 }
 function getYesterday() {
@@ -31,7 +35,9 @@ function getWeekNumber(dateStr) {
 }
 export default function DetailedModal({ isOpen, onClose, area }) {
   const [selectedArea, setSelectedArea] = useState(area || "Assembly");
-  const [selectedWeek, setSelectedWeek] = useState(getCurrentWeekNumber().toString());
+  const [selectedWeek, setSelectedWeek] = useState(
+    getCurrentWeekNumber().toString()
+  );
   const [selectedDate, setSelectedDate] = useState(getYesterday());
   const [selectedModel, setSelectedModel] = useState("");
   const [areas, setAreas] = useState([]);
@@ -54,34 +60,36 @@ export default function DetailedModal({ isOpen, onClose, area }) {
     }
   }, [selectedDate]);
   useEffect(() => {
-    if (!selectedArea || !selectedWeek || !selectedDate) return;
+    if (!selectedArea || !selectedDate) return;
     let isMounted = true;
     const fetchData = async () => {
       setLoading(true);
-      const path = `details/${selectedArea}/${selectedWeek}`;
-      const snapshot = await get(child(ref(db), path));
+      // Lấy toàn bộ tuần của area, lọc đúng ngày đã chọn
+      const areaRef = ref(db, `details/${selectedArea}`);
+      const snapshot = await get(areaRef);
       if (!isMounted) return;
+      const details = [];
       if (snapshot.exists()) {
-        const data = snapshot.val();
-        const details = [];
-        for (const model in data) {
-          const modelData = data[model];
-          if (modelData[selectedDate]) {
-            const quantity = modelData[selectedDate];
-            details.push({ model, date: selectedDate, quantity });
+        const weekData = snapshot.val();
+        for (const weekKey in weekData) {
+          const models = weekData[weekKey];
+          for (const model in models) {
+            const modelData = models[model];
+            if (modelData[selectedDate]) {
+              const quantity = modelData[selectedDate];
+              details.push({ model, date: selectedDate, quantity });
+            }
           }
         }
-        setAllDetailData(details);
-      } else {
-        setAllDetailData([]);
       }
+      setAllDetailData(details);
       setLoading(false);
     };
     fetchData();
     return () => {
       isMounted = false;
     };
-  }, [selectedArea, selectedWeek, selectedDate]);
+  }, [selectedArea, selectedDate]);
   const filteredData = allDetailData.filter((item) =>
     item.model.toLowerCase().includes(selectedModel.toLowerCase())
   );
@@ -108,121 +116,133 @@ export default function DetailedModal({ isOpen, onClose, area }) {
       <div className="bg-white w-[90vw] h-[90vh] p-4 rounded shadow-lg flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between mb-2">
-  <div className="flex-1 text-center">
-    <h2 className="text-xl font-bold uppercase inline-block">Bảng chi tiết sản lượng</h2>
-  </div>
-  <button
-    onClick={onClose}
-    className="text-red-500 text-base font-bold ml-auto"
-  >
-    Đóng
-  </button>
-</div>
-        
+          <div className="flex-1 text-center">
+            <h2 className="text-xl font-bold uppercase inline-block">
+              Bảng chi tiết sản lượng
+            </h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-red-500 text-base font-bold ml-auto"
+          >
+            Đóng
+          </button>
+        </div>
+
         {/* Bộ lọc */}
         <div className="flex flex-wrap gap-4 mb-4 items-center">
-  <select
-    value={selectedArea}
-    onChange={(e) => setSelectedArea(e.target.value)}
-    className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-  >
-    {areas.map((a) => (
-      <option key={a} value={a}>
-        {a}
-      </option>
-    ))}
-  </select>
+          <select
+            value={selectedArea}
+            onChange={(e) => setSelectedArea(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          >
+            {areas.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
 
-  <input
-    type="date"
-    value={selectedDate}
-    onChange={(e) => setSelectedDate(e.target.value)}
-    className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-  />
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          />
 
-  <select
-    value={selectedWeek}
-    onChange={(e) => setSelectedWeek(e.target.value)}
-    className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm cursor-not-allowed opacity-60"
-    disabled
-  >
-    {Array.from({ length: 52 }, (_, i) => i + 1).map((w) => (
-      <option key={w} value={w}>
-        {w}
-      </option>
-    ))}
-  </select>
+          <select
+            value={selectedWeek}
+            onChange={(e) => setSelectedWeek(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm cursor-not-allowed opacity-60"
+            disabled
+          >
+            {Array.from({ length: 52 }, (_, i) => i + 1).map((w) => (
+              <option key={w} value={w}>
+                {w}
+              </option>
+            ))}
+          </select>
 
-  <input
-    type="text"
-    placeholder="Search Model"
-    value={selectedModel}
-    onChange={(e) => setSelectedModel(e.target.value)}
-    className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition w-48"
-  />
-</div>
+          <input
+            type="text"
+            placeholder="Search Model"
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition w-48"
+          />
+        </div>
 
         {/* Nội dung chính: Biểu đồ + bảng */}
         <div className="flex flex-1 overflow-hidden">
           <div className="w-2/3 pr-4 h-full">
             {chartData && chartData.labels.length > 0 ? (
               <Bar
-      data={{
-        ...chartData,
-        datasets: chartData.datasets.map((ds) => ({
-          ...ds,
-          backgroundColor: "rgba(255,105,180,0.7)", // màu hồng
-          borderWidth: 0, // bỏ viền
-        })),
-      }}
-      options={{
-        indexAxis: "y",
-        responsive: true,
-        maintainAspectRatio: false,
-        elements: {
-          bar: {
-            borderRadius: 10, // bo tròn góc
-            borderWidth: 0, // không border
-          },
-        },
-        scales: {
-          x: {
-            beginAtZero: true,
-            ticks: { color: "#000", font: { weight: "bold", size: 10 } },
-            grid: { display: false },
-            max: (() => {
-        // Lấy max data trong datasets[0].data rồi cộng thêm 50
-        if (!chartData || !chartData.datasets || chartData.datasets.length === 0) return undefined;
-        const maxVal = Math.max(...chartData.datasets[0].data);
-        return maxVal + 50;
-      })(),
-    
-          },
-          y: {
-            ticks: { color: "#000", font: { weight: "bold", size: 10 } },
-            grid: { display: false },
-          },
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (context) => {
-                const val = context.parsed.x || 0;
-                return val.toLocaleString();
-              },
-            },
-          },
-          datalabels: {
-            anchor: "end",
-            align: "end",
-            color: "#000",
-            font: { weight: "bold", size: 10 },
-            formatter: (value) => value.toLocaleString(),
-          },
-        },
-      }}
-    />
+                data={{
+                  ...chartData,
+                  datasets: chartData.datasets.map((ds) => ({
+                    ...ds,
+                    backgroundColor: "rgba(255,105,180,0.7)", // màu hồng
+                    borderWidth: 0, // bỏ viền
+                  })),
+                }}
+                options={{
+                  indexAxis: "y",
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  elements: {
+                    bar: {
+                      borderRadius: 10, // bo tròn góc
+                      borderWidth: 0, // không border
+                    },
+                  },
+                  scales: {
+                    x: {
+                      beginAtZero: true,
+                      ticks: {
+                        color: "#000",
+                        font: { weight: "bold", size: 10 },
+                      },
+                      grid: { display: false },
+                      max: (() => {
+                        // Lấy max data trong datasets[0].data rồi cộng thêm 50
+                        if (
+                          !chartData ||
+                          !chartData.datasets ||
+                          chartData.datasets.length === 0
+                        )
+                          return undefined;
+                        const maxVal = Math.max(...chartData.datasets[0].data);
+                        return maxVal + 50;
+                      })(),
+                    },
+                    y: {
+                      ticks: {
+                        color: "#000",
+                        font: { weight: "bold", size: 10 },
+                      },
+                      grid: { display: false },
+                    },
+                  },
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                      callbacks: {
+                        label: (context) => {
+                          const val = context.parsed.x || 0;
+                          return val.toLocaleString();
+                        },
+                      },
+                    },
+                    datalabels: {
+                      anchor: "end",
+                      align: "end",
+                      color: "#000",
+                      font: { weight: "bold", size: 10 },
+                      formatter: (value) => value.toLocaleString(),
+                    },
+                  },
+                }}
+              />
             ) : loading ? (
               <p>Đang tải biểu đồ...</p>
             ) : (
@@ -246,7 +266,9 @@ export default function DetailedModal({ isOpen, onClose, area }) {
                     <td className="border-b p-1">{selectedArea}</td>
                     <td className="border-b p-1">{item.model}</td>
                     <td className="border-b p-1">{item.date}</td>
-                    <td className="border-b p-1 text-right">{item.quantity.toLocaleString()}</td>
+                    <td className="border-b p-1 text-right">
+                      {item.quantity.toLocaleString()}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -261,7 +283,6 @@ export default function DetailedModal({ isOpen, onClose, area }) {
             )}
           </div>
         </div>
-        
       </div>
     </div>
   );

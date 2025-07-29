@@ -241,7 +241,7 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
           />
           {machines.map((machine, index) => (
             <Line
-              key={machine}
+              key={`line-${machine}`}
               type="monotone"
               dataKey={machine}
               name={t(`machineNames.${machine}`)}

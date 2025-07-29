@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useUser } from "./UserContext";
 import { format } from "date-fns";
 import Modal from "react-modal";
 import { ref, onValue, set, remove, update, get } from "firebase/database";
@@ -20,8 +21,8 @@ import { useTranslation } from "react-i18next";
 Modal.setAppElement("#root");
 
 const TemperatureMonitor = () => {
+  const { user } = useUser();
   const { t } = useTranslation();
-
   const [toastMessage, setToastMessage] = useState("");
   const [editingMachine, setEditingMachine] = useState(null);
   const [editMachineName, setEditMachineName] = useState("");
@@ -313,19 +314,23 @@ const TemperatureMonitor = () => {
                           })}
                         </span>
 
-                        <div className="flex space-x-2">
-                          <button
-                            onClick={() => {
-                              setEditingMachine(machine);
-                              setEditMachineName(machine);
-                            }}
-                          >
-                            <FaEdit />
-                          </button>
-                          <button onClick={() => handleDeleteMachine(machine)}>
-                            <FaTrash />
-                          </button>
-                        </div>
+                        {user && (
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => {
+                                setEditingMachine(machine);
+                                setEditMachineName(machine);
+                              }}
+                            >
+                              <FaEdit />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteMachine(machine)}
+                            >
+                              <FaTrash />
+                            </button>
+                          </div>
+                        )}
                       </>
                     )}
                   </li>
@@ -355,38 +360,40 @@ const TemperatureMonitor = () => {
                 </div>
               )}
 
-              {isAddingMachine ? (
-                <div className="flex space-x-1 mt-2">
-                  <input
-                    type="text"
-                    value={newMachineName}
-                    onChange={(e) => setNewMachineName(e.target.value)}
-                    placeholder={t("temperatureMonitor.newMachine")}
-                    className="flex-1 px-2 py-1 rounded text-black"
-                    disabled={isLoading}
-                  />
-                  <button onClick={handleAddMachine} disabled={isLoading}>
-                    {isLoading ? t("temperatureMonitor.saving") : t("temperatureMonitor.add")}
-                  </button>
+              {user && (
+                isAddingMachine ? (
+                  <div className="flex space-x-1 mt-2">
+                    <input
+                      type="text"
+                      value={newMachineName}
+                      onChange={(e) => setNewMachineName(e.target.value)}
+                      placeholder={t("temperatureMonitor.newMachine")}
+                      className="flex-1 px-2 py-1 rounded text-black"
+                      disabled={isLoading}
+                    />
+                    <button onClick={handleAddMachine} disabled={isLoading}>
+                      {isLoading ? t("temperatureMonitor.saving") : t("temperatureMonitor.add")}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsAddingMachine(false);
+                        setNewMachineName("");
+                      }}
+                      disabled={isLoading}
+                    >
+                      {t("temperatureMonitor.cancel")}
+                    </button>
+                  </div>
+                ) : (
                   <button
-                    onClick={() => {
-                      setIsAddingMachine(false);
-                      setNewMachineName("");
-                    }}
+                    onClick={() => setIsAddingMachine(true)}
+                    className="flex items-center space-x-1 text-indigo-300 hover:text-indigo-100 mt-2"
                     disabled={isLoading}
                   >
-                    {t("temperatureMonitor.cancel")}
+                    <FaPlus />
+                    <span>{t("temperatureMonitor.addMachine")}</span>
                   </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setIsAddingMachine(true)}
-                  className="flex items-center space-x-1 text-indigo-300 hover:text-indigo-100 mt-2"
-                  disabled={isLoading}
-                >
-                  <FaPlus />
-                  <span>{t("temperatureMonitor.addMachine")}</span>
-                </button>
+                )
               )}
             </div>
           )}

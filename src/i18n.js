@@ -122,6 +122,9 @@ const resources = {
         errorSaving: "❌ Lỗi khi lưu Line!",
         week: "Tuần",
         chosemanyDay: "Chọn nhiều ngày",
+        nextPage: "Trang tiếp",
+        prevPage: "Trang trước",
+        page: "Trang {{current}} / {{total}}",
       },
       employ: {
         title: "Bảng phân công & sản lượng",
@@ -354,6 +357,9 @@ const resources = {
         errorSaving: "❌ 라인 저장 중 오류 발생!",
         week: "주",
         chosemanyDay: "다중 날짜 선택",
+        nextPage: "다음 페이지",
+        prevPage: "이전 페이지",
+        page: "페이지 {{current}} / {{total}}",
       },
       employ: {
         title: "배정 및 생산량 표",

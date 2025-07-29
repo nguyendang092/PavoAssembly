@@ -5,6 +5,7 @@ import { Bar } from "react-chartjs-2";
 import { FiUpload } from "react-icons/fi"; // import biểu tượng upload
 import { useTranslation } from "react-i18next";
 import DetailedModal from "./DetailedModal";
+import { useUser } from "./UserContext";
 import {
   Chart as ChartJS,
   BarElement,
@@ -56,10 +57,10 @@ const extraLabelPlugin = {
   },
 };
 export default function WorkplaceChart() {
+  const { user } = useUser();
   const [detailData, setDetailData] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalArea, setModalArea] = useState("");
-  const [modalWeek, setModalWeek] = useState(getCurrentWeekNumber());
   const { t } = useTranslation();
   const [selectedArea, setSelectedArea] = useState("");
   const [weekData, setWeekData] = useState({});
@@ -69,12 +70,7 @@ export default function WorkplaceChart() {
   const [tableView, setTableView] = useState("detailed");
   const [rawData, setRawData] = useState(null);
 
-  function getCurrentWeekNumber() {
-  const today = new Date();
-  const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
-  const pastDaysOfYear = (today - firstDayOfYear) / 86400000;
-  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-}
+  // ...existing code...
 
   // Load dữ liệu từ Firebase khi component mount
   useEffect(() => {
@@ -376,73 +372,75 @@ export default function WorkplaceChart() {
             </>
           )}
         </div>
-        {/* Đây là đoạn upload */}
-        <div className="flex flex-col gap-3 w-full px-1">
-          <div className="flex items-center justify-between gap-2 backdrop-blur rounded-lg p-1 shadow-md">
-            <label
-              htmlFor="file-upload-total"
-              className="cursor-pointer p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
-              title="Chọn file"
-            >
-              <FiUpload size={18} />
-            </label>
-            <span className="text-white text-sm font-medium flex-1 text-center">
-              {t("workplaceChart.chooseExceltotal")}
-            </span>
-            {/* Nút upload */}
-            <button
-              onClick={() => {
-                if (!rawData) {
-                  alert(t("workplaceChart.pleaseSelectExcel"));
-                  return;
-                }
-                uploadToFirebase(rawData)
-                  .then(() => alert("✅ Upload dữ liệu thành công!"))
-                  .catch((error) =>
-                    alert(t("workplaceChart.uploadError") + error.message)
-                  );
-              }}
-              className="hover:bg-purple-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition"
-            >
-              {t("workplaceChart.uploadFirebase")}
-            </button>
-            <input
-              id="file-upload-total"
-              type="file"
-              accept=".xlsx, .xls"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
+        {/* Chỉ hiển thị upload khi đã đăng nhập */}
+        {user && (
+          <div className="flex flex-col gap-3 w-full px-1">
+            <div className="flex items-center justify-between gap-2 backdrop-blur rounded-lg p-1 shadow-md">
+              <label
+                htmlFor="file-upload-total"
+                className="cursor-pointer p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
+                title="Chọn file"
+              >
+                <FiUpload size={18} />
+              </label>
+              <span className="text-white text-sm font-medium flex-1 text-center">
+                {t("workplaceChart.chooseExceltotal")}
+              </span>
+              {/* Nút upload */}
+              <button
+                onClick={() => {
+                  if (!rawData) {
+                    alert(t("workplaceChart.pleaseSelectExcel"));
+                    return;
+                  }
+                  uploadToFirebase(rawData)
+                    .then(() => alert("✅ Upload dữ liệu thành công!"))
+                    .catch((error) =>
+                      alert(t("workplaceChart.uploadError") + error.message)
+                    );
+                }}
+                className="hover:bg-purple-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition"
+              >
+                {t("workplaceChart.uploadFirebase")}
+              </button>
+              <input
+                id="file-upload-total"
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </div>
+            {/* Chi tiết */}
+            <div className="flex items-center justify-between gap-2 backdrop-blur rounded-lg p-1 shadow-md">
+              {/* Icon upload */}
+              <label
+                htmlFor="file-upload-detail"
+                className="cursor-pointer p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
+                title="Chọn file"
+              >
+                <FiUpload size={18} />
+              </label>
+              <span className="text-white text-sm font-medium flex-1 text-center">
+                {t("workplaceChart.chooseExceldetail")}
+              </span>
+              <button
+                onClick={handleDetailUploadToFirebase}
+                disabled={!detailData}
+                className=" hover:bg-purple-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition disabled:opacity-50"
+              >
+                {t("workplaceChart.uploadFirebase")}
+              </button>
+              <input
+                id="file-upload-detail"
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={handleDetailUpload}
+                className="hidden"
+              />
+            </div>
           </div>
-          {/* Chi tiết */}
-          <div className="flex items-center justify-between gap-2 backdrop-blur rounded-lg p-1 shadow-md">
-            {/* Icon upload */}
-            <label
-              htmlFor="file-upload-detail"
-              className="cursor-pointer p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
-              title="Chọn file"
-            >
-              <FiUpload size={18} />
-            </label>
-            <span className="text-white text-sm font-medium flex-1 text-center">
-              {t("workplaceChart.chooseExceldetail")}
-            </span>
-            <button
-              onClick={handleDetailUploadToFirebase}
-              disabled={!detailData}
-              className=" hover:bg-purple-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition disabled:opacity-50"
-            >
-              {t("workplaceChart.uploadFirebase")}
-            </button>
-            <input
-              id="file-upload-detail"
-              type="file"
-              accept=".xlsx, .xls"
-              onChange={handleDetailUpload}
-              className="hidden"
-            />
-          </div>
-        </div>
+        )}
       </div>
       {/* Chart và bảng tổng */}
       <div className="flex-1 p-4 flex gap-6" style={{ height: "93vh" }}>
@@ -688,11 +686,13 @@ export default function WorkplaceChart() {
                 {/* Nút xuất Excel */}
                 <div className="mt-4 flex justify-end gap-3">
                   <button
-  onClick={() => openDetailModal("Assembly", getCurrentWeekNumber())}
-  className="bg-blue-600 text-white px-4 py-2 rounded"
->
-  👁 Xem chi tiết
-</button>
+                    onClick={() =>
+                      openDetailModal("Assembly", getCurrentWeekNumber())
+                    }
+                    className="bg-blue-600 text-white px-4 py-2 rounded"
+                  >
+                    👁 Xem chi tiết
+                  </button>
 
                   <button
                     onClick={exportToExcel}
