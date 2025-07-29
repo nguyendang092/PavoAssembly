@@ -206,6 +206,7 @@ const resources = {
         alertMissingTime: "Vui lòng nhập thời gian phân công (từ - đến)!",
         saveError: "❌ Lỗi khi lưu: {{message}}",
         saveSuccess: "✅ Đã lưu nhân viên",
+        leaveTime: "Thời gian nghỉ phép",
       },
       multiPlanModal: {
         title: "Bảng cập nhật sản lượng kế hoạch",
@@ -441,6 +442,7 @@ const resources = {
         alertMissingTime: "배정 시간을 입력해주세요 (시작 - 종료)!",
         saveError: "❌ 저장 중 오류 발생: {{message}}",
         saveSuccess: "✅ 직원 정보가 저장되었습니다",
+        leaveTime: "휴가 시간",
       },
       multiPlanModal: {
         title: "계획 생산량 업데이트 테이블",

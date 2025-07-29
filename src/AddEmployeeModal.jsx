@@ -157,20 +157,23 @@ const AddEmployeeModal = ({
     const joinDate = newEmployee.joinDate || selectedDate;
     const modelValue = newEmployee.model.trim();
 
+    const from = timePhanCongFrom.trim();
+    const to = timePhanCongTo.trim();
+
     if (status === "Nghỉ phép") {
       if (!name || !selectedDate) {
         alert(t("addEmployeeModal.alertLeaveMissing"));
         return;
       }
+      if (!from || !to) {
+        alert(t("addEmployeeModal.alertMissingLeaveTime"));
+        return;
+      }
     } else {
-      const from = timePhanCongFrom.trim();
-      const to = timePhanCongTo.trim();
-
       if (!name || !modelValue || !selectedDate) {
         alert(t("addEmployeeModal.alertWorkingMissing"));
         return;
       }
-
       if (!from || !to) {
         alert(t("addEmployeeModal.alertMissingTime"));
         return;
@@ -193,15 +196,23 @@ const AddEmployeeModal = ({
         imageUrl = previewImage;
       }
 
-      const scheduleData = {
+      // Chuẩn bị dữ liệu ca làm việc mới
+      const newShift = {
         joinDate,
         status,
+        timePhanCong: `${from} - ${to}`,
+        ...(status === "Đi làm" ? {
+          model: modelValue,
+        } : {}),
       };
 
-      if (status === "Đi làm") {
-        scheduleData.model = modelValue;
-        scheduleData.timePhanCong = `${timePhanCongFrom.trim()} - ${timePhanCongTo.trim()}`;
-      }
+      // Lấy mảng ca làm việc hiện tại (nếu có)
+      const prevShifts = Array.isArray(existingData.schedules?.[dateKey])
+        ? existingData.schedules[dateKey]
+        : existingData.schedules?.[dateKey]
+        ? [existingData.schedules[dateKey]]
+        : [];
+      const newShiftsArr = [...prevShifts, newShift];
 
       const updatedEmployee = {
         name,
@@ -209,7 +220,7 @@ const AddEmployeeModal = ({
         imageUrl,
         schedules: {
           ...(existingData.schedules || {}),
-          [dateKey]: scheduleData,
+          [dateKey]: newShiftsArr,
         },
       };
 
@@ -337,20 +348,6 @@ const AddEmployeeModal = ({
           ))}
         </ul>
       </div>
-      {/* <div className="flex justify-center mb-5">
-        <img
-          src={previewImage}
-          alt="Hình ảnh"
-          className="h-28 w-28 rounded-full object-cover border-4 border-gradient-to-tr from-blue-400 to-purple-600 shadow-lg"
-        />
-      </div> */}
-      {/* <input
-        type="text"
-        placeholder="Dán URL hình ảnh"
-        value={previewImage || ""}
-        onChange={(e) => setPreviewImage(e.target.value)}
-        className="w-full border border-gray-300 rounded-md px-4 py-3 mb-3 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-      /> */}
       <input
         name="name"
         value={newEmployee.name}
@@ -361,27 +358,21 @@ const AddEmployeeModal = ({
       {/* Thời gian phân công */}
       <div className="flex gap-2 mb-3 items-center">
         <label className="whitespace-nowrap">
-          {t("addEmployeeModal.assignTime")}
+          {newEmployee.status === "Nghỉ phép"
+            ? t("addEmployeeModal.leaveTime")
+            : t("addEmployeeModal.assignTime")}
         </label>
         {["from", "to"].map((type, idx) => {
-          const isDisabled = newEmployee.status === "Nghỉ phép";
           const timeValue = type === "from" ? timePhanCongFrom : timePhanCongTo;
-          const setTime =
-            type === "from" ? setTimePhanCongFrom : setTimePhanCongTo;
-
+          const setTime = type === "from" ? setTimePhanCongFrom : setTimePhanCongTo;
           return (
             <React.Fragment key={type}>
               <input
                 type="time"
                 value={timeValue}
                 onChange={(e) => setTime(e.target.value)}
-                disabled={isDisabled}
-                required
-                className={`border rounded-md px-3 py-2 transition w-28 ${
-                  isDisabled
-                    ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                    : "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                }`}
+                required={newEmployee.status === "Nghỉ phép"}
+                className={`border rounded-md px-3 py-2 transition w-28 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
               />
               {idx === 0 && (
                 <span className="mx-1">

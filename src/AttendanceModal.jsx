@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useUser } from "./UserContext";
 import Modal from "react-modal";
 import { ref, get, update, remove } from "firebase/database";
 import { db } from "./firebase";
@@ -21,6 +22,7 @@ const AttendanceModal = ({
   areaKey,
   modelList = [],
 }) => {
+  const { user } = useUser();
   const areaKeyMapping = {
     "Ngọc Thành": "NgocThanh",
     "Chí Thành": "ChiThanh",
@@ -76,22 +78,18 @@ const AttendanceModal = ({
       const result = {};
 
       Object.entries(rawData).forEach(([employeeId, emp]) => {
-        const matchedScheduleEntry = Object.entries(emp.schedules || {}).find(
-          ([scheduleDateKey]) => scheduleDateKey === filterDateKey
-        );
-
-        if (matchedScheduleEntry) {
-          const [scheduleDateKey, schedule] = matchedScheduleEntry;
+        const scheduleArr = Array.isArray(emp.schedules?.[filterDateKey])
+          ? emp.schedules[filterDateKey]
+          : emp.schedules?.[filterDateKey]
+          ? [emp.schedules[filterDateKey]]
+          : [];
+        if (scheduleArr.length > 0) {
           result[employeeId] = {
             employeeId,
             name: formatName(emp.name || ""),
             imageUrl: emp.imageUrl || "",
-            status: schedule.status || "Đi làm",
-            model: schedule.model || "",
-            joinDate: schedule.joinDate || "",
-            timePhanCong: schedule.timePhanCong || "",
             schedules: emp.schedules || {},
-            _scheduleDateKey: scheduleDateKey,
+            shifts: scheduleArr,
           };
         }
       });
@@ -101,19 +99,6 @@ const AttendanceModal = ({
 
     fetchAttendanceData();
   }, [mappedAreaKey, filterDateKey]);
-
-  const handleEditClick = (id) => {
-    const emp = employees[id];
-    const [start, end] = (emp.timePhanCong || "").split(" - ");
-    setEditEmployeeId(id);
-    setEditEmployeeData({
-      ...emp,
-      startTime: start || "",
-      endTime: end || "",
-    });
-    setEditImageFile(null);
-    setEditImagePreview(null);
-  };
 
   const handleChange = (field, value) => {
     if (field === "name") {
@@ -125,9 +110,16 @@ const AttendanceModal = ({
         return {
           ...prev,
           status: value,
-          model: "",
+          model: "--",
           startTime: "",
           endTime: "",
+        };
+      }
+      if (field === "status" && value === "Đi làm" && prev.model === "--") {
+        return {
+          ...prev,
+          status: value,
+          model: "",
         };
       }
       return { ...prev, [field]: value };
@@ -164,17 +156,26 @@ const AttendanceModal = ({
       updated.endTime || ""
     }`;
 
+    // Thêm ca mới vào mảng ca làm việc của ngày
+    const prevSchedules = employees[employeeId]?.schedules || {};
+    const prevShifts = Array.isArray(prevSchedules[dateKey])
+      ? prevSchedules[dateKey]
+      : prevSchedules[dateKey]
+      ? [prevSchedules[dateKey]]
+      : [];
+    const newShift = {
+      model: updated.model,
+      joinDate: updated.joinDate || selectedDate,
+      status: updated.status || "Đi làm",
+      timePhanCong,
+    };
+    const newShiftsArr = [...prevShifts, newShift];
     await update(ref(db, `attendance/${mappedAreaKey}/${employeeId}`), {
       name: updated.name,
       imageUrl: updated.imageUrl,
       schedules: {
-        ...(employees[employeeId]?.schedules || {}),
-        [dateKey]: {
-          model: updated.model,
-          joinDate: updated.joinDate || selectedDate,
-          status: updated.status || "Đi làm",
-          timePhanCong,
-        },
+        ...prevSchedules,
+        [dateKey]: newShiftsArr,
       },
     });
 
@@ -182,16 +183,11 @@ const AttendanceModal = ({
       ...prev,
       [employeeId]: {
         ...updated,
-        timePhanCong,
         schedules: {
-          ...(prev[employeeId]?.schedules || {}),
-          [dateKey]: {
-            model: updated.model,
-            joinDate: updated.joinDate || selectedDate,
-            status: updated.status || "Đi làm",
-            timePhanCong,
-          },
+          ...prev[employeeId]?.schedules,
+          [dateKey]: newShiftsArr,
         },
+        shifts: newShiftsArr,
       },
     }));
 
@@ -203,11 +199,24 @@ const AttendanceModal = ({
   groupedEmployees["Nghỉ phép"] = [];
 
   Object.entries(employees).forEach(([id, emp]) => {
-    if (showOnlyLeave && emp.status !== "Nghỉ phép") return;
-    if (filterModel && emp.model !== filterModel) return;
-    if (emp.status === "Nghỉ phép")
-      groupedEmployees["Nghỉ phép"].push({ id, ...emp });
-    else groupedEmployees[emp.model || "Không xác định"]?.push({ id, ...emp });
+    (emp.shifts || []).forEach((shift, idx) => {
+      if (showOnlyLeave && shift.status !== "Nghỉ phép") return;
+      if (filterModel && shift.model !== filterModel) return;
+      if (shift.status === "Nghỉ phép")
+        groupedEmployees["Nghỉ phép"].push({
+          id,
+          ...emp,
+          shift,
+          shiftIdx: idx,
+        });
+      else
+        groupedEmployees[shift.model || "Không xác định"]?.push({
+          id,
+          ...emp,
+          shift,
+          shiftIdx: idx,
+        });
+    });
   });
   // 📌 Thống kê toàn bộ trước khi lọc
   const totalCount = Object.keys(employees).length;
@@ -322,10 +331,15 @@ const AttendanceModal = ({
                   </tr>
                 </thead>
                 <tbody>
-                  {emps.map(({ id, ...emp }) => {
-                    const isEditing = editEmployeeId === id;
+                  {emps.map(({ id, shift, shiftIdx, ...emp }) => {
+                    const isEditing =
+                      editEmployeeId === id &&
+                      editEmployeeData.shiftIdx === shiftIdx;
                     return (
-                      <tr key={id} className="border-b text-center">
+                      <tr
+                        key={id + "-" + shiftIdx}
+                        className="border-b text-center"
+                      >
                         <td className="border px-2 py-1">
                           <img
                             src={emp.imageUrl || "/picture/employees/user.jpg"}
@@ -333,19 +347,7 @@ const AttendanceModal = ({
                             className="w-10 h-10 rounded-full object-cover mx-auto"
                           />
                         </td>
-                        <td className="border px-2 py-1">
-                          {isEditing ? (
-                            <input
-                              value={editEmployeeData.name || ""}
-                              onChange={(e) =>
-                                handleChange("name", formatName(e.target.value))
-                              }
-                              className="w-full border px-1 py-0.5"
-                            />
-                          ) : (
-                            emp.name
-                          )}
-                        </td>
+                        <td className="border px-2 py-1">{emp.name}</td>
                         <td className="border px-2 py-1">
                           {emp.employeeId || "—"}
                         </td>
@@ -356,30 +358,30 @@ const AttendanceModal = ({
                                 type="time"
                                 value={editEmployeeData.startTime || ""}
                                 onChange={(e) =>
-                                  handleChange("startTime", e.target.value)
+                                  setEditEmployeeData((prev) => ({
+                                    ...prev,
+                                    startTime: e.target.value,
+                                  }))
                                 }
                                 className="border px-1 py-0.5 w-[80px]"
                                 lang="vi"
-                                disabled={
-                                  editEmployeeData.status === "Nghỉ phép"
-                                }
                               />
                               <span>-</span>
                               <input
                                 type="time"
                                 value={editEmployeeData.endTime || ""}
                                 onChange={(e) =>
-                                  handleChange("endTime", e.target.value)
+                                  setEditEmployeeData((prev) => ({
+                                    ...prev,
+                                    endTime: e.target.value,
+                                  }))
                                 }
                                 className="border px-1 py-0.5 w-[80px]"
                                 lang="vi"
-                                disabled={
-                                  editEmployeeData.status === "Nghỉ phép"
-                                }
                               />
                             </div>
                           ) : (
-                            emp.timePhanCong || "—"
+                            shift.timePhanCong || "—"
                           )}
                         </td>
                         <td className="border px-2 py-1">
@@ -387,7 +389,10 @@ const AttendanceModal = ({
                             <select
                               value={editEmployeeData.status || ""}
                               onChange={(e) =>
-                                handleChange("status", e.target.value)
+                                setEditEmployeeData((prev) => ({
+                                  ...prev,
+                                  status: e.target.value,
+                                }))
                               }
                               className="w-full border px-1 py-0.5"
                             >
@@ -398,7 +403,7 @@ const AttendanceModal = ({
                                 {t("attendanceModal.leaveStatus")}
                               </option>
                             </select>
-                          ) : emp.status === "Nghỉ phép" ? (
+                          ) : shift.status === "Nghỉ phép" ? (
                             t("attendanceModal.leaveStatus")
                           ) : (
                             t("attendanceModal.workingStatus")
@@ -409,7 +414,10 @@ const AttendanceModal = ({
                             <select
                               value={editEmployeeData.model || ""}
                               onChange={(e) =>
-                                handleChange("model", e.target.value)
+                                setEditEmployeeData((prev) => ({
+                                  ...prev,
+                                  model: e.target.value,
+                                }))
                               }
                               className="w-full border px-1 py-0.5"
                               disabled={editEmployeeData.status === "Nghỉ phép"}
@@ -423,8 +431,10 @@ const AttendanceModal = ({
                                 </option>
                               ))}
                             </select>
+                          ) : shift.status === "Nghỉ phép" ? (
+                            "--"
                           ) : (
-                            emp.model || "—"
+                            shift.model || "—"
                           )}
                         </td>
                         <td className="border px-2 py-1">
@@ -433,46 +443,66 @@ const AttendanceModal = ({
                               type="date"
                               value={editEmployeeData.joinDate || ""}
                               onChange={(e) =>
-                                handleChange("joinDate", e.target.value)
+                                setEditEmployeeData((prev) => ({
+                                  ...prev,
+                                  joinDate: e.target.value,
+                                }))
                               }
                               className="border px-1 py-0.5 w-full"
                             />
                           ) : (
-                            emp.joinDate || "—"
+                            shift.joinDate || "—"
                           )}
                         </td>
                         <td className="border px-2 py-1 space-x-1">
-                          {isEditing ? (
-                            <>
-                              <button
-                                onClick={handleSaveEdit}
-                                className="px-2 py-1 bg-green-500 text-white rounded"
-                              >
-                                {t("attendanceModal.save")}
-                              </button>
-                              <button
-                                onClick={handleCancelEdit}
-                                className="px-2 py-1 bg-gray-400 text-white rounded"
-                              >
-                                {t("attendanceModal.cancel")}
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => handleEditClick(id)}
-                                className="px-2 py-1 bg-blue-600 text-white rounded"
-                              >
-                                {t("attendanceModal.edit")}
-                              </button>
-                              <button
-                                onClick={() => handleDelete(id)}
-                                className="px-2 py-1 bg-red-600 text-white rounded"
-                              >
-                                {t("attendanceModal.delete")}
-                              </button>
-                            </>
-                          )}
+                          {user ? (
+                            isEditing ? (
+                              <>
+                                <button
+                                  onClick={handleSaveEdit}
+                                  className="px-2 py-1 bg-green-500 text-white rounded"
+                                >
+                                  {t("attendanceModal.save")}
+                                </button>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="px-2 py-1 bg-gray-400 text-white rounded"
+                                >
+                                  {t("attendanceModal.cancel")}
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setEditEmployeeId(id);
+                                    setEditEmployeeData({
+                                      ...emp,
+                                      ...shift,
+                                      shiftIdx,
+                                      startTime:
+                                        (shift.timePhanCong || "").split(
+                                          " - "
+                                        )[0] || "",
+                                      endTime:
+                                        (shift.timePhanCong || "").split(
+                                          " - "
+                                        )[1] || "",
+                                    });
+                                  }}
+                                  className="px-2 py-1 bg-blue-600 text-white rounded"
+                                >
+                                  {t("attendanceModal.edit")}
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(id)}
+                                  className="px-2 py-1 bg-red-600 text-white rounded"
+                                >
+                                  {t("attendanceModal.delete")}
+                                </button>
+                              </>
+                            )
+                          ) : null}
                         </td>
                       </tr>
                     );
