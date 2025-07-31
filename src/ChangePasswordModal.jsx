@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { getAuth, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import { logUserAction } from "./userLog";
 
 export default function ChangePasswordModal({ onClose }) {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -34,6 +35,12 @@ export default function ChangePasswordModal({ onClose }) {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
+      // Ghi log đổi mật khẩu thành công
+      await logUserAction(
+        user.email,
+        "change_password",
+        "Đổi mật khẩu thành công"
+      );
     } catch (err) {
       setError("Đổi mật khẩu thất bại. Vui lòng kiểm tra lại thông tin.");
     } finally {

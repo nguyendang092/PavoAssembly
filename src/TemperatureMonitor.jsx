@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useUser } from "./UserContext";
+import { logUserAction } from "./userLog";
 import { format } from "date-fns";
 import Modal from "react-modal";
 import { ref, onValue, set, remove, update, get } from "firebase/database";
@@ -136,6 +137,14 @@ const TemperatureMonitor = () => {
         showToast(
           t("temperatureMonitor.renamed", { oldName, newName: trimmedNew })
         );
+        // Ghi log đổi tên máy
+        if (user && user.email) {
+          await logUserAction(
+            user.email,
+            "edit_machine",
+            `Đổi tên máy từ ${oldName} sang ${trimmedNew} tại khu vực ${selectedArea}`
+          );
+        }
       } else {
         alert(t("temperatureMonitor.dataNotFound"));
       }
@@ -161,6 +170,14 @@ const TemperatureMonitor = () => {
       await remove(
         ref(db, `temperature_monitor/${selectedArea}/${machineName}`)
       );
+      // Ghi log xóa máy
+      if (user && user.email) {
+        await logUserAction(
+          user.email,
+          "delete_machine",
+          `Xóa máy ${machineName} tại khu vực ${selectedArea}`
+        );
+      }
     } catch (error) {
       alert(t("temperatureMonitor.deleteError"));
     }
@@ -200,6 +217,14 @@ const TemperatureMonitor = () => {
       );
       setNewMachineName("");
       setIsAddingMachine(false);
+      // Ghi log thêm máy
+      if (user && user.email) {
+        await logUserAction(
+          user.email,
+          "add_machine",
+          `Thêm máy ${trimmedMachine} tại khu vực ${selectedArea}`
+        );
+      }
     } catch (error) {
       alert(t("temperatureMonitor.addError"));
     }

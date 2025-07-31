@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import { logUserAction } from "./userLog";
 
 export default function SignIn({ onSignIn, onClose }) {
   const [email, setEmail] = useState("");
@@ -24,6 +25,8 @@ export default function SignIn({ onSignIn, onClose }) {
       const user = userCredential.user;
       // Lấy displayName nếu có, nếu không lấy email
       const name = user.displayName || user.email;
+      // Ghi log đăng nhập thành công
+      await logUserAction(user.email, "login", "Đăng nhập thành công");
       if (onSignIn) onSignIn({ email: user.email, name });
       if (onClose) onClose();
     } catch (err) {
@@ -142,3 +145,17 @@ export default function SignIn({ onSignIn, onClose }) {
     </div>
   );
 }
+
+/*
+HƯỚNG DẪN SỬ DỤNG logUserAction CHO FILE KHÁC:
+
+import { logUserAction } from "./SignIn";
+
+// Ví dụ ghi log khi thêm nhân viên:
+await logUserAction(currentUser.email, "add_employee", `Thêm nhân viên: ${employeeName}`);
+
+// Ví dụ ghi log khi xóa ca làm việc:
+await logUserAction(currentUser.email, "delete_shift", `Xóa ca: ${shiftId}`);
+
+// Có thể dùng cho bất kỳ hành động nào cần ghi lại lịch sử hoạt động của user.
+*/

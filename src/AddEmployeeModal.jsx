@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { logUserAction } from "./userLog";
 import Modal from "react-modal";
 import { ref, set, get, update } from "firebase/database";
 import { db } from "./firebase";
@@ -152,6 +153,8 @@ const AddEmployeeModal = ({
   };
 
   const handleAddOrUpdateEmployee = async () => {
+    // Lấy thông tin user hiện tại từ localStorage hoặc context nếu có
+    const currentUser = JSON.parse(localStorage.getItem("currentUser")) || {};
     const name = newEmployee.name.trim();
     const status = newEmployee.status;
     const joinDate = newEmployee.joinDate || selectedDate;
@@ -239,6 +242,14 @@ const AddEmployeeModal = ({
       }
 
       await update(ref(db), updates);
+
+      // Ghi log thêm hoặc cập nhật nhân viên
+      const actionType = selectedKey ? "update_employee" : "add_employee";
+      await logUserAction(
+        currentUser.email || "unknown",
+        actionType,
+        `${actionType === "add_employee" ? "Thêm" : "Cập nhật"} nhân viên: ${name} (${employeeId}), ca: ${from} - ${to}, trạng thái: ${status}${status === "Đi làm" ? ", model: " + modelValue : ""}`
+      );
 
       resetForm();
       onClose();

@@ -36,7 +36,7 @@ function getWeekNumber(dateStr) {
 }
 import { useUser } from "./UserContext";
 
-export default function DetailedModal({ isOpen, onClose, area }) {
+export default function DetailedNGModal({ isOpen, onClose, area }) {
   const { user } = useUser();
   const [selectedArea, setSelectedArea] = useState(area || "Assembly");
   const [selectedWeek, setSelectedWeek] = useState(
@@ -69,19 +69,43 @@ export default function DetailedModal({ isOpen, onClose, area }) {
     const fetchData = async () => {
       setLoading(true);
       // Lấy toàn bộ tuần của area, lọc đúng ngày đã chọn
-      const areaRef = ref(db, `details/${selectedArea}`);
+      const areaRef = ref(db, `ng/${selectedArea}`);
       const snapshot = await get(areaRef);
       if (!isMounted) return;
       const details = [];
       if (snapshot.exists()) {
         const weekData = snapshot.val();
+        console.log('Firebase weekData:', weekData);
         for (const weekKey in weekData) {
-          const models = weekData[weekKey];
-          for (const model in models) {
-            const modelData = models[model];
-            if (modelData[selectedDate]) {
-              const quantity = modelData[selectedDate];
-              details.push({ model, date: selectedDate, quantity });
+          const reworkData = weekData[weekKey];
+          console.log('weekKey:', weekKey, 'reworkData:', reworkData);
+          for (const rework in reworkData) {
+            const dayData = reworkData[rework];
+            console.log('rework:', rework, 'dayData:', dayData);
+            for (const day in dayData) {
+              // So sánh trực tiếp với selectedDate dạng yyyy-mm-dd
+              if (day !== selectedDate) continue;
+              const modelData = dayData[day];
+              console.log('day:', day, 'modelData:', modelData);
+              for (const model in modelData) {
+                let quantity = 0;
+                if (typeof modelData[model] === "object" && modelData[model] !== null) {
+                  quantity = modelData[model].Day ?? 0;
+                } else if (typeof modelData[model] === "number") {
+                  quantity = modelData[model];
+                }
+                console.log('model:', model, 'quantity:', quantity);
+                if (quantity > 0) {
+                  details.push({
+                    model,
+                    date: day,
+                    quantity,
+                    week: weekKey,
+                    rework,
+                    area: selectedArea,
+                  });
+                }
+              }
             }
           }
         }
@@ -199,7 +223,7 @@ export default function DetailedModal({ isOpen, onClose, area }) {
                   })),
                 }}
                 options={{
-                  indexAxis: "y",
+                  indexAxis: "x", // đổi về biểu đồ cột
                   responsive: true,
                   maintainAspectRatio: false,
                   elements: {
@@ -213,25 +237,21 @@ export default function DetailedModal({ isOpen, onClose, area }) {
                       beginAtZero: true,
                       ticks: {
                         color: "#000",
-                        font: { weight: "bold", size: 10 },
+                        font: { weight: "bold", size: 14 },
                       },
                       grid: { display: false },
+                    },
+                    y: {
+                      beginAtZero: true,
                       max: (() => {
-                        // Lấy max data trong datasets[0].data rồi cộng thêm 50
-                        if (
-                          !chartData ||
-                          !chartData.datasets ||
-                          chartData.datasets.length === 0
-                        )
+                        if (!chartData || !chartData.datasets || chartData.datasets.length === 0)
                           return undefined;
                         const maxVal = Math.max(...chartData.datasets[0].data);
                         return maxVal + 50;
                       })(),
-                    },
-                    y: {
                       ticks: {
                         color: "#000",
-                        font: { weight: "bold", size: 10 },
+                        font: { weight: "bold", size: 14 },
                       },
                       grid: { display: false },
                     },
@@ -241,7 +261,7 @@ export default function DetailedModal({ isOpen, onClose, area }) {
                     tooltip: {
                       callbacks: {
                         label: (context) => {
-                          const val = context.parsed.x || 0;
+                          const val = context.parsed.y || 0;
                           return val.toLocaleString();
                         },
                       },
@@ -250,7 +270,7 @@ export default function DetailedModal({ isOpen, onClose, area }) {
                       anchor: "end",
                       align: "end",
                       color: "#000",
-                      font: { weight: "bold", size: 10 },
+                      font: { weight: "bold", size: 14 },
                       formatter: (value) => value.toLocaleString(),
                     },
                   },

@@ -4,6 +4,8 @@ import Modal from "react-modal";
 import { ref, get, update, remove } from "firebase/database";
 import { db } from "./firebase";
 import { useTranslation } from "react-i18next";
+import { getDatabase, ref as dbRef, push } from "firebase/database";
+import { logUserAction } from "./userLog";
 
 const formatName = (name) => {
   return name
@@ -138,6 +140,10 @@ const AttendanceModal = ({
       return;
     try {
       await remove(ref(db, `attendance/${mappedAreaKey}/${employeeId}`));
+      // Ghi log xóa nhân viên
+      if (user) {
+        await logUserAction(user.email, "delete_employee", `Xóa nhân viên: ${employeeId}`);
+      }
       setEmployees((prev) => {
         const newEmployees = { ...prev };
         delete newEmployees[employeeId];
@@ -178,6 +184,10 @@ const AttendanceModal = ({
         [dateKey]: newShiftsArr,
       },
     });
+    // Ghi log sửa ca
+    if (user) {
+      await logUserAction(user.email, "edit_shift", `Sửa ca: ${employeeId}, ${timePhanCong}`);
+    }
 
     setEmployees((prev) => ({
       ...prev,

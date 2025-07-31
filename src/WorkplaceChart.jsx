@@ -6,6 +6,7 @@ import { FiUpload } from "react-icons/fi"; // import biểu tượng upload
 import { useTranslation } from "react-i18next";
 import DetailedModal from "./DetailedModal";
 import { useUser } from "./UserContext";
+import { logUserAction } from "./userLog";
 import {
   Chart as ChartJS,
   BarElement,
@@ -69,9 +70,7 @@ export default function WorkplaceChart() {
   const [dataMap, setDataMap] = useState({});
   const [tableView, setTableView] = useState("detailed");
   const [rawData, setRawData] = useState(null);
-
   // ...existing code...
-
   // Load dữ liệu từ Firebase khi component mount
   useEffect(() => {
     const loadDataFromFirebase = async () => {
@@ -124,6 +123,14 @@ export default function WorkplaceChart() {
   };
   const closeDetailModal = () => setIsModalOpen(false);
   const uploadToFirebase = async (data) => {
+    // Ghi log upload tổng sản lượng
+    if (user && user.email) {
+      await logUserAction(
+        user.email,
+        "upload_total_output",
+        `Upload tổng sản lượng tuần ${selectedWeek}`
+      );
+    }
     const updates = {};
     const sanitizeKey = (key) => key.replace(/[.#$/\[\]]/g, "_");
     data.forEach((row) => {
@@ -211,6 +218,14 @@ export default function WorkplaceChart() {
     }
     try {
       await update(ref(db), updates);
+      // Ghi log upload chi tiết sản lượng
+      if (user && user.email) {
+        await logUserAction(
+          user.email,
+          "upload_detail_output",
+          `Upload chi tiết sản lượng tuần ${selectedWeek}`
+        );
+      }
       alert("✅ Upload chi tiết thành công!");
       setDetailData(null);
     } catch (error) {
@@ -689,9 +704,9 @@ export default function WorkplaceChart() {
                     onClick={() =>
                       openDetailModal("Assembly", getCurrentWeekNumber())
                     }
-                    className="bg-blue-600 text-white px-4 py-2 rounded"
+                    className="bg-blue-600 text-white px-4 py-2 rounded font-bold"
                   >
-                    👁 Xem chi tiết
+                    {t("workplaceChart.viewDetail")}
                   </button>
 
                   <button

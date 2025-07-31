@@ -8,6 +8,7 @@ import "./i18n";
 import WorkplaceChart from "./WorkplaceChart";
 import ModelProductionChart from "./ModelProductionChart";
 import { UserContext } from "./UserContext";
+import NGWorkplaceChart from "./NGplaceChart";
 const App = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [selectedLeader, setSelectedLeader] = useState("");
@@ -60,6 +61,8 @@ useEffect(() => {
             <TemperatureMonitor />
           ) : selectedLeader === "bieudo" ? (
             <WorkplaceChart />
+          ) : selectedLeader === "ng" ? (
+            <NGWorkplaceChart />
           ) : selectedLeader === "model" ? (
             <ModelProductionChart />
           ) : (

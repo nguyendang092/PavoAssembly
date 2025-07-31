@@ -13,6 +13,7 @@ export default function Navbar({ onSelectLeader, onLeaderMapReady, user, setUser
   const leaderMap = {
     temperature: "nhietdo",
     bieudo: "bieudo",
+    ng: "ng",
     ngocThanh: "NgocThanh",
     chiThanh: "ChiThanh",
     muoi: "Muoi",

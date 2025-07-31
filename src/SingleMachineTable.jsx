@@ -6,6 +6,7 @@ import { getDay } from "date-fns";
 import { useTranslation } from "react-i18next";
 import { ko } from "date-fns/locale";
 import { useUser } from "./UserContext";
+import { logUserAction } from "./userLog";
 const PAGE_SIZE = 10;
 
 const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
@@ -110,6 +111,14 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
         }
       }
       await Promise.all(promises);
+      // Ghi log khi lưu dữ liệu nhiệt độ/độ ẩm
+      if (user && user.email) {
+        await logUserAction(
+          user.email,
+          "save_temperature_humidity",
+          `Lưu dữ liệu máy: ${machine}, khu vực: ${area}, tháng: ${selectedMonth}`
+        );
+      }
       if (showToast)
         showToast(t("temperatureMonitor.saveSuccess", { machine }));
     } catch (error) {
