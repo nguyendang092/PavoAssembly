@@ -276,10 +276,10 @@ export default function DetailedModal({ isOpen, onClose, area }) {
               <tbody>
                 {filteredData.slice(0, visibleCount).map((item, i) => (
                   <tr key={i}>
-                    <td className="border-b p-1">{selectedArea}</td>
-                    <td className="border-b p-1">{item.model}</td>
-                    <td className="border-b p-1">{item.date}</td>
-                    <td className="border-b p-1 text-right">
+                    <td className="border-b p-1 text-center">{selectedArea}</td>
+                    <td className="border-b p-1 text-center">{item.model}</td>
+                    <td className="border-b p-1 text-center">{item.date}</td>
+                    <td className="border-b p-1 text-center">
                       {item.quantity.toLocaleString()}
                     </td>
                   </tr>

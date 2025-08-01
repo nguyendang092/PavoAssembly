@@ -144,10 +144,15 @@ useEffect(() => {
       rows.forEach((row) => {
         if (!map[row.workplace]) map[row.workplace] = {};
         if (!map[row.workplace][row.day]) map[row.workplace][row.day] = { normal: 0, rework: 0 };
+        // Nếu dữ liệu là object, lấy quantity
+        let value = row.qty;
+        if (typeof value === "object" && value !== null) {
+          value = value.quantity ?? 0;
+        }
         if (row.rework === "Rework") {
-          map[row.workplace][row.day].rework += Number(row.qty) || 0;
+          map[row.workplace][row.day].rework += Number(value) || 0;
         } else {
-          map[row.workplace][row.day].normal += Number(row.qty) || 0;
+          map[row.workplace][row.day].normal += Number(value) || 0;
         }
       });
       setDataMap(map);
@@ -215,8 +220,11 @@ const uploadFromExcel = async (file, user) => {
         }
         const model = sanitizeKey(row.ItemCode);
         const quantity = row.FaultyQuantity || 0;
+        // Thêm trường lý do lỗi NG (ví dụ: FaultyReason hoặc NGReason)
+        const reason = row.Notes || "";
         const path = `ng/${workplace}/${week}/${rework}/${day}/${model}/Day`;
-        updates[path] = quantity;
+        // Lưu object gồm quantity và reason
+        updates[path] = { quantity, reason };
       });
       if (user && user.email) {
         await logUserAction(user.email, "upload_faulty_data", "Upload từ file Excel lỗi");
@@ -249,12 +257,12 @@ const handleFileUpload = (e) => {
       <aside className="w-72 flex flex-col p-6 bg-gradient-to-b from-indigo-600 to-purple-600 shadow-lg border-r overflow-hidden">
         <div className="flex-grow">
           <h2 className="text-2xl font-bold text-white mb-6 uppercase flex items-center gap-2 tracking-wide">
-            {t("workplaceChart.menuTitle")}
+            {t("workplaceNGChart.menuTitle")}
           </h2>
           {Object.keys(weekData).length > 0 && (
             <div className="mb-4">
               <label className="block text-white font-medium mb-2">
-                {t("workplaceChart.selectWeek")}
+                {t("workplaceNGChart.selectWeek")}
               </label>
               <select
                 value={selectedWeek}
@@ -270,7 +278,7 @@ const handleFileUpload = (e) => {
                   })
                   .map((week) => (
                     <option key={week} value={week}>
-                      {t("workplaceChart.week")} {week}
+                      {t("workplaceNGChart.week")} {week}
                     </option>
                   ))}
               </select>
@@ -278,13 +286,13 @@ const handleFileUpload = (e) => {
           )}
         </div>
         {user && (
-          <div className="flex flex-col gap-4 w-full px-1">
+          <div className="flex flex-col gap-3 w-full px-1">
             <div className="flex items-center gap-2 bg-white/30 rounded-lg p-2 shadow">
               <label htmlFor="file-upload-total" className="cursor-pointer p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200" title="Chọn file">
                 <FiUpload size={18} />
               </label>
               <span className="text-white text-sm font-medium flex-1 text-center">
-                {t("workplaceChart.chooseExceltotal")}
+                {t("workplaceNGChart.chooseExceltotal")}
               </span>
               <input id="file-upload-total" type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
             </div>
@@ -295,7 +303,7 @@ const handleFileUpload = (e) => {
       <main className="flex-1 p-2 flex gap-8" style={{ height: "93vh" }}>
         {/* Chart 2/3 */}
         <section className="basis-2/3 bg-white rounded-xl shadow-lg p-6 flex flex-col">
-          <h3 className="text-xl font-bold mb-4 text-indigo-700 tracking-wide">{t("workplaceChart.chartTitle")}</h3>
+          <h3 className="text-xl font-bold mb-4 text-indigo-700 tracking-wide">{t("workplaceNGChart.chartTitle")}</h3>
           <div className="flex-1 flex items-center justify-center">
             {chartData ? (
               <Bar
@@ -321,11 +329,11 @@ const handleFileUpload = (e) => {
                     x: {
                       beginAtZero: true,
                       stacked: false,
-                      barPercentage: 0.3,
-                      categoryPercentage: 0.6,
-                      grid: { display: false, color: "#e0e0e0" },
+                      barPercentage: 0.2,
+                      categoryPercentage: 0.5,
+                      grid: { display: false, color: "#000" },
                       ticks: {
-                        color: "#333",
+                        color: "#000",
                         font: { weight: "bold", size: 14 },
                       },
                     },
@@ -336,11 +344,11 @@ const handleFileUpload = (e) => {
                           return label.length > 15 ? label.slice(0, 15) + "..." : label;
                         },
                         font: { size: 14, weight: "bold" },
-                        color: "#333",
+                        color: "#000",
                       },
                       grid: {
                         display: true,
-                        color: "#e0e0e0",
+                        color: "#000",
                         lineWidth: 0.8,
                       },
                     },
@@ -349,20 +357,20 @@ const handleFileUpload = (e) => {
                 plugins={[ChartDataLabels, extraLabelPlugin]}
               />
             ) : (
-              <p className="text-gray-400 text-lg font-medium">{t("workplaceChart.pleaseSelectExcel")}</p>
+              <p className="text-gray-400 text-lg font-medium">{t("workplaceNGChart.pleaseSelectExcel")}</p>
             )}
           </div>
         </section>
         {/* Bảng chi tiết 1/3 */}
         <section className="basis-1/3 bg-white rounded-xl shadow-lg p-2 flex flex-col overflow-auto">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-black uppercase">{t("workplaceChart.outputByArea")}</h3>
+            <h3 className="text-xl font-bold text-black uppercase">{t("workplaceNGChart.outputByArea")}</h3>
             <select
               value={selectedArea}
               onChange={(e) => setSelectedArea(e.target.value)}
               className="border border-gray-300 rounded-md px-2 py-1 text-xs focus:outline-none min-w-[140px] bg-white"
             >
-              <option value="">{t("workplaceChart.selectArea")}</option>
+              <option value="">{t("workplaceNGChart.selectArea")}</option>
               {Object.keys(dataMap).map((area) => (
                 <option key={area} value={area}>
                   {t(`areas.${area}`)}
@@ -375,10 +383,10 @@ const handleFileUpload = (e) => {
               <table className="min-w-full text-left border-collapse table-auto text-sm">
                 <thead>
                   <tr className="bg-indigo-50 text-indigo-700 uppercase">
-                    <th className="border-b pb-1 px-2">{t("workplaceChart.areaDay")}</th>
-                    <th className="border-b pb-1 px-2 text-right">{t("workplaceChart.normal")}</th>
-                    <th className="border-b pb-1 px-2 text-right">{t("workplaceChart.rework")}</th>
-                    <th className="border-b pb-1 px-2 text-right font-bold">{t("workplaceChart.total")}</th>
+                    <th className="border-b pb-1 px-2">{t("workplaceNGChart.areaDay")}</th>
+                    <th className="border-b pb-1 px-2 text-right">{t("workplaceNGChart.normal")}</th>
+                    <th className="border-b pb-1 px-2 text-right">{t("workplaceNGChart.rework")}</th>
+                    <th className="border-b pb-1 px-2 text-right font-bold">{t("workplaceNGChart.total")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -396,9 +404,9 @@ const handleFileUpload = (e) => {
                         <React.Fragment key={area}>
                           <tr className="bg-indigo-100 font-semibold uppercase">
                             <td className="px-2 py-1">{t(`areas.${area}`)}</td>
-                            <td className="text-right px-2 py-1">{totalNormal.toLocaleString()}</td>
-                            <td className="text-right px-2 py-1">{totalRework.toLocaleString()}</td>
-                            <td className="text-right px-2 py-1">{(totalNormal + totalRework).toLocaleString()}</td>
+                            <td className="text-center px-2 py-1">{totalNormal.toLocaleString()}</td>
+                            <td className="text-center px-2 py-1">{totalRework.toLocaleString()}</td>
+                            <td className="text-center px-2 py-1">{(totalNormal + totalRework).toLocaleString()}</td>
                           </tr>
                           {chartData.labels.map((label) => {
                             const d = dayObj[label] || { normal: 0, rework: 0 };
@@ -407,9 +415,9 @@ const handleFileUpload = (e) => {
                             return (
                               <tr key={label} className="text-gray-700">
                                 <td className="pl-8 py-1">{label}</td>
-                                <td className="text-right px-2 py-1">{d.normal.toLocaleString()}</td>
-                                <td className="text-right px-2 py-1">{d.rework.toLocaleString()}</td>
-                                <td className="text-right px-2 py-1">{total.toLocaleString()}</td>
+                                <td className="text-center px-2 py-1">{d.normal.toLocaleString()}</td>
+                                <td className="text-center px-2 py-1">{d.rework.toLocaleString()}</td>
+                                <td className="text-center px-2 py-1">{total.toLocaleString()}</td>
                               </tr>
                             );
                           })}
@@ -426,7 +434,7 @@ const handleFileUpload = (e) => {
                   }}
                   className="bg-blue-600 text-white px-4 py-2 rounded font-bold"
                 >
-                  {t("workplaceChart.viewDetail")}
+                  {t("workplaceNGChart.viewDetail")}
                 </button>
                 <button
                   onClick={() => {
@@ -434,7 +442,7 @@ const handleFileUpload = (e) => {
                   }}
                   className="font-bold text-white px-3 py-2 bg-green-600 rounded hover:bg-green-700"
                 >
-                  {t("workplaceChart.exportExcel")}
+                  {t("workplaceNGChart.exportExcel")}
                 </button>
               </div>
             </>

@@ -75,26 +75,32 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
       const details = [];
       if (snapshot.exists()) {
         const weekData = snapshot.val();
-        console.log('Firebase weekData:', weekData);
+        // console.log('Firebase weekData:', weekData);
         for (const weekKey in weekData) {
           const reworkData = weekData[weekKey];
-          console.log('weekKey:', weekKey, 'reworkData:', reworkData);
+          // console.log('weekKey:', weekKey, 'reworkData:', reworkData);
           for (const rework in reworkData) {
             const dayData = reworkData[rework];
-            console.log('rework:', rework, 'dayData:', dayData);
+            // console.log('rework:', rework, 'dayData:', dayData);
             for (const day in dayData) {
-              // So sánh trực tiếp với selectedDate dạng yyyy-mm-dd
-              if (day !== selectedDate) continue;
+              // Chỉ lấy ngày đúng định dạng yyyy-mm-dd
+              if (day !== selectedDate || !/^\d{4}-\d{2}-\d{2}$/.test(day)) continue;
               const modelData = dayData[day];
-              console.log('day:', day, 'modelData:', modelData);
+              // console.log('day:', day, 'modelData:', modelData);
               for (const model in modelData) {
                 let quantity = 0;
+                let notes = "";
                 if (typeof modelData[model] === "object" && modelData[model] !== null) {
-                  quantity = modelData[model].Day ?? 0;
+                  // Nếu lưu kiểu mới: { Day: { quantity, reason } }
+                  if (typeof modelData[model].Day === "object" && modelData[model].Day !== null) {
+                    quantity = modelData[model].Day.quantity ?? 0;
+                    notes = modelData[model].Day.reason ?? "";
+                  } else {
+                    quantity = modelData[model].Day ?? 0;
+                  }
                 } else if (typeof modelData[model] === "number") {
                   quantity = modelData[model];
                 }
-                console.log('model:', model, 'quantity:', quantity);
                 if (quantity > 0) {
                   details.push({
                     model,
@@ -103,6 +109,7 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
                     week: weekKey,
                     rework,
                     area: selectedArea,
+                    notes,
                   });
                 }
               }
@@ -287,21 +294,23 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr>
-                  <th className="border-b p-1 text-left">Arena</th>
-                  <th className="border-b p-1 text-left">Model</th>
-                  <th className="border-b p-1 text-left">Ngày</th>
-                  <th className="border-b p-1 text-right">Sản lượng</th>
+                  <th className="border-b p-1 text-center">Arena</th>
+                  <th className="border-b p-1 text-center">Model</th>
+                  <th className="border-b p-1 text-center">Ngày</th>
+                  <th className="border-b p-1 text-center">Sản lượng</th>
+                  <th className="border-b p-1 text-center">Notes</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredData.slice(0, visibleCount).map((item, i) => (
                   <tr key={i}>
-                    <td className="border-b p-1">{selectedArea}</td>
-                    <td className="border-b p-1">{item.model}</td>
-                    <td className="border-b p-1">{item.date}</td>
-                    <td className="border-b p-1 text-right">
+                    <td className="border-b p-1 text-center">{selectedArea}</td>
+                    <td className="border-b p-1 text-center">{item.model}</td>
+                    <td className="border-b p-1 text-center">{item.date}</td>
+                    <td className="border-b p-1 text-center">
                       {item.quantity.toLocaleString()}
                     </td>
+                    <td className="border-b p-1 text-center">{item.notes || ""}</td>
                   </tr>
                 ))}
               </tbody>

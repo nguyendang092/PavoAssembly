@@ -330,7 +330,16 @@ export default function WorkplaceChart() {
         borderRadius: 6,
       };
     });
-    const labels = days.map((d) => format(parseISO(d), "dd/MM"));
+    const labels = days.map((d) => {
+      // Nếu d đã là yyyy-mm-dd thì giữ nguyên, nếu không thì chuyển về yyyy-mm-dd
+      if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+      try {
+        const dateObj = parseISO(d);
+        return format(dateObj, "yyyy-MM-dd");
+      } catch {
+        return d;
+      }
+    });
     setChartData({ labels, datasets });
   }, [selectedWeek, weekData]);
   const exportToExcel = () => {

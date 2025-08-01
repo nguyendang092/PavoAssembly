@@ -17,6 +17,25 @@ const App = () => {
   // State user cho đăng nhập
   const [user, setUser] = useState(null);
 
+  // Tự động lấy lại thông tin user nếu còn thời gian đăng nhập
+  useEffect(() => {
+    const loginData = localStorage.getItem("userLogin");
+    if (loginData) {
+      const { email, name, expire } = JSON.parse(loginData);
+      if (Date.now() < expire) {
+        setUser({ email, name });
+        // Đăng xuất sau thời gian còn lại
+        setTimeout(() => {
+          localStorage.removeItem("userLogin");
+          setUser(null);
+        }, expire - Date.now());
+      } else {
+        localStorage.removeItem("userLogin");
+        setUser(null);
+      }
+    }
+  }, []);
+
   const showToast = (message) => {
     setToastMessage(message);
   };

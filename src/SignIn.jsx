@@ -3,6 +3,24 @@ import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "fir
 import { logUserAction } from "./userLog";
 
 export default function SignIn({ onSignIn, onClose }) {
+  // Kiểm tra trạng thái đăng nhập khi mount
+  React.useEffect(() => {
+    const loginData = localStorage.getItem("userLogin");
+    if (loginData) {
+      const { email, name, expire } = JSON.parse(loginData);
+      if (Date.now() < expire) {
+        if (onSignIn) onSignIn({ email, name });
+        if (onClose) onClose(); // Đóng modal khi tự động đăng nhập lại
+        // Đăng xuất sau thời gian còn lại
+        setTimeout(() => {
+          localStorage.removeItem("userLogin");
+          if (onClose) onClose();
+        }, expire - Date.now());
+      } else {
+        localStorage.removeItem("userLogin");
+      }
+    }
+  }, []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -28,6 +46,14 @@ export default function SignIn({ onSignIn, onClose }) {
       // Ghi log đăng nhập thành công
       await logUserAction(user.email, "login", "Đăng nhập thành công");
       if (onSignIn) onSignIn({ email: user.email, name });
+      // Lưu trạng thái đăng nhập và thời gian hết hạn vào localStorage
+      const expire = Date.now() + 300000; // 5 phút
+      localStorage.setItem("userLogin", JSON.stringify({ email: user.email, name, expire }));
+      // Đăng xuất sau 5 phút
+      setTimeout(() => {
+        localStorage.removeItem("userLogin");
+        if (onClose) onClose();
+      }, 300000);
       if (onClose) onClose();
     } catch (err) {
       setError("Đăng nhập thất bại. Vui lòng thử lại.");

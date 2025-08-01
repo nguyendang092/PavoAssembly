@@ -65,6 +65,7 @@ export default function Navbar({ onSelectLeader, onLeaderMapReady, user, setUser
     try {
       await signOut(getAuth());
     } catch {}
+    localStorage.removeItem("userLogin");
     if (setUser) setUser(null);
   };
 
