@@ -267,10 +267,10 @@ export default function DetailedModal({ isOpen, onClose, area }) {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr>
-                  <th className="border-b p-1 text-left">Arena</th>
-                  <th className="border-b p-1 text-left">Model</th>
-                  <th className="border-b p-1 text-left">Ngày</th>
-                  <th className="border-b p-1 text-right">Sản lượng</th>
+                  <th className="border-b p-1 text-center">Arena</th>
+                  <th className="border-b p-1 text-center">Model</th>
+                  <th className="border-b p-1 text-center">Ngày</th>
+                  <th className="border-b p-1 text-center">Sản lượng</th>
                 </tr>
               </thead>
               <tbody>

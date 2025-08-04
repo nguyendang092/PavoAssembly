@@ -73,184 +73,256 @@ export default function NGWorkplaceChart() {
     setIsModalOpen(false);
     setModalArea("");
   };
-// Loading state
-const [loading, setLoading] = useState(false);
-// Tối ưu: chỉ load dữ liệu cho tuần được chọn
-useEffect(() => {
-  setLoading(true);
-  const fetchData = async () => {
-    try {
-      const ngRef = ref(db, "ng");
-      const snapshot = await get(ngRef);
-      if (!snapshot.exists()) {
-        setChartData(null);
-        setDataMap({});
-        setWeekData({});
-        setLoading(false);
-        return;
-      }
-      const ngData = snapshot.val();
-      // Chỉ build danh sách tuần
-      const weekList = [];
-      for (const workplace in ngData) {
-        for (const week in ngData[workplace]) {
-          if (!weekList.includes(week)) weekList.push(week);
+  // Loading state
+  const [loading, setLoading] = useState(false);
+  // Tối ưu: chỉ load dữ liệu cho tuần được chọn
+  useEffect(() => {
+    setLoading(true);
+    const fetchData = async () => {
+      try {
+        const ngRef = ref(db, "ng");
+        const snapshot = await get(ngRef);
+        if (!snapshot.exists()) {
+          setChartData(null);
+          setDataMap({});
+          setWeekData({});
+          setLoading(false);
+          return;
         }
-      }
-      weekList.sort();
-      setWeekData(weekList.reduce((acc, w) => { acc[w] = true; return acc; }, {}));
-      // Chọn tuần hiện tại nếu có, nếu không thì tuần mới nhất
-      if (!selectedWeek && weekList.length > 0) {
-        const currentWeek = getCurrentWeekNumber().toString();
-        if (weekList.includes(currentWeek)) {
-          setSelectedWeek(currentWeek);
-        } else {
-          setSelectedWeek(weekList[weekList.length - 1]);
+        const ngData = snapshot.val();
+
+        // Lấy danh sách tuần duy nhất
+        const weekSet = new Set();
+        for (const workplace in ngData) {
+          for (const week in ngData[workplace]) {
+            weekSet.add(week);
+          }
         }
-        setLoading(false);
-        return;
-      }
-      if (!selectedWeek) {
-        setChartData(null);
-        setDataMap({});
-        setLoading(false);
-        return;
-      }
-      // Build dữ liệu cho tuần đang chọn
-      const rows = [];
-      for (const workplace in ngData) {
-        if (!ngData[workplace][selectedWeek]) continue;
-        for (const rework in ngData[workplace][selectedWeek]) {
-          for (const day in ngData[workplace][selectedWeek][rework]) {
-            for (const model in ngData[workplace][selectedWeek][rework][day]) {
-              for (const shift in ngData[workplace][selectedWeek][rework][day][model]) {
-                const qty = ngData[workplace][selectedWeek][rework][day][model][shift];
-                rows.push({
-                  workplace,
-                  week: selectedWeek,
-                  rework,
-                  day,
-                  model,
-                  shift,
-                  qty,
-                });
+        let weekList = Array.from(weekSet);
+        // Sort tuần theo số (tăng dần)
+        weekList = weekList.sort((a, b) => Number(a) - Number(b));
+
+        setWeekData(
+          weekList.reduce((acc, w) => {
+            acc[w] = true;
+            return acc;
+          }, {})
+        );
+
+        const currentWeek = getCurrentWeekNumber();
+
+        if (!selectedWeek) {
+          // Check tuần hiện tại
+          if (weekList.includes(currentWeek.toString())) {
+            setSelectedWeek(currentWeek.toString());
+            setLoading(false);
+            return;
+          }
+          // Kiểm tra tuần trước (currentWeek - 1)
+          const previousWeek = currentWeek - 1;
+          if (weekList.includes(previousWeek.toString())) {
+            setSelectedWeek(previousWeek.toString());
+            setLoading(false);
+            return;
+          }
+          // Nếu không có tuần trên, lấy tuần lớn nhất (cuối danh sách)
+          if (weekList.length > 0) {
+            setSelectedWeek(weekList[weekList.length - 1]);
+            setLoading(false);
+            return;
+          }
+          // Không có tuần nào cả
+          setSelectedWeek("");
+          setLoading(false);
+          return;
+        }
+
+        // Nếu đã có selectedWeek, build dữ liệu cho tuần đó
+        const rows = [];
+        for (const workplace in ngData) {
+          if (!ngData[workplace][selectedWeek]) continue;
+          for (const rework in ngData[workplace][selectedWeek]) {
+            for (const day in ngData[workplace][selectedWeek][rework]) {
+              for (const model in ngData[workplace][selectedWeek][rework][
+                day
+              ]) {
+                for (const shift in ngData[workplace][selectedWeek][rework][
+                  day
+                ][model]) {
+                  const qty =
+                    ngData[workplace][selectedWeek][rework][day][model][shift];
+                  rows.push({
+                    workplace,
+                    week: selectedWeek,
+                    rework,
+                    day,
+                    model,
+                    shift,
+                    qty,
+                  });
+                }
               }
             }
           }
         }
-      }
-      // Chuẩn bị dataMap cho bảng tổng
-      const map = {};
-      rows.forEach((row) => {
-        if (!map[row.workplace]) map[row.workplace] = {};
-        if (!map[row.workplace][row.day]) map[row.workplace][row.day] = { normal: 0, rework: 0 };
-        // Nếu dữ liệu là object, lấy quantity
-        let value = row.qty;
-        if (typeof value === "object" && value !== null) {
-          value = value.quantity ?? 0;
-        }
-        if (row.rework === "Rework") {
-          map[row.workplace][row.day].rework += Number(value) || 0;
-        } else {
-          map[row.workplace][row.day].normal += Number(value) || 0;
-        }
-      });
-      setDataMap(map);
-      // Chuẩn bị dữ liệu cho biểu đồ
-      const workplaces = Object.keys(map);
-      let days = Array.from(new Set(rows.map(r => r.day))).sort();
-      // Loại bỏ ngày chủ nhật ("Chủ nhật" hoặc "Sunday")
-      days = days.filter(day => {
-        const lower = day.toLowerCase();
-        return lower !== "chủ nhật" && lower !== "sunday";
-      });
-      const datasets = workplaces.map((workplace, i) => {
-        return {
+
+        // Chuẩn bị dataMap cho bảng tổng
+        const map = {};
+        rows.forEach((row) => {
+          if (!map[row.workplace]) map[row.workplace] = {};
+          if (!map[row.workplace][row.day])
+            map[row.workplace][row.day] = { normal: 0, rework: 0 };
+          let value = row.qty;
+          if (typeof value === "object" && value !== null) {
+            value = value.quantity ?? 0;
+          }
+          if (row.rework === "Rework") {
+            map[row.workplace][row.day].rework += Number(value) || 0;
+          } else {
+            map[row.workplace][row.day].normal += Number(value) || 0;
+          }
+        });
+        setDataMap(map);
+
+        // Chuẩn bị dữ liệu cho biểu đồ
+        const workplaces = Object.keys(map);
+        let days = Array.from(new Set(rows.map((r) => r.day))).sort();
+
+        // Loại bỏ ngày chủ nhật ("Chủ nhật" hoặc "Sunday")
+        days = days.filter((day) => {
+          const lower = day.toLowerCase();
+          return lower !== "chủ nhật" && lower !== "sunday";
+        });
+
+        const datasets = workplaces.map((workplace, i) => ({
           label: workplace,
-          data: days.map(day => (map[workplace][day]?.normal || 0) + (map[workplace][day]?.rework || 0)),
+          data: days.map(
+            (day) =>
+              (map[workplace][day]?.normal || 0) +
+              (map[workplace][day]?.rework || 0)
+          ),
           backgroundColor: [
-            "#4e79a7", "#f28e2c", "#e15759", "#76b7b2", "#59a14f", "#edc949", "#af7aa1", "#ff9da7", "#9c755f", "#bab0ab"
+            "#4e79a7",
+            "#f28e2c",
+            "#e15759",
+            "#76b7b2",
+            "#59a14f",
+            "#edc949",
+            "#af7aa1",
+            "#ff9da7",
+            "#9c755f",
+            "#bab0ab",
           ][i % 10],
           borderRadius: 6,
-        };
-      });
-      setChartData({ labels: days, datasets });
-    } catch (err) {
-      setChartData(null);
-      setDataMap({});
-      setWeekData({});
-      console.error("Lỗi load dữ liệu NG:", err);
-    }
-    setLoading(false);
-  };
-  fetchData();
-}, [selectedWeek]);
+        }));
+
+        setChartData({ labels: days, datasets });
+      } catch (err) {
+        setChartData(null);
+        setDataMap({});
+        setWeekData({});
+        console.error("Lỗi load dữ liệu NG:", err);
+      }
+      setLoading(false);
+    };
+    fetchData();
+  }, [selectedWeek]);
 
   // ✅ Hàm sanitize và upload
-  const sanitizeKey = (key) => key?.toString().replace(/[.#$/\[\]]/g, "_") || "unknown";
+  const sanitizeKey = (key) =>
+    key?.toString().replace(/[.#$/\[\]]/g, "_") || "unknown";
 
-const uploadFromExcel = async (file, user) => {
-  if (!file) return alert("Vui lòng chọn file Excel!");
-  setLoading(true);
-  const reader = new FileReader();
-  reader.onload = async (evt) => {
-    try {
-      const bstr = evt.target.result;
-      const workbook = XLSX.read(bstr, { type: "binary" });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(sheet);
-      // Kiểm tra định dạng cột
-      if (!jsonData[0]?.OrganizationName || !jsonData[0]?.WEEK || !jsonData[0]?.ReworkOrNot || !jsonData[0]?.time_monthday || !jsonData[0]?.ItemCode || typeof jsonData[0]?.FaultyQuantity === "undefined") {
-        setLoading(false);
-        return alert("File Excel thiếu cột hoặc sai định dạng!");
-      }
-      const updates = {};
-      jsonData.forEach((row) => {
-        const workplace = sanitizeKey(row.OrganizationName);
-        const week = sanitizeKey(row.WEEK);
-        const rework = sanitizeKey(row.ReworkOrNot);
-        // Chuyển day sang yyyy-mm-dd
-        let day = sanitizeKey(row.time_monthday);
-        // Nếu day là dạng 'Jul 28 ' thì chuyển sang yyyy-mm-dd
-        if (/^[A-Za-z]{3} \d{2} $/.test(day)) {
-          const [monthStr, dayStr] = day.trim().split(' ');
-          const month = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].indexOf(monthStr) + 1;
-          const year = new Date().getFullYear();
-          day = `${year}-${month.toString().padStart(2, '0')}-${dayStr.padStart(2, '0')}`;
+  const uploadFromExcel = async (file, user) => {
+    if (!file) return alert("Vui lòng chọn file Excel!");
+    setLoading(true);
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      try {
+        const bstr = evt.target.result;
+        const workbook = XLSX.read(bstr, { type: "binary" });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(sheet);
+        // Kiểm tra định dạng cột
+        if (
+          !jsonData[0]?.OrganizationName ||
+          !jsonData[0]?.WEEK ||
+          !jsonData[0]?.ReworkOrNot ||
+          !jsonData[0]?.time_monthday ||
+          !jsonData[0]?.ItemCode ||
+          typeof jsonData[0]?.FaultyQuantity === "undefined"
+        ) {
+          setLoading(false);
+          return alert("File Excel thiếu cột hoặc sai định dạng!");
         }
-        const model = sanitizeKey(row.ItemCode);
-        const quantity = row.FaultyQuantity || 0;
-        // Thêm trường lý do lỗi NG (ví dụ: FaultyReason hoặc NGReason)
-        const reason = row.Notes || "";
-        const path = `ng/${workplace}/${week}/${rework}/${day}/${model}/Day`;
-        // Lưu object gồm quantity và reason
-        updates[path] = { quantity, reason };
-      });
-      if (user && user.email) {
-        await logUserAction(user.email, "upload_faulty_data", "Upload từ file Excel lỗi");
+        const updates = {};
+        jsonData.forEach((row) => {
+          const workplace = sanitizeKey(row.OrganizationName);
+          const week = sanitizeKey(row.WEEK);
+          const rework = sanitizeKey(row.ReworkOrNot);
+          // Chuyển day sang yyyy-mm-dd
+          let day = sanitizeKey(row.time_monthday);
+          // Nếu day là dạng 'Jul 28 ' thì chuyển sang yyyy-mm-dd
+          if (/^[A-Za-z]{3} \d{2} $/.test(day)) {
+            const [monthStr, dayStr] = day.trim().split(" ");
+            const month =
+              [
+                "Jan",
+                "Feb",
+                "Mar",
+                "Apr",
+                "May",
+                "Jun",
+                "Jul",
+                "Aug",
+                "Sep",
+                "Oct",
+                "Nov",
+                "Dec",
+              ].indexOf(monthStr) + 1;
+            const year = new Date().getFullYear();
+            day = `${year}-${month
+              .toString()
+              .padStart(2, "0")}-${dayStr.padStart(2, "0")}`;
+          }
+          const model = sanitizeKey(row.ItemCode);
+          const quantity = row.FaultyQuantity || 0;
+          // Thêm trường lý do lỗi NG (ví dụ: FaultyReason hoặc NGReason)
+          const reason = row.FaultyItemName || "";
+          const path = `ng/${workplace}/${week}/${rework}/${day}/${model}/Day`;
+          // Lưu object gồm quantity và reason
+          updates[path] = { quantity, reason };
+        });
+        if (user && user.email) {
+          await logUserAction(
+            user.email,
+            "upload_faulty_data",
+            "Upload từ file Excel lỗi"
+          );
+        }
+        await update(ref(db), updates);
+        alert("Upload thành công!");
+      } catch (err) {
+        console.error("Lỗi xử lý file:", err);
+        alert("Lỗi xử lý file Excel: " + err.message);
       }
-      await update(ref(db), updates);
-      alert("Upload thành công!");
-    } catch (err) {
-      console.error("Lỗi xử lý file:", err);
-      alert("Lỗi xử lý file Excel: " + err.message);
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+    reader.readAsBinaryString(file);
   };
-  reader.readAsBinaryString(file);
-};
 
-// Handle khi người dùng chọn file
-const handleFileUpload = (e) => {
-  const file = e.target.files[0];
-  if (file) uploadFromExcel(file, user);
-};
+  // Handle khi người dùng chọn file
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) uploadFromExcel(file, user);
+  };
 
   return (
     <div className="flex bg-gray-50 min-h-screen">
       {loading && (
         <div className="fixed inset-0 bg-white bg-opacity-70 z-50 flex items-center justify-center">
-          <span className="text-blue-700 text-2xl font-bold animate-pulse">Đang xử lý dữ liệu...</span>
+          <span className="text-blue-700 text-2xl font-bold animate-pulse">
+            Đang xử lý dữ liệu...
+          </span>
         </div>
       )}
       {/* Sidebar */}
@@ -270,11 +342,15 @@ const handleFileUpload = (e) => {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none mb-2 bg-white"
               >
                 {Object.keys(weekData)
-                  .filter(week => {
+                  .filter((week) => {
                     // Ẩn tuần nếu tất cả ngày của tuần là chủ nhật
                     if (!chartData || !chartData.labels) return true;
-                    const days = chartData.labels.map(label => label.toLowerCase());
-                    return !days.includes("chủ nhật") && !days.includes("sunday");
+                    const days = chartData.labels.map((label) =>
+                      label.toLowerCase()
+                    );
+                    return (
+                      !days.includes("chủ nhật") && !days.includes("sunday")
+                    );
                   })
                   .map((week) => (
                     <option key={week} value={week}>
@@ -288,13 +364,23 @@ const handleFileUpload = (e) => {
         {user && (
           <div className="flex flex-col gap-3 w-full px-1">
             <div className="flex items-center gap-2 bg-white/30 rounded-lg p-2 shadow">
-              <label htmlFor="file-upload-total" className="cursor-pointer p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200" title="Chọn file">
+              <label
+                htmlFor="file-upload-total"
+                className="cursor-pointer p-2 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200"
+                title="Chọn file"
+              >
                 <FiUpload size={18} />
               </label>
               <span className="text-white text-sm font-medium flex-1 text-center">
                 {t("workplaceNGChart.chooseExceltotal")}
               </span>
-              <input id="file-upload-total" type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
+              <input
+                id="file-upload-total"
+                type="file"
+                accept=".xlsx, .xls"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
             </div>
           </div>
         )}
@@ -303,7 +389,9 @@ const handleFileUpload = (e) => {
       <main className="flex-1 p-2 flex gap-8" style={{ height: "93vh" }}>
         {/* Chart 2/3 */}
         <section className="basis-2/3 bg-white rounded-xl shadow-lg p-6 flex flex-col">
-          <h3 className="text-xl font-bold mb-4 text-indigo-700 tracking-wide">{t("workplaceNGChart.chartTitle")}</h3>
+          <h3 className="text-xl font-bold mb-4 text-indigo-700 tracking-wide">
+            {t("workplaceNGChart.chartTitle")}
+          </h3>
           <div className="flex-1 flex items-center justify-center">
             {chartData ? (
               <Bar
@@ -341,7 +429,9 @@ const handleFileUpload = (e) => {
                       ticks: {
                         callback: function (value) {
                           const label = this.getLabelForValue(value);
-                          return label.length > 15 ? label.slice(0, 15) + "..." : label;
+                          return label.length > 15
+                            ? label.slice(0, 15) + "..."
+                            : label;
                         },
                         font: { size: 14, weight: "bold" },
                         color: "#000",
@@ -357,14 +447,18 @@ const handleFileUpload = (e) => {
                 plugins={[ChartDataLabels, extraLabelPlugin]}
               />
             ) : (
-              <p className="text-gray-400 text-lg font-medium">{t("workplaceNGChart.pleaseSelectExcel")}</p>
+              <p className="text-gray-400 text-lg font-medium">
+                {t("workplaceNGChart.pleaseSelectExcel")}
+              </p>
             )}
           </div>
         </section>
         {/* Bảng chi tiết 1/3 */}
         <section className="basis-1/3 bg-white rounded-xl shadow-lg p-2 flex flex-col overflow-auto">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold text-black uppercase">{t("workplaceNGChart.outputByArea")}</h3>
+            <h3 className="text-xl font-bold text-black uppercase">
+              {t("workplaceNGChart.outputByArea")}
+            </h3>
             <select
               value={selectedArea}
               onChange={(e) => setSelectedArea(e.target.value)}
@@ -383,15 +477,25 @@ const handleFileUpload = (e) => {
               <table className="min-w-full text-left border-collapse table-auto text-sm">
                 <thead>
                   <tr className="bg-indigo-50 text-indigo-700 uppercase">
-                    <th className="border-b pb-1 px-2">{t("workplaceNGChart.areaDay")}</th>
-                    <th className="border-b pb-1 px-2 text-right">{t("workplaceNGChart.normal")}</th>
-                    <th className="border-b pb-1 px-2 text-right">{t("workplaceNGChart.rework")}</th>
-                    <th className="border-b pb-1 px-2 text-right font-bold">{t("workplaceNGChart.total")}</th>
+                    <th className="border-b pb-1 px-2">
+                      {t("workplaceNGChart.areaDay")}
+                    </th>
+                    <th className="border-b pb-1 px-2 text-right">
+                      {t("workplaceNGChart.normal")}
+                    </th>
+                    <th className="border-b pb-1 px-2 text-right">
+                      {t("workplaceNGChart.rework")}
+                    </th>
+                    <th className="border-b pb-1 px-2 text-right font-bold">
+                      {t("workplaceNGChart.total")}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {Object.entries(dataMap)
-                    .filter(([area]) => selectedArea === "" || selectedArea === area)
+                    .filter(
+                      ([area]) => selectedArea === "" || selectedArea === area
+                    )
                     .map(([area, dayObj]) => {
                       let totalNormal = 0;
                       let totalRework = 0;
@@ -404,9 +508,15 @@ const handleFileUpload = (e) => {
                         <React.Fragment key={area}>
                           <tr className="bg-indigo-100 font-semibold uppercase">
                             <td className="px-2 py-1">{t(`areas.${area}`)}</td>
-                            <td className="text-center px-2 py-1">{totalNormal.toLocaleString()}</td>
-                            <td className="text-center px-2 py-1">{totalRework.toLocaleString()}</td>
-                            <td className="text-center px-2 py-1">{(totalNormal + totalRework).toLocaleString()}</td>
+                            <td className="text-center px-2 py-1">
+                              {totalNormal.toLocaleString()}
+                            </td>
+                            <td className="text-center px-2 py-1">
+                              {totalRework.toLocaleString()}
+                            </td>
+                            <td className="text-center px-2 py-1">
+                              {(totalNormal + totalRework).toLocaleString()}
+                            </td>
                           </tr>
                           {chartData.labels.map((label) => {
                             const d = dayObj[label] || { normal: 0, rework: 0 };
@@ -415,9 +525,15 @@ const handleFileUpload = (e) => {
                             return (
                               <tr key={label} className="text-gray-700">
                                 <td className="pl-8 py-1">{label}</td>
-                                <td className="text-center px-2 py-1">{d.normal.toLocaleString()}</td>
-                                <td className="text-center px-2 py-1">{d.rework.toLocaleString()}</td>
-                                <td className="text-center px-2 py-1">{total.toLocaleString()}</td>
+                                <td className="text-center px-2 py-1">
+                                  {d.normal.toLocaleString()}
+                                </td>
+                                <td className="text-center px-2 py-1">
+                                  {d.rework.toLocaleString()}
+                                </td>
+                                <td className="text-center px-2 py-1">
+                                  {total.toLocaleString()}
+                                </td>
                               </tr>
                             );
                           })}
@@ -447,11 +563,17 @@ const handleFileUpload = (e) => {
               </div>
             </>
           ) : (
-            <p className="text-gray-400 text-lg font-medium">Không có dữ liệu hiển thị.</p>
+            <p className="text-gray-400 text-lg font-medium">
+              Không có dữ liệu hiển thị.
+            </p>
           )}
         </section>
       </main>
-      <DetailedNGModal isOpen={isModalOpen} onClose={closeDetailModal} area={modalArea} />
+      <DetailedNGModal
+        isOpen={isModalOpen}
+        onClose={closeDetailModal}
+        area={modalArea}
+      />
     </div>
   );
 }

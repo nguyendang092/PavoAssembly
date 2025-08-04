@@ -232,18 +232,39 @@ export default function WorkplaceChart() {
       alert("❌ Lỗi khi upload: " + error.message);
     }
   };
-
   const processExcelData = (data) => {
     const grouped = {};
     data.forEach((row) => {
-      const week = row["Week"];
+      const week = Number(row["Week"]);
       if (!grouped[week]) grouped[week] = [];
       grouped[week].push(row);
     });
     setWeekData(grouped);
-    const latestWeek = Math.max(...Object.keys(grouped));
-    setSelectedWeek(latestWeek.toString());
+    const today = new Date();
+    const currentWeek = getCurrentWeekNumber();
+    // Kiểm tra xem hôm nay là thứ mấy (0=CN, 1=Thứ 2, ...)
+    const dayOfWeek = today.getDay();
+    // Nếu hôm nay là thứ 2 (dayOfWeek === 1) thì lấy tuần trước
+    let defaultWeek = currentWeek;
+    if (dayOfWeek === 1) {
+      defaultWeek = currentWeek - 1;
+    }
+    // Nếu tuần này hoặc tuần trước đó không có dữ liệu, thì fallback
+    const weekKeys = Object.keys(grouped)
+      .map(Number)
+      .sort((a, b) => a - b);
+    if (!grouped[defaultWeek]) {
+      // Nếu tuần mặc định không có dữ liệu, chọn tuần gần nhất nhỏ hơn defaultWeek
+      const previousWeeks = weekKeys.filter((w) => w < defaultWeek);
+      if (previousWeeks.length > 0) {
+        defaultWeek = previousWeeks[previousWeeks.length - 1];
+      } else if (weekKeys.length > 0) {
+        defaultWeek = weekKeys[0];
+      }
+    }
+    setSelectedWeek(defaultWeek.toString());
   };
+
   useEffect(() => {
     if (!selectedWeek || !weekData[selectedWeek]) {
       setChartData(null);

@@ -86,7 +86,7 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
               // Chỉ lấy ngày đúng định dạng yyyy-mm-dd
               if (day !== selectedDate || !/^\d{4}-\d{2}-\d{2}$/.test(day)) continue;
               const modelData = dayData[day];
-              // console.log('day:', day, 'modelData:', modelData);
+              console.log('day:', day, 'modelData:', modelData);
               for (const model in modelData) {
                 let quantity = 0;
                 let notes = "";
@@ -298,7 +298,7 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
                   <th className="border-b p-1 text-center">Model</th>
                   <th className="border-b p-1 text-center">Ngày</th>
                   <th className="border-b p-1 text-center">Sản lượng</th>
-                  <th className="border-b p-1 text-center">Notes</th>
+                  <th className="border-b p-1 text-center">Lỗi NG</th>
                 </tr>
               </thead>
               <tbody>
