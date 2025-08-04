@@ -390,7 +390,7 @@ export default function WorkplaceChart() {
     XLSX.writeFile(wb, `san_luong_chi_tiet_tuan_${selectedWeek}.xlsx`);
   };
   return (
-    <div className="flex bg-gray-50 overflow-hidden">
+    <div className="flex bg-gray-50 overflow-hidden"> 
       {/* Sidebar */}
       <div className="w-64 flex flex-col p-6 bg-gradient-to-b from-indigo-600 to-purple-600 shadow-md border-r overflow-hidden">
         {/* Nội dung chính */}
@@ -566,8 +566,8 @@ export default function WorkplaceChart() {
             width: "300px",
           }}
         >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-xl font-bold uppercase px-2">
               {t("workplaceChart.outputByArea")}
             </h3>
 

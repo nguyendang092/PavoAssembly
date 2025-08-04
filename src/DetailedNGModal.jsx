@@ -84,15 +84,22 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
             // console.log('rework:', rework, 'dayData:', dayData);
             for (const day in dayData) {
               // Chỉ lấy ngày đúng định dạng yyyy-mm-dd
-              if (day !== selectedDate || !/^\d{4}-\d{2}-\d{2}$/.test(day)) continue;
+              if (day !== selectedDate || !/^\d{4}-\d{2}-\d{2}$/.test(day))
+                continue;
               const modelData = dayData[day];
-              console.log('day:', day, 'modelData:', modelData);
+              console.log("day:", day, "modelData:", modelData);
               for (const model in modelData) {
                 let quantity = 0;
                 let notes = "";
-                if (typeof modelData[model] === "object" && modelData[model] !== null) {
+                if (
+                  typeof modelData[model] === "object" &&
+                  modelData[model] !== null
+                ) {
                   // Nếu lưu kiểu mới: { Day: { quantity, reason } }
-                  if (typeof modelData[model].Day === "object" && modelData[model].Day !== null) {
+                  if (
+                    typeof modelData[model].Day === "object" &&
+                    modelData[model].Day !== null
+                  ) {
                     quantity = modelData[model].Day.quantity ?? 0;
                     notes = modelData[model].Day.reason ?? "";
                   } else {
@@ -251,7 +258,11 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
                     y: {
                       beginAtZero: true,
                       max: (() => {
-                        if (!chartData || !chartData.datasets || chartData.datasets.length === 0)
+                        if (
+                          !chartData ||
+                          !chartData.datasets ||
+                          chartData.datasets.length === 0
+                        )
                           return undefined;
                         const maxVal = Math.max(...chartData.datasets[0].data);
                         return maxVal + 50;
@@ -310,7 +321,9 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
                     <td className="border-b p-1 text-center">
                       {item.quantity.toLocaleString()}
                     </td>
-                    <td className="border-b p-1 text-center">{item.notes || ""}</td>
+                    <td className="border-b p-1 text-center">
+                      {item.notes || ""}
+                    </td>
                   </tr>
                 ))}
               </tbody>

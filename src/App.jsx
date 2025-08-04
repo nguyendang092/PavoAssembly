@@ -9,6 +9,7 @@ import WorkplaceChart from "./WorkplaceChart";
 import ModelProductionChart from "./ModelProductionChart";
 import { UserContext } from "./UserContext";
 import NGWorkplaceChart from "./NGplaceChart";
+import "./App.css"; // ✅ Import CSS để đảm bảo toàn bộ ứng dụng có chiều cao 100%
 const App = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [selectedLeader, setSelectedLeader] = useState("");

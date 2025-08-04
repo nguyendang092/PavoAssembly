@@ -317,20 +317,22 @@ export default function NGWorkplaceChart() {
   };
 
   return (
-    <div className="flex bg-gray-50 min-h-screen">
+    <div className="flex bg-gray-50 overflow-hidden">
       {loading && (
         <div className="fixed inset-0 bg-white bg-opacity-70 z-50 flex items-center justify-center">
           <span className="text-blue-700 text-2xl font-bold animate-pulse">
-            Đang xử lý dữ liệu...
+            {t("workplaceNGChart.alertTitle")}
           </span>
         </div>
       )}
       {/* Sidebar */}
-      <aside className="w-72 flex flex-col p-6 bg-gradient-to-b from-indigo-600 to-purple-600 shadow-lg border-r overflow-hidden">
-        <div className="flex-grow">
+      <aside className="w-64 bg-gradient-to-b from-indigo-600 to-purple-600 shadow-lg border-r flex flex-col">
+        {/* Title + Week Select => scrollable */}
+        <div className="flex-1 overflow-y-auto p-6">
           <h2 className="text-2xl font-bold text-white mb-6 uppercase flex items-center gap-2 tracking-wide">
             {t("workplaceNGChart.menuTitle")}
           </h2>
+
           {Object.keys(weekData).length > 0 && (
             <div className="mb-4">
               <label className="block text-white font-medium mb-2">
@@ -343,7 +345,6 @@ export default function NGWorkplaceChart() {
               >
                 {Object.keys(weekData)
                   .filter((week) => {
-                    // Ẩn tuần nếu tất cả ngày của tuần là chủ nhật
                     if (!chartData || !chartData.labels) return true;
                     const days = chartData.labels.map((label) =>
                       label.toLowerCase()
@@ -361,8 +362,10 @@ export default function NGWorkplaceChart() {
             </div>
           )}
         </div>
+
+        {/* Footer - upload file */}
         {user && (
-          <div className="flex flex-col gap-3 w-full px-1">
+          <div className="p-4 border-t border-white/20">
             <div className="flex items-center gap-2 bg-white/30 rounded-lg p-2 shadow">
               <label
                 htmlFor="file-upload-total"
@@ -385,13 +388,15 @@ export default function NGWorkplaceChart() {
           </div>
         )}
       </aside>
+
       {/* Main content */}
-      <main className="flex-1 p-2 flex gap-8" style={{ height: "93vh" }}>
+      <main
+        className="flex-1 p-2 flex gap-8"
+        style={{ height: "93vh" }}
+        overflow-auto
+      >
         {/* Chart 2/3 */}
         <section className="basis-2/3 bg-white rounded-xl shadow-lg p-6 flex flex-col">
-          <h3 className="text-xl font-bold mb-4 text-indigo-700 tracking-wide">
-            {t("workplaceNGChart.chartTitle")}
-          </h3>
           <div className="flex-1 flex items-center justify-center">
             {chartData ? (
               <Bar
