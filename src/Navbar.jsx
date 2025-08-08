@@ -4,7 +4,12 @@ import { getAuth, signOut } from "firebase/auth";
 import SignIn from "./SignIn";
 import ChangePasswordModal from "./ChangePasswordModal";
 import { useTranslation } from "react-i18next";
-export default function Navbar({ onSelectLeader, onLeaderMapReady, user, setUser }) {
+export default function Navbar({
+  onSelectLeader,
+  onLeaderMapReady,
+  user,
+  setUser,
+}) {
   const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [language, setLanguage] = useState(i18n.language || "vi");
@@ -76,16 +81,19 @@ export default function Navbar({ onSelectLeader, onLeaderMapReady, user, setUser
     if (!userDropdownOpen) return;
     const handleClick = (e) => {
       // Nếu click ngoài dropdown và ngoài nút, thì đóng
-      if (!e.target.closest('.user-dropdown-btn')) setUserDropdownOpen(false);
+      if (!e.target.closest(".user-dropdown-btn")) setUserDropdownOpen(false);
     };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, [userDropdownOpen]);
 
   return (
     <>
       {signInOpen && (
-        <SignIn onSignIn={handleSignInSuccess} onClose={() => setSignInOpen(false)} />
+        <SignIn
+          onSignIn={handleSignInSuccess}
+          onClose={() => setSignInOpen(false)}
+        />
       )}
       {changePwOpen && (
         <ChangePasswordModal onClose={() => setChangePwOpen(false)} />
@@ -113,25 +121,73 @@ export default function Navbar({ onSelectLeader, onLeaderMapReady, user, setUser
                     className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-200 to-purple-200 text-blue-900 font-semibold text-xs shadow hover:shadow-lg border border-blue-300 focus:outline-none transition-all duration-150 user-dropdown-btn"
                   >
                     <span className="flex w-7 h-7 rounded-full bg-blue-400 text-white items-center justify-center font-bold text-base shadow-md">
-                      {user.name ? user.name[0].toUpperCase() : user.email[0].toUpperCase()}
+                      {user.name
+                        ? user.name[0].toUpperCase()
+                        : user.email[0].toUpperCase()}
                     </span>
-                    <span className="truncate max-w-[90px]">{user.name || user.email}</span>
-                    <svg className={`w-4 h-4 ml-1 transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                    <span className="truncate max-w-[90px]">
+                      {user.name || user.email}
+                    </span>
+                    <svg
+                      className={`w-4 h-4 ml-1 transition-transform ${
+                        userDropdownOpen ? "rotate-180" : ""
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
                   </button>
                   {userDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in user-dropdown-btn">
                       <button
-                        onClick={() => { setChangePwOpen(true); setUserDropdownOpen(false); }}
+                        onClick={() => {
+                          setChangePwOpen(true);
+                          setUserDropdownOpen(false);
+                        }}
                         className="flex items-center gap-2 w-full text-left px-5 py-3 text-sm text-blue-700 hover:bg-blue-50 font-medium transition-all duration-100"
                       >
-                        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 11c0-1.657 1.343-3 3-3s3 1.343 3 3-1.343 3-3 3-3-1.343-3-3zm0 0V7m0 4v4m0 0H8m4 0h4" /></svg>
+                        <svg
+                          className="w-5 h-5 text-blue-500"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M12 11c0-1.657 1.343-3 3-3s3 1.343 3 3-1.343 3-3 3-3-1.343-3-3zm0 0V7m0 4v4m0 0H8m4 0h4"
+                          />
+                        </svg>
                         Đổi mật khẩu
                       </button>
                       <button
-                        onClick={() => { handleSignOut(); setUserDropdownOpen(false); }}
+                        onClick={() => {
+                          handleSignOut();
+                          setUserDropdownOpen(false);
+                        }}
                         className="flex items-center gap-2 w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50 font-medium border-t border-gray-100 transition-all duration-100"
                       >
-                        <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1" /></svg>
+                        <svg
+                          className="w-5 h-5 text-red-500"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1"
+                          />
+                        </svg>
                         Đăng xuất
                       </button>
                     </div>
@@ -147,13 +203,13 @@ export default function Navbar({ onSelectLeader, onLeaderMapReady, user, setUser
                 >
                   Đăng nhập
                 </button>
-                <button
+                {/* <button
                   onClick={handleSignUp}
                   className="px-1 py-1 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-sm text-xs"
                   style={{ minWidth: 70 }}
                 >
                   Đăng ký
-                </button>
+                </button> */}
               </>
             )}
 

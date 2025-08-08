@@ -50,7 +50,7 @@ const AreaProductionTable = ({ area, showToast }) => {
   // Load dữ liệu actual, production, attendance chỉ theo tuần
   useEffect(() => {
     // Lấy danh sách ngày trong tuần hiện tại
-    const weekDates = timeSlots.map(slot => slot.date);
+    const weekDates = timeSlots.map((slot) => slot.date);
 
     // Actual
     const actualRef = ref(db, `actual/${areaKey}`);
@@ -83,7 +83,9 @@ const AreaProductionTable = ({ area, showToast }) => {
     });
 
     // Attendance: lấy cả tuần, gộp lại thành object {date: data}
-    const attendanceRefs = weekDates.map(date => ref(db, `attendance/${areaKey}/${date}`));
+    const attendanceRefs = weekDates.map((date) =>
+      ref(db, `attendance/${areaKey}/${date}`)
+    );
     let isMounted = true;
     const attendanceDataObj = {};
     const unsubList = attendanceRefs.map((attendanceRef, idx) =>
@@ -98,7 +100,7 @@ const AreaProductionTable = ({ area, showToast }) => {
       unsubActual();
       unsubProduction();
       isMounted = false;
-      unsubList.forEach(unsub => unsub());
+      unsubList.forEach((unsub) => unsub());
     };
   }, [areaKey, startDateOfWeek]);
 
@@ -132,15 +134,17 @@ const AreaProductionTable = ({ area, showToast }) => {
     });
   };
 
-    const exportToExcel = () => {
-      const wb = XLSX.utils.book_new();
-      const wsData = [[
+  const exportToExcel = () => {
+    const wb = XLSX.utils.book_new();
+    const wsData = [
+      [
         t("areaProduction.model"),
         "Slot",
         t("areaProduction.plan"),
         t("areaProduction.actual"),
         t("areaProduction.completeRate"),
-      ]];
+      ],
+    ];
     modelList.forEach((model) => {
       timeSlots.forEach((slotObj) => {
         const plan =
@@ -249,7 +253,8 @@ const AreaProductionTable = ({ area, showToast }) => {
       </div>
 
       <div className="text-sm text-gray-600 italic font-semibold mb-2">
-        {t("areaProduction.week")} {weekNumber} ({format(startDateOfWeek, "dd/MM/yyyy")} -{" "}
+        {t("areaProduction.week")} {weekNumber} (
+        {format(startDateOfWeek, "dd/MM/yyyy")} -{" "}
         {format(addDays(startDateOfWeek, 6), "dd/MM/yyyy")})
       </div>
 
@@ -274,7 +279,9 @@ const AreaProductionTable = ({ area, showToast }) => {
             <th className="border border-gray-300 px-3 py-2 text-left">
               {t("areaProduction.model")}
             </th>
-            <th className="border border-gray-300 px-3 py-2 text-left">{t("areaProduction.type")}</th>
+            <th className="border border-gray-300 px-3 py-2 text-left">
+              {t("areaProduction.type")}
+            </th>
             {timeSlots.map((slotObj) => (
               <th
                 key={slotObj.date}
@@ -471,28 +478,28 @@ const AreaProductionTable = ({ area, showToast }) => {
         selectedDate={format(selectedDate, "yyyy-MM-dd")}
       />
 
-  <AttendanceModal
-    isOpen={attendanceModalOpen}
-    onClose={() => setAttendanceModalOpen(false)}
-    selectedDate={format(selectedDate, "yyyy-MM-dd")}
-    attendanceData={attendanceData[dateKey] || {}}
-    timeSlots={timeSlots}
-    areaKey={areaKey}
-    modelList={modelList}
-    weekKey={weekKey}
-    dateKey={dateKey}
-  />
-  <AddEmployeeModal
-    isOpen={addEmployeeModalOpen}
-    onClose={() => setAddEmployeeModalOpen(false)}
-    areaKey={areaKey}
-    attendanceData={attendanceData[dateKey] || {}}
-    timeSlots={timeSlots}
-    weekKey={weekKey}
-    dateKey={dateKey}
-    modelList={modelList}
-    selectedDate={format(selectedDate, "yyyy-MM-dd")}
-  />
+      <AttendanceModal
+        isOpen={attendanceModalOpen}
+        onClose={() => setAttendanceModalOpen(false)}
+        selectedDate={format(selectedDate, "yyyy-MM-dd")}
+        attendanceData={attendanceData[dateKey] || {}}
+        timeSlots={timeSlots}
+        areaKey={areaKey}
+        modelList={modelList}
+        weekKey={weekKey}
+        dateKey={dateKey}
+      />
+      <AddEmployeeModal
+        isOpen={addEmployeeModalOpen}
+        onClose={() => setAddEmployeeModalOpen(false)}
+        areaKey={areaKey}
+        attendanceData={attendanceData[dateKey] || {}}
+        timeSlots={timeSlots}
+        weekKey={weekKey}
+        dateKey={dateKey}
+        modelList={modelList}
+        selectedDate={format(selectedDate, "yyyy-MM-dd")}
+      />
     </div>
   );
 };

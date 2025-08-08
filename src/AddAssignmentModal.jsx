@@ -63,7 +63,9 @@ const AddAssignmentModal = ({ isOpen, onClose, onSuccess }) => {
             onClick={onClose}
             disabled={loading}
             className={`px-4 py-2 rounded text-white ${
-              loading ? "bg-gray-300 cursor-not-allowed" : "bg-gray-400 hover:bg-gray-500"
+              loading
+                ? "bg-gray-300 cursor-not-allowed"
+                : "bg-gray-400 hover:bg-gray-500"
             }`}
           >
             Hủy

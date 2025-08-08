@@ -33,7 +33,8 @@ const AddEmployeeModal = ({
 }) => {
   const { t } = useTranslation();
   const getToday = () => new Date().toISOString().slice(0, 10);
-  const dateKey = selectedDate?.replace(/-/g, "") || getToday().replace(/-/g, "");
+  const dateKey =
+    selectedDate?.replace(/-/g, "") || getToday().replace(/-/g, "");
 
   const [filterDate, setFilterDate] = useState(selectedDate || "");
   const filterDateKey = filterDate?.replace(/-/g, "") || "";
@@ -195,7 +196,10 @@ const AddEmployeeModal = ({
       let imageUrl = existingData.imageUrl || "";
       if (imageFile) {
         imageUrl = await uploadImageToStorage(imageFile, employeeId);
-      } else if (typeof previewImage === "string" && previewImage.startsWith("http")) {
+      } else if (
+        typeof previewImage === "string" &&
+        previewImage.startsWith("http")
+      ) {
         imageUrl = previewImage;
       }
 
@@ -204,9 +208,11 @@ const AddEmployeeModal = ({
         joinDate,
         status,
         timePhanCong: `${from} - ${to}`,
-        ...(status === "Đi làm" ? {
-          model: modelValue,
-        } : {}),
+        ...(status === "Đi làm"
+          ? {
+              model: modelValue,
+            }
+          : {}),
       };
 
       // Lấy mảng ca làm việc hiện tại (nếu có)
@@ -234,9 +240,13 @@ const AddEmployeeModal = ({
       if (
         status === "Đi làm" &&
         modelValue &&
-        !modelList.map((m) => m.trim().toLowerCase()).includes(modelValue.toLowerCase())
+        !modelList
+          .map((m) => m.trim().toLowerCase())
+          .includes(modelValue.toLowerCase())
       ) {
-        const updatedModels = [...modelList, modelValue].filter((v, i, arr) => v && arr.indexOf(v) === i);
+        const updatedModels = [...modelList, modelValue].filter(
+          (v, i, arr) => v && arr.indexOf(v) === i
+        );
         updates[`models/${areaKey}`] = updatedModels;
         setModelList(updatedModels);
       }
@@ -248,7 +258,11 @@ const AddEmployeeModal = ({
       await logUserAction(
         currentUser.email || "unknown",
         actionType,
-        `${actionType === "add_employee" ? "Thêm" : "Cập nhật"} nhân viên: ${name} (${employeeId}), ca: ${from} - ${to}, trạng thái: ${status}${status === "Đi làm" ? ", model: " + modelValue : ""}`
+        `${
+          actionType === "add_employee" ? "Thêm" : "Cập nhật"
+        } nhân viên: ${name} (${employeeId}), ca: ${from} - ${to}, trạng thái: ${status}${
+          status === "Đi làm" ? ", model: " + modelValue : ""
+        }`
       );
 
       resetForm();
@@ -309,7 +323,9 @@ const AddEmployeeModal = ({
   };
 
   const filteredEmployees = existingEmployees.filter((emp) =>
-    formatName(emp.name).toLowerCase().includes(searchKeyword.trim().toLowerCase())
+    formatName(emp.name)
+      .toLowerCase()
+      .includes(searchKeyword.trim().toLowerCase())
   );
 
   return (
@@ -375,7 +391,8 @@ const AddEmployeeModal = ({
         </label>
         {["from", "to"].map((type, idx) => {
           const timeValue = type === "from" ? timePhanCongFrom : timePhanCongTo;
-          const setTime = type === "from" ? setTimePhanCongFrom : setTimePhanCongTo;
+          const setTime =
+            type === "from" ? setTimePhanCongFrom : setTimePhanCongTo;
           return (
             <React.Fragment key={type}>
               <input

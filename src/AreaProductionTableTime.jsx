@@ -42,7 +42,10 @@ const AreaProductionTableTime = ({ area }) => {
   const PAGE_SIZE = 5;
   const [modelPage, setModelPage] = useState(1);
   const totalModelPages = Math.max(1, Math.ceil(modelList.length / PAGE_SIZE));
-  const pagedModelList = modelList.slice((modelPage - 1) * PAGE_SIZE, modelPage * PAGE_SIZE);
+  const pagedModelList = modelList.slice(
+    (modelPage - 1) * PAGE_SIZE,
+    modelPage * PAGE_SIZE
+  );
   const weekNumber = getWeek(selectedDate, { weekStartsOn: 1 });
   const year = getYear(selectedDate);
   const weekKey = `week_${year}_${weekNumber}`;
@@ -86,13 +89,21 @@ const AreaProductionTableTime = ({ area }) => {
       const actualRef = ref(db, `actual/${areaKey}/${dateKey}/${model}`);
       const unsubA = onValue(actualRef, (snapshot) => {
         if (!ignore) newActualData[model] = snapshot.val() || {};
-        if (!ignore) setActualData((prev) => ({ ...prev, [model]: snapshot.val() || {} }));
+        if (!ignore)
+          setActualData((prev) => ({ ...prev, [model]: snapshot.val() || {} }));
       });
       actualUnsubs.push(unsubA);
-      const productionRef = ref(db, `production/${areaKey}/${dateKey}/${model}`);
+      const productionRef = ref(
+        db,
+        `production/${areaKey}/${dateKey}/${model}`
+      );
       const unsubP = onValue(productionRef, (snapshot) => {
         if (!ignore) newProductionData[model] = snapshot.val() || {};
-        if (!ignore) setProductionData((prev) => ({ ...prev, [model]: snapshot.val() || {} }));
+        if (!ignore)
+          setProductionData((prev) => ({
+            ...prev,
+            [model]: snapshot.val() || {},
+          }));
       });
       productionUnsubs.push(unsubP);
     });
@@ -108,7 +119,13 @@ const AreaProductionTableTime = ({ area }) => {
       productionUnsubs.forEach((fn) => fn());
       unsubAttendance();
     };
-  }, [areaKey, selectedDate, pagedModelList.length, modelList.length, modelPage]);
+  }, [
+    areaKey,
+    selectedDate,
+    pagedModelList.length,
+    modelList.length,
+    modelPage,
+  ]);
 
   // Reset về trang 1 khi đổi area hoặc modelList
   useEffect(() => {
@@ -177,7 +194,8 @@ const AreaProductionTableTime = ({ area }) => {
         newData[model]["total"] = total;
         // Debounce ghi Firebase
         const basePath = `actual/${areaKey}/${dateKey}/${model}`;
-        if (debounceTimers.current[`${type}_${model}_${slot}`]) clearTimeout(debounceTimers.current[`${type}_${model}_${slot}`]);
+        if (debounceTimers.current[`${type}_${model}_${slot}`])
+          clearTimeout(debounceTimers.current[`${type}_${model}_${slot}`]);
         debounceTimers.current[`${type}_${model}_${slot}`] = setTimeout(() => {
           set(ref(db, `${basePath}/${slot}`), numVal);
           set(ref(db, `${basePath}/total`), total);
@@ -196,7 +214,8 @@ const AreaProductionTableTime = ({ area }) => {
         newData[model]["total"] = total;
         // Debounce ghi Firebase
         const basePath = `production/${areaKey}/${dateKey}/${model}`;
-        if (debounceTimers.current[`${type}_${model}_${slot}`]) clearTimeout(debounceTimers.current[`${type}_${model}_${slot}`]);
+        if (debounceTimers.current[`${type}_${model}_${slot}`])
+          clearTimeout(debounceTimers.current[`${type}_${model}_${slot}`]);
         debounceTimers.current[`${type}_${model}_${slot}`] = setTimeout(() => {
           set(ref(db, `${basePath}/${slot}`), numVal);
           set(ref(db, `${basePath}/total`), total);
@@ -353,123 +372,123 @@ const AreaProductionTableTime = ({ area }) => {
       </div>
       <div className="overflow-x-auto">
         <table className="w-full border-collapse text-sm text-gray-700 min-w-[900px]">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="border border-gray-300 px-3 py-2 text-left">
-              {t("areaProduction.model")}
-            </th>
-            <th className="border border-gray-300 px-3 py-2 text-left">
-              {t("areaProduction.type")}
-            </th>
-            {timeLabels.map((slot) => (
-              <th
-                key={slot}
-                className="border border-gray-300 px-2 py-2 text-center"
-              >
-                {slot}
+          <thead>
+            <tr className="bg-gray-200">
+              <th className="border border-gray-300 px-3 py-2 text-left">
+                {t("areaProduction.model")}
               </th>
-            ))}
-            <th className="border border-gray-300 px-2 py-2 text-center">
-              {t("areaProduction.total")}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {pagedModelList.map((model) => {
-            const totalPlan = Number(productionData[model]?.total ?? 0);
-            const totalActual = Number(actualData[model]?.total ?? 0);
-            const averageRatio =
-              totalPlan > 0
-                ? ((totalActual / totalPlan) * 100).toFixed(1)
-                : "0.0";
+              <th className="border border-gray-300 px-3 py-2 text-left">
+                {t("areaProduction.type")}
+              </th>
+              {timeLabels.map((slot) => (
+                <th
+                  key={slot}
+                  className="border border-gray-300 px-2 py-2 text-center"
+                >
+                  {slot}
+                </th>
+              ))}
+              <th className="border border-gray-300 px-2 py-2 text-center">
+                {t("areaProduction.total")}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedModelList.map((model) => {
+              const totalPlan = Number(productionData[model]?.total ?? 0);
+              const totalActual = Number(actualData[model]?.total ?? 0);
+              const averageRatio =
+                totalPlan > 0
+                  ? ((totalActual / totalPlan) * 100).toFixed(1)
+                  : "0.0";
 
-            return (
-              <React.Fragment key={model}>
-                {/* 🔷 KẾ HOẠCH */}
-                <tr className="bg-blue-100 hover:bg-blue-200 transition">
-                  <td
-                    rowSpan={3}
-                    className="border border-gray-300 px-4 py-3 font-bold text-blue-900 text-left align-middle"
-                  >
-                    {model}
-                  </td>
-                  <td className="border border-gray-300 px-3 py-2 font-semibold text-blue-800 text-left">
-                    {t("areaProduction.plan")}
-                  </td>
-                  {timeLabels.map((slot) => (
+              return (
+                <React.Fragment key={model}>
+                  {/* 🔷 KẾ HOẠCH */}
+                  <tr className="bg-blue-100 hover:bg-blue-200 transition">
                     <td
-                      key={slot}
-                      className="border border-gray-300 px-2 py-1 text-center"
+                      rowSpan={3}
+                      className="border border-gray-300 px-4 py-3 font-bold text-blue-900 text-left align-middle"
                     >
-                      <input
-                        type="text"
-                        value={productionData[model]?.[slot] ?? ""}
-                        onChange={(e) =>
-                          handleDataChange("production", model, slot, e)
-                        }
-                        className="w-full text-center border border-blue-400 rounded-md px-1 py-0.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
-                        disabled={!user}
-                      />
+                      {model}
                     </td>
-                  ))}
-                  <td className="border border-gray-300 px-3 py-2 text-center font-bold text-blue-900 bg-blue-200">
-                    {totalPlan}
-                  </td>
-                </tr>
-
-                {/* 🟢 THỰC TẾ */}
-                <tr className="bg-green-100 hover:bg-green-200 transition">
-                  <td className="border border-gray-300 px-3 py-2 font-semibold text-green-800 text-left">
-                    {t("areaProduction.actual")}
-                  </td>
-                  {timeLabels.map((slot) => (
-                    <td
-                      key={slot}
-                      className="border border-gray-300 px-2 py-1 text-center"
-                    >
-                      <input
-                        type="text"
-                        value={actualData[model]?.[slot] ?? ""}
-                        onChange={(e) =>
-                          handleDataChange("actual", model, slot, e)
-                        }
-                        className="w-full text-center border border-green-400 rounded-md px-1 py-0.5 bg-white focus:outline-none focus:ring-2 focus:ring-green-300"
-                        disabled={!user}
-                      />
+                    <td className="border border-gray-300 px-3 py-2 font-semibold text-blue-800 text-left">
+                      {t("areaProduction.plan")}
                     </td>
-                  ))}
-                  <td className="border border-gray-300 px-3 py-2 text-center font-bold text-green-900 bg-green-200">
-                    {totalActual}
-                  </td>
-                </tr>
-
-                {/* 🟡 % HOÀN THÀNH */}
-                <tr className="bg-yellow-100 hover:bg-yellow-200 transition">
-                  <td className="border border-gray-300 px-3 py-2 font-semibold text-yellow-800 text-left">
-                    {t("areaProduction.completeRate")}
-                  </td>
-                  {timeLabels.map((slot) => {
-                    const plan = Number(productionData[model]?.[slot] ?? 0);
-                    const actual = Number(actualData[model]?.[slot] ?? 0);
-                    const ratio =
-                      plan > 0 ? ((actual / plan) * 100).toFixed(1) : "0.0";
-                    return (
+                    {timeLabels.map((slot) => (
                       <td
                         key={slot}
-                        className="border border-gray-300 px-2 py-1 text-center font-bold text-yellow-900"
+                        className="border border-gray-300 px-2 py-1 text-center"
                       >
-                        {ratio}%
+                        <input
+                          type="text"
+                          value={productionData[model]?.[slot] ?? ""}
+                          onChange={(e) =>
+                            handleDataChange("production", model, slot, e)
+                          }
+                          className="w-full text-center border border-blue-400 rounded-md px-1 py-0.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+                          disabled={!user}
+                        />
                       </td>
-                    );
-                  })}
-                  <td className="border border-gray-300 px-3 py-2 text-center font-bold text-yellow-900 bg-yellow-200">
-                    {averageRatio}%
-                  </td>
-                </tr>
-              </React.Fragment>
-            );
-          })}
-        </tbody>
+                    ))}
+                    <td className="border border-gray-300 px-3 py-2 text-center font-bold text-blue-900 bg-blue-200">
+                      {totalPlan}
+                    </td>
+                  </tr>
+
+                  {/* 🟢 THỰC TẾ */}
+                  <tr className="bg-green-100 hover:bg-green-200 transition">
+                    <td className="border border-gray-300 px-3 py-2 font-semibold text-green-800 text-left">
+                      {t("areaProduction.actual")}
+                    </td>
+                    {timeLabels.map((slot) => (
+                      <td
+                        key={slot}
+                        className="border border-gray-300 px-2 py-1 text-center"
+                      >
+                        <input
+                          type="text"
+                          value={actualData[model]?.[slot] ?? ""}
+                          onChange={(e) =>
+                            handleDataChange("actual", model, slot, e)
+                          }
+                          className="w-full text-center border border-green-400 rounded-md px-1 py-0.5 bg-white focus:outline-none focus:ring-2 focus:ring-green-300"
+                          disabled={!user}
+                        />
+                      </td>
+                    ))}
+                    <td className="border border-gray-300 px-3 py-2 text-center font-bold text-green-900 bg-green-200">
+                      {totalActual}
+                    </td>
+                  </tr>
+
+                  {/* 🟡 % HOÀN THÀNH */}
+                  <tr className="bg-yellow-100 hover:bg-yellow-200 transition">
+                    <td className="border border-gray-300 px-3 py-2 font-semibold text-yellow-800 text-left">
+                      {t("areaProduction.completeRate")}
+                    </td>
+                    {timeLabels.map((slot) => {
+                      const plan = Number(productionData[model]?.[slot] ?? 0);
+                      const actual = Number(actualData[model]?.[slot] ?? 0);
+                      const ratio =
+                        plan > 0 ? ((actual / plan) * 100).toFixed(1) : "0.0";
+                      return (
+                        <td
+                          key={slot}
+                          className="border border-gray-300 px-2 py-1 text-center font-bold text-yellow-900"
+                        >
+                          {ratio}%
+                        </td>
+                      );
+                    })}
+                    <td className="border border-gray-300 px-3 py-2 text-center font-bold text-yellow-900 bg-yellow-200">
+                      {averageRatio}%
+                    </td>
+                  </tr>
+                </React.Fragment>
+              );
+            })}
+          </tbody>
         </table>
       </div>
       {/* Pagination for models */}
@@ -483,10 +502,15 @@ const AreaProductionTableTime = ({ area }) => {
             {t("areaProduction.prevPage")}
           </button>
           <span>
-            {t("areaProduction.page", { current: modelPage, total: totalModelPages })}
+            {t("areaProduction.page", {
+              current: modelPage,
+              total: totalModelPages,
+            })}
           </span>
           <button
-            onClick={() => setModelPage((p) => Math.min(totalModelPages, p + 1))}
+            onClick={() =>
+              setModelPage((p) => Math.min(totalModelPages, p + 1))
+            }
             disabled={modelPage === totalModelPages}
             className="px-2 py-1 border rounded disabled:opacity-50"
           >
@@ -495,8 +519,10 @@ const AreaProductionTableTime = ({ area }) => {
         </div>
       )}
       {loading && (
-  <div className="text-center text-gray-500 py-4 text-lg">{t("areaProduction.loading")}</div>
-)}
+        <div className="text-center text-gray-500 py-4 text-lg">
+          {t("areaProduction.loading")}
+        </div>
+      )}
       <Modal
         isOpen={modelEditOpen}
         onRequestClose={() => setModelEditOpen(false)}
@@ -522,8 +548,12 @@ const AreaProductionTableTime = ({ area }) => {
                   />
                   <button
                     onClick={() => {
-                      if (window.confirm(t("areaProduction.confirmDeleteModel"))) {
-                        setDraftModelList(draftModelList.filter((_, i) => i !== index));
+                      if (
+                        window.confirm(t("areaProduction.confirmDeleteModel"))
+                      ) {
+                        setDraftModelList(
+                          draftModelList.filter((_, i) => i !== index)
+                        );
                       }
                     }}
                   >
@@ -561,7 +591,10 @@ const AreaProductionTableTime = ({ area }) => {
               </button>
               <button
                 onClick={() => {
-                  set(ref(db, `assignments/${areaKey}/modelList`), draftModelList)
+                  set(
+                    ref(db, `assignments/${areaKey}/modelList`),
+                    draftModelList
+                  )
                     .then(() => {
                       showToast(t("areaProduction.updated"));
                       setModelList(draftModelList);

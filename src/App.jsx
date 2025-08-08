@@ -9,7 +9,7 @@ import WorkplaceChart from "./WorkplaceChart";
 import ModelProductionChart from "./ModelProductionChart";
 import { UserContext } from "./UserContext";
 import NGWorkplaceChart from "./NGplaceChart";
-import "./App.css"; // ✅ Import CSS để đảm bảo toàn bộ ứng dụng có chiều cao 100%
+import "./App.css";
 const App = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [selectedLeader, setSelectedLeader] = useState("");
@@ -41,17 +41,17 @@ const App = () => {
     setToastMessage(message);
   };
 
- useLayoutEffect(() => {
-  window.scrollTo({ top: 0, behavior: "auto" });
-}, []);
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }, []);
 
-useEffect(() => {
-  const handleScroll = () => {
-    setIsScrolled(window.scrollY > 100);
-  };
-  window.addEventListener("scroll", handleScroll);
-  return () => window.removeEventListener("scroll", handleScroll);
-}, []);
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 100);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
