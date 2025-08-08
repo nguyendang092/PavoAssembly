@@ -59,24 +59,28 @@ const TemperatureMonitor = () => {
     setAreasLoading(true);
     const areasRef = ref(db, "areas");
     let ignore = false;
-    const unsubscribe = onValue(areasRef, (snapshot) => {
-      if (ignore) return;
-      const data = snapshot.val() || {};
-      setAreas(data);
-      setAreasLoading(false);
-      // Nếu selectedArea không còn tồn tại thì reset
-      if (selectedArea && !data[selectedArea]) {
-        setSelectedArea(null);
+    const unsubscribe = onValue(
+      areasRef,
+      (snapshot) => {
+        if (ignore) return;
+        const data = snapshot.val() || {};
+        setAreas(data);
+        setAreasLoading(false);
+        // Nếu selectedArea không còn tồn tại thì reset
+        if (selectedArea && !data[selectedArea]) {
+          setSelectedArea(null);
+        }
+      },
+      (err) => {
+        if (!ignore) setAreasLoading(false);
       }
-    }, (err) => {
-      if (!ignore) setAreasLoading(false);
-    });
+    );
     return () => {
       ignore = true;
       unsubscribe();
     };
   }, [selectedArea]);
-  
+
   // Chunk load máy (pagination)
   const PAGE_SIZE = 6;
   // Debounce search máy
@@ -87,13 +91,28 @@ const TemperatureMonitor = () => {
     return () => clearTimeout(handler);
   }, [searchMachine]);
 
-  const machines = selectedArea && areas[selectedArea]?.machines ? areas[selectedArea].machines : [];
+  const machines =
+    selectedArea && areas[selectedArea]?.machines
+      ? areas[selectedArea].machines
+      : [];
   const filteredMachines = useMemo(() => {
     if (!debouncedSearch) return machines;
-    return machines.filter(m => m.toLowerCase().includes(debouncedSearch.toLowerCase()));
+    return machines.filter((m) =>
+      m.toLowerCase().includes(debouncedSearch.toLowerCase())
+    );
   }, [machines, debouncedSearch]);
-  const totalMachinePages = useMemo(() => Math.ceil(filteredMachines.length / PAGE_SIZE), [filteredMachines.length]);
-  const pagedMachines = useMemo(() => filteredMachines.slice((machinePage - 1) * PAGE_SIZE, machinePage * PAGE_SIZE), [filteredMachines, machinePage]);
+  const totalMachinePages = useMemo(
+    () => Math.ceil(filteredMachines.length / PAGE_SIZE),
+    [filteredMachines.length]
+  );
+  const pagedMachines = useMemo(
+    () =>
+      filteredMachines.slice(
+        (machinePage - 1) * PAGE_SIZE,
+        machinePage * PAGE_SIZE
+      ),
+    [filteredMachines, machinePage]
+  );
 
   useEffect(() => {
     setMachinePage(1);
@@ -110,7 +129,11 @@ const TemperatureMonitor = () => {
       return;
     }
     // Kiểm tra trùng tên không phân biệt hoa thường
-    if (currentMachines.some(m => m.trim().toLowerCase() === trimmedNew.toLowerCase())) {
+    if (
+      currentMachines.some(
+        (m) => m.trim().toLowerCase() === trimmedNew.toLowerCase()
+      )
+    ) {
       alert(t("temperatureMonitor.machineExists"));
       return;
     }
@@ -201,7 +224,11 @@ const TemperatureMonitor = () => {
     }
     const existingMachines = areas[selectedArea]?.machines || [];
     // Kiểm tra trùng tên không phân biệt hoa thường
-    if (existingMachines.some(m => m.trim().toLowerCase() === trimmedMachine.toLowerCase())) {
+    if (
+      existingMachines.some(
+        (m) => m.trim().toLowerCase() === trimmedMachine.toLowerCase()
+      )
+    ) {
       alert(t("temperatureMonitor.machineExists"));
       return;
     }
@@ -294,7 +321,7 @@ const TemperatureMonitor = () => {
               <input
                 type="text"
                 value={searchMachine}
-                onChange={e => setSearchMachine(e.target.value)}
+                onChange={(e) => setSearchMachine(e.target.value)}
                 placeholder={t("temperatureMonitor.searchMachine")}
                 className="w-full px-2 py-1 rounded text-black mb-2"
                 autoComplete="off"
@@ -373,10 +400,15 @@ const TemperatureMonitor = () => {
                     {t("temperatureMonitor.previous")}
                   </button>
                   <span>
-                    {t("temperatureMonitor.page", { current: machinePage, total: totalMachinePages })}
+                    {t("temperatureMonitor.page", {
+                      current: machinePage,
+                      total: totalMachinePages,
+                    })}
                   </span>
                   <button
-                    onClick={() => setMachinePage((p) => Math.min(totalMachinePages, p + 1))}
+                    onClick={() =>
+                      setMachinePage((p) => Math.min(totalMachinePages, p + 1))
+                    }
                     disabled={machinePage === totalMachinePages}
                     className="px-2 py-1 border rounded disabled:opacity-50"
                   >
@@ -385,8 +417,8 @@ const TemperatureMonitor = () => {
                 </div>
               )}
 
-              {user && (
-                isAddingMachine ? (
+              {user &&
+                (isAddingMachine ? (
                   <div className="flex space-x-1 mt-2">
                     <input
                       type="text"
@@ -397,7 +429,9 @@ const TemperatureMonitor = () => {
                       disabled={isLoading}
                     />
                     <button onClick={handleAddMachine} disabled={isLoading}>
-                      {isLoading ? t("temperatureMonitor.saving") : t("temperatureMonitor.add")}
+                      {isLoading
+                        ? t("temperatureMonitor.saving")
+                        : t("temperatureMonitor.add")}
                     </button>
                     <button
                       onClick={() => {
@@ -418,8 +452,7 @@ const TemperatureMonitor = () => {
                     <FaPlus />
                     <span>{t("temperatureMonitor.addMachine")}</span>
                   </button>
-                )
-              )}
+                ))}
             </div>
           )}
 

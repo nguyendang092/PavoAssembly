@@ -32,7 +32,9 @@ const ModelProductionChart = () => {
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(sheet);
       // Lọc bỏ dòng thiếu trường cần thiết
-      const validRows = json.filter(row => row.WorkplaceName && row.ItemCode && row.Week);
+      const validRows = json.filter(
+        (row) => row.WorkplaceName && row.ItemCode && row.Week
+      );
       setRawData(validRows);
       const areaList = [...new Set(validRows.map((row) => row.WorkplaceName))];
       setAreas(areaList);
@@ -60,7 +62,8 @@ const ModelProductionChart = () => {
     if (!selectedArea) return [];
     const filtered = rawData.filter((row) => {
       if (row.WorkplaceName !== selectedArea) return false;
-      if (filterMode === "current" && parseInt(row.Week) !== selectedWeek) return false;
+      if (filterMode === "current" && parseInt(row.Week) !== selectedWeek)
+        return false;
       return true;
     });
     const grouped = {};

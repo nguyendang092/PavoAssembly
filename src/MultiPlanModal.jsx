@@ -18,7 +18,7 @@ const timeLabels = [
 const MultiPlanModal = ({ isOpen, onClose, areaKey, modelList }) => {
   const [selectedDates, setSelectedDates] = useState([]);
   const [planData, setPlanData] = useState({});
-const { t } = useTranslation();
+  const { t } = useTranslation();
   // ✅ HÀM CHỌN 7 NGÀY TRONG TUẦN
   const selectCurrentWeek = () => {
     const today = new Date();
@@ -47,7 +47,8 @@ const { t } = useTranslation();
           const updates = {};
           for (const slot of timeLabels) {
             const value = Number(modelPlan[slot] || 0);
-            updates[`production/${areaKey}/${dateKey}/${model}/${slot}`] = value;
+            updates[`production/${areaKey}/${dateKey}/${model}/${slot}`] =
+              value;
             total += value;
           }
           updates[`production/${areaKey}/${dateKey}/${model}/total`] = total;
@@ -72,7 +73,9 @@ const { t } = useTranslation();
       className="bg-white p-6 max-w-7xl mx-auto rounded shadow overflow-auto max-h-[100vh]"
       overlayClassName="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50"
     >
-      <h2 className="text-lg font-bold mb-4 uppercase">{t("multiPlanModal.title")}</h2>
+      <h2 className="text-lg font-bold mb-4 uppercase">
+        {t("multiPlanModal.title")}
+      </h2>
 
       <div className="flex flex-col md:flex-row gap-8">
         <div className="md:w-1/3">
@@ -97,7 +100,6 @@ const { t } = useTranslation();
             }}
             className="bg-white border rounded shadow-sm p-4 text-sm"
           />
-          
         </div>
 
         {/* Nhập sản lượng theo chiều ngang */}
@@ -105,9 +107,14 @@ const { t } = useTranslation();
           <table className="min-w-full border border-gray-300 text-sm text-gray-700">
             <thead className="bg-gray-100 text-gray-800 text-[14px] uppercase">
               <tr>
-                <th className="border px-3 py-2 text-left">{t("multiPlanModal.model")}</th>
+                <th className="border px-3 py-2 text-left">
+                  {t("multiPlanModal.model")}
+                </th>
                 {timeLabels.map((slot) => (
-                  <th key={slot} className="border px-3 py-2 text-center font-semibold text-xs">
+                  <th
+                    key={slot}
+                    className="border px-3 py-2 text-center font-semibold text-xs"
+                  >
                     {slot}
                   </th>
                 ))}
@@ -132,7 +139,10 @@ const { t } = useTranslation();
                         onChange={(e) => {
                           const updated = { ...(planData[model] || {}) };
                           updated[slot] = e.target.value;
-                          setPlanData((prev) => ({ ...prev, [model]: updated }));
+                          setPlanData((prev) => ({
+                            ...prev,
+                            [model]: updated,
+                          }));
                         }}
                       />
                     </td>

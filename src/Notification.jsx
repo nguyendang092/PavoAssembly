@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import './animations.css'; // import CSS animation
+import React, { useState, useEffect } from "react";
+import "./animations.css"; // import CSS animation
 
 // Notification component
-const Notification = ({ message, type = 'info', onClose }) => {
+const Notification = ({ message, type = "info", onClose }) => {
   const [hide, setHide] = useState(false);
 
   // 3s sau tự ẩn animation rồi call onClose
@@ -17,7 +17,7 @@ const Notification = ({ message, type = 'info', onClose }) => {
 
   return (
     <div
-      className={`notification ${type} ${hide ? 'hide' : ''}`}
+      className={`notification ${type} ${hide ? "hide" : ""}`}
       onClick={() => {
         setHide(true);
         setTimeout(onClose, 300);

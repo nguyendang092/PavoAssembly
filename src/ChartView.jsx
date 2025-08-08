@@ -64,7 +64,10 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
             db,
             `temperature_monitor/${selectedArea}/${machine}/${selectedMonth}/${type}`
           )
-        ).then((snapshot) => ({ machine, data: snapshot.exists() ? snapshot.val() : null }))
+        ).then((snapshot) => ({
+          machine,
+          data: snapshot.exists() ? snapshot.val() : null,
+        }))
       );
 
       const results = await Promise.all(promises);
@@ -143,7 +146,10 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
         </button>
       </div>
 
-      <div className="mx-auto" style={{ maxWidth: "1200px", overflowX: "auto" }}>
+      <div
+        className="mx-auto"
+        style={{ maxWidth: "1200px", overflowX: "auto" }}
+      >
         <LineChart
           width={1200}
           height={420}

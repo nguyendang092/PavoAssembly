@@ -1,5 +1,9 @@
 import React, { useState } from "react";
-import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "firebase/auth";
+import {
+  getAuth,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+} from "firebase/auth";
 import { logUserAction } from "./userLog";
 
 export default function SignIn({ onSignIn, onClose }) {
@@ -39,7 +43,11 @@ export default function SignIn({ onSignIn, onClose }) {
         return;
       }
       const auth = getAuth();
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
       const user = userCredential.user;
       // Lấy displayName nếu có, nếu không lấy email
       const name = user.displayName || user.email;
@@ -48,7 +56,10 @@ export default function SignIn({ onSignIn, onClose }) {
       if (onSignIn) onSignIn({ email: user.email, name });
       // Lưu trạng thái đăng nhập và thời gian hết hạn vào localStorage
       const expire = Date.now() + 300000; // 5 phút
-      localStorage.setItem("userLogin", JSON.stringify({ email: user.email, name, expire }));
+      localStorage.setItem(
+        "userLogin",
+        JSON.stringify({ email: user.email, name, expire })
+      );
       // Đăng xuất sau 5 phút
       setTimeout(() => {
         localStorage.removeItem("userLogin");
@@ -76,7 +87,9 @@ export default function SignIn({ onSignIn, onClose }) {
       await sendPasswordResetEmail(auth, email);
       setResetMsg("Đã gửi email đặt lại mật khẩu. Vui lòng kiểm tra hộp thư.");
     } catch (err) {
-      setError("Không gửi được email đặt lại mật khẩu. Vui lòng kiểm tra lại email.");
+      setError(
+        "Không gửi được email đặt lại mật khẩu. Vui lòng kiểm tra lại email."
+      );
     } finally {
       setLoading(false);
     }
@@ -128,7 +141,11 @@ export default function SignIn({ onSignIn, onClose }) {
               <button
                 type="button"
                 className="text-blue-600 text-xs hover:underline"
-                onClick={() => { setShowReset(true); setError(""); setResetMsg(""); }}
+                onClick={() => {
+                  setShowReset(true);
+                  setError("");
+                  setResetMsg("");
+                }}
               >
                 Quên mật khẩu?
               </button>
@@ -137,7 +154,9 @@ export default function SignIn({ onSignIn, onClose }) {
         ) : (
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Nhập email để đặt lại mật khẩu</label>
+              <label className="block text-sm font-medium mb-1">
+                Nhập email để đặt lại mật khẩu
+              </label>
               <input
                 type="email"
                 className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -148,7 +167,9 @@ export default function SignIn({ onSignIn, onClose }) {
               />
             </div>
             {error && <div className="text-red-500 text-sm">{error}</div>}
-            {resetMsg && <div className="text-green-600 text-sm">{resetMsg}</div>}
+            {resetMsg && (
+              <div className="text-green-600 text-sm">{resetMsg}</div>
+            )}
             <button
               type="submit"
               className="w-full bg-blue-600 text-white py-2 rounded font-semibold hover:bg-blue-700 transition"
@@ -160,7 +181,11 @@ export default function SignIn({ onSignIn, onClose }) {
               <button
                 type="button"
                 className="text-blue-600 text-xs hover:underline"
-                onClick={() => { setShowReset(false); setError(""); setResetMsg(""); }}
+                onClick={() => {
+                  setShowReset(false);
+                  setError("");
+                  setResetMsg("");
+                }}
               >
                 Quay lại đăng nhập
               </button>
@@ -171,17 +196,3 @@ export default function SignIn({ onSignIn, onClose }) {
     </div>
   );
 }
-
-/*
-HƯỚNG DẪN SỬ DỤNG logUserAction CHO FILE KHÁC:
-
-import { logUserAction } from "./SignIn";
-
-// Ví dụ ghi log khi thêm nhân viên:
-await logUserAction(currentUser.email, "add_employee", `Thêm nhân viên: ${employeeName}`);
-
-// Ví dụ ghi log khi xóa ca làm việc:
-await logUserAction(currentUser.email, "delete_shift", `Xóa ca: ${shiftId}`);
-
-// Có thể dùng cho bất kỳ hành động nào cần ghi lại lịch sử hoạt động của user.
-*/

@@ -1,5 +1,10 @@
 import React, { useState } from "react";
-import { getAuth, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "firebase/auth";
+import {
+  getAuth,
+  updatePassword,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+} from "firebase/auth";
 import { logUserAction } from "./userLog";
 
 export default function ChangePasswordModal({ onClose }) {
@@ -28,7 +33,10 @@ export default function ChangePasswordModal({ onClose }) {
       const user = auth.currentUser;
       if (!user || !user.email) throw new Error("Không tìm thấy người dùng.");
       // Re-authenticate
-      const credential = EmailAuthProvider.credential(user.email, currentPassword);
+      const credential = EmailAuthProvider.credential(
+        user.email,
+        currentPassword
+      );
       await reauthenticateWithCredential(user, credential);
       await updatePassword(user, newPassword);
       setSuccess("Đổi mật khẩu thành công!");
@@ -61,7 +69,9 @@ export default function ChangePasswordModal({ onClose }) {
         <h2 className="text-xl font-bold mb-4 text-center">Đổi mật khẩu</h2>
         <form onSubmit={handleChangePassword} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Mật khẩu hiện tại</label>
+            <label className="block text-sm font-medium mb-1">
+              Mật khẩu hiện tại
+            </label>
             <input
               type="password"
               className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -71,7 +81,9 @@ export default function ChangePasswordModal({ onClose }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Mật khẩu mới</label>
+            <label className="block text-sm font-medium mb-1">
+              Mật khẩu mới
+            </label>
             <input
               type="password"
               className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
@@ -81,7 +93,9 @@ export default function ChangePasswordModal({ onClose }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Nhập lại mật khẩu mới</label>
+            <label className="block text-sm font-medium mb-1">
+              Nhập lại mật khẩu mới
+            </label>
             <input
               type="password"
               className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"

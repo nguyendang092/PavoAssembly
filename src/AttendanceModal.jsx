@@ -142,7 +142,11 @@ const AttendanceModal = ({
       await remove(ref(db, `attendance/${mappedAreaKey}/${employeeId}`));
       // Ghi log xóa nhân viên
       if (user) {
-        await logUserAction(user.email, "delete_employee", `Xóa nhân viên: ${employeeId}`);
+        await logUserAction(
+          user.email,
+          "delete_employee",
+          `Xóa nhân viên: ${employeeId}`
+        );
       }
       setEmployees((prev) => {
         const newEmployees = { ...prev };
@@ -186,7 +190,11 @@ const AttendanceModal = ({
     });
     // Ghi log sửa ca
     if (user) {
-      await logUserAction(user.email, "edit_shift", `Sửa ca: ${employeeId}, ${timePhanCong}`);
+      await logUserAction(
+        user.email,
+        "edit_shift",
+        `Sửa ca: ${employeeId}, ${timePhanCong}`
+      );
     }
 
     setEmployees((prev) => ({

@@ -40,14 +40,18 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
 
     const path = `temperature_monitor/${area}/${machine}/${selectedMonth}`;
     const dataRef = ref(db, path);
-    const unsubscribe = onValue(dataRef, (snapshot) => {
-      if (!isMounted) return;
-      const val = snapshot.val() || { temperature: {}, humidity: {} };
-      setData(val);
-      setLoading(false);
-    }, (err) => {
-      if (isMounted) setLoading(false);
-    });
+    const unsubscribe = onValue(
+      dataRef,
+      (snapshot) => {
+        if (!isMounted) return;
+        const val = snapshot.val() || { temperature: {}, humidity: {} };
+        setData(val);
+        setLoading(false);
+      },
+      (err) => {
+        if (isMounted) setLoading(false);
+      }
+    );
 
     const today = new Date();
     const thisMonth = new Date(`${selectedMonth}-01`);
@@ -159,7 +163,9 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
           <table className="w-full border text-sm min-w-max">
             <thead>
               <tr className="bg-gray-100">
-                <th className="border px-2 py-1">{t("temperatureMonitor.date")}</th>
+                <th className="border px-2 py-1">
+                  {t("temperatureMonitor.date")}
+                </th>
                 <th className="border px-2 py-1">
                   {t("temperatureMonitor.temperature")}
                 </th>
@@ -183,7 +189,9 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
                         step="0.01"
                         className="w-full border px-1 py-0.5 text-center rounded"
                         value={data.temperature?.[day] || ""}
-                        onChange={(e) => handleInputChange("temperature", day, e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("temperature", day, e.target.value)
+                        }
                         disabled={!user}
                       />
                     </td>
@@ -195,7 +203,9 @@ const SingleMachineTable = ({ area, machine, selectedMonth, showToast }) => {
                         inputMode="decimal"
                         className="w-full border px-1 py-0.5 text-center rounded"
                         value={data.humidity?.[day] || ""}
-                        onChange={(e) => handleInputChange("humidity", day, e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("humidity", day, e.target.value)
+                        }
                         disabled={!user}
                       />
                     </td>

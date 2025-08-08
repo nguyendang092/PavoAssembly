@@ -3,29 +3,32 @@ import Employ from "./Employ";
 import Toast from "./Toast";
 import Navbar from "./Navbar";
 import TemperatureMonitor from "./TemperatureMonitor";
-import { FaArrowCircleUp } from "react-icons/fa"; // ✅ Icon mũi tên lên
+import { FaArrowCircleUp } from "react-icons/fa";
 import "./i18n";
 import WorkplaceChart from "./WorkplaceChart";
 import ModelProductionChart from "./ModelProductionChart";
 import { UserContext } from "./UserContext";
 import NGWorkplaceChart from "./NGplaceChart";
+import { useLoading } from "./LoadingContext"; // ✅ Dùng context loading
 import "./App.css";
+
 const App = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [selectedLeader, setSelectedLeader] = useState("");
   const [leaderMap, setLeaderMap] = useState({});
   const [isScrolled, setIsScrolled] = useState(false);
-  // State user cho đăng nhập
   const [user, setUser] = useState(null);
 
-  // Tự động lấy lại thông tin user nếu còn thời gian đăng nhập
+  const { setLoading } = useLoading(); // ✅ Hook loading context
+
+  // Lấy user từ localStorage
   useEffect(() => {
+    setLoading(true); // 👈 Bắt đầu loading
     const loginData = localStorage.getItem("userLogin");
     if (loginData) {
       const { email, name, expire } = JSON.parse(loginData);
       if (Date.now() < expire) {
         setUser({ email, name });
-        // Đăng xuất sau thời gian còn lại
         setTimeout(() => {
           localStorage.removeItem("userLogin");
           setUser(null);
@@ -35,6 +38,8 @@ const App = () => {
         setUser(null);
       }
     }
+    // Nhỏ delay để tránh nháy spinner
+    setTimeout(() => setLoading(false), 800);
   }, []);
 
   const showToast = (message) => {
@@ -57,6 +62,14 @@ const App = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Khi chọn tab mới (như "nhietdo", "ng", ...)
+  useEffect(() => {
+    if (!selectedLeader) return;
+    setLoading(true);
+    const timer = setTimeout(() => setLoading(false), 500); // Giả lập load
+    return () => clearTimeout(timer);
+  }, [selectedLeader]);
+
   return (
     <UserContext.Provider value={{ user, setUser }}>
       <div>
@@ -76,6 +89,7 @@ const App = () => {
           />
         </div>
 
+        {/* Nội dung chính */}
         <div className="pt-16 overflow-hidden">
           {selectedLeader === "nhietdo" ? (
             <TemperatureMonitor />
@@ -93,7 +107,7 @@ const App = () => {
         {/* Toast */}
         <Toast message={toastMessage} onClose={() => setToastMessage("")} />
 
-        {/* ✅ Nút Back to Top bo tròn, icon đẹp */}
+        {/* Nút scroll to top */}
         {isScrolled && (
           <button
             onClick={scrollToTop}
