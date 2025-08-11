@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
-
+import { useTranslation } from "react-i18next";
 // Tạo context
 const LoadingContext = createContext();
 
@@ -9,7 +9,7 @@ export const useLoading = () => useContext(LoadingContext);
 // Provider bọc toàn app
 export const LoadingProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
-
+  const { t } = useTranslation();
   return (
     <LoadingContext.Provider value={{ loading, setLoading }}>
       {loading && (
@@ -29,7 +29,7 @@ export const LoadingProvider = ({ children }) => {
               d="M4 12a8 8 0 018-8v8z"
             />
           </svg>
-          <p className="text-blue-700 text-xl font-semibold">Đang tải dữ liệu...</p>
+          <p className="text-blue-700 text-xl font-semibold">{t("loading.loading")}</p>
         </div>
       )}
       {children}

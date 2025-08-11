@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { logUserAction } from "./userLog";
 import { ref, get, child } from "firebase/database";
 import { db } from "./firebase";
@@ -37,8 +38,9 @@ function getWeekNumber(dateStr) {
 import { useUser } from "./UserContext";
 
 export default function DetailedNGModal({ isOpen, onClose, area }) {
+  const { t } = useTranslation();
   const { user } = useUser();
-  const [selectedArea, setSelectedArea] = useState(area || "Assembly");
+  const [selectedArea, setSelectedArea] = useState(area || "Press");
   const [selectedWeek, setSelectedWeek] = useState(
     getCurrentWeekNumber().toString()
   );
@@ -87,7 +89,7 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
               if (day !== selectedDate || !/^\d{4}-\d{2}-\d{2}$/.test(day))
                 continue;
               const modelData = dayData[day];
-              console.log("day:", day, "modelData:", modelData);
+              // console.log("day:", day, "modelData:", modelData);
               for (const model in modelData) {
                 let quantity = 0;
                 let notes = "";
@@ -169,14 +171,14 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
         <div className="flex items-center justify-between mb-2">
           <div className="flex-1 text-center">
             <h2 className="text-xl font-bold uppercase inline-block">
-              Bảng chi tiết sản lượng
+              {t("detailedNGModal.title")}
             </h2>
           </div>
           <button
             onClick={onClose}
             className="text-red-500 text-base font-bold ml-auto"
           >
-            Đóng
+            {t("detailedNGModal.close")}
           </button>
         </div>
 
@@ -216,7 +218,7 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
 
           <input
             type="text"
-            placeholder="Search Model"
+            placeholder={t("detailedNGModal.searchModel")}
             value={selectedModel}
             onChange={(e) => setSelectedModel(e.target.value)}
             className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition w-48"
@@ -295,9 +297,11 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
                 }}
               />
             ) : loading ? (
-              <p className="text-center text-gray-500 italic">Đang tải biểu đồ...</p>
+              <p className="text-center text-gray-500 italic">
+                {t("detailedNGModal.loadingChart")}
+              </p>
             ) : (
-              <p>Không có dữ liệu để hiển thị.</p>
+              <p>{t("detailedNGModal.noChartData")}</p>
             )}
           </div>
           {/* Bảng chi tiết (1/3) */}
@@ -305,11 +309,21 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr>
-                  <th className="border-b p-1 text-center">Arena</th>
-                  <th className="border-b p-1 text-center">Model</th>
-                  <th className="border-b p-1 text-center">Ngày</th>
-                  <th className="border-b p-1 text-center">Sản lượng</th>
-                  <th className="border-b p-1 text-center">Lỗi NG</th>
+                  <th className="border-b p-1 text-center">
+                    {t("detailedNGModal.area")}
+                  </th>
+                  <th className="border-b p-1 text-center">
+                    {t("detailedNGModal.model")}
+                  </th>
+                  <th className="border-b p-1 text-center">
+                    {t("detailedNGModal.date")}
+                  </th>
+                  <th className="border-b p-1 text-center">
+                    {t("detailedNGModal.quantity")}
+                  </th>
+                  <th className="border-b p-1 text-center">
+                    {t("detailedNGModal.ngReason")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -337,13 +351,16 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
                     logUserAction(
                       user.email,
                       "view_more_detail_output",
-                      `Xem thêm chi tiết sản lượng khu vực: ${selectedArea}, ngày: ${selectedDate}`
+                      t("detailedNGModal.logViewMore", {
+                        area: selectedArea,
+                        date: selectedDate,
+                      })
                     );
                   }
                 }}
                 className="mt-2 w-full bg-blue-500 hover:bg-blue-700 py-1 rounded font-bold text-white"
               >
-                Xem thêm
+                {t("detailedNGModal.viewMore")}
               </button>
             )}
           </div>

@@ -382,9 +382,8 @@ export default function NGWorkplaceChart() {
 
       {/* Main content */}
       <main
-        className="flex-1 p-2 flex gap-8"
+        className="flex-1 p-2 flex gap-8 overflow-auto"
         style={{ height: "93vh" }}
-        overflow-auto
       >
         {/* Chart 2/3 */}
         <section className="basis-2/3 bg-white rounded-xl shadow-lg p-6 flex flex-col">
@@ -560,7 +559,7 @@ export default function NGWorkplaceChart() {
             </>
           ) : (
             <p className="text-gray-400 text-lg font-medium">
-              Không có dữ liệu hiển thị.
+              {t("workplaceNGChart.noData")}
             </p>
           )}
         </section>

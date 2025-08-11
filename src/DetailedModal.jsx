@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { logUserAction } from "./userLog";
 import { ref, get, child } from "firebase/database";
 import { db } from "./firebase";
@@ -37,6 +38,7 @@ function getWeekNumber(dateStr) {
 import { useUser } from "./UserContext";
 
 export default function DetailedModal({ isOpen, onClose, area }) {
+  const { t } = useTranslation();
   const { user } = useUser();
   const [selectedArea, setSelectedArea] = useState(area || "Assembly");
   const [selectedWeek, setSelectedWeek] = useState(
@@ -131,14 +133,14 @@ export default function DetailedModal({ isOpen, onClose, area }) {
         <div className="flex items-center justify-between mb-2">
           <div className="flex-1 text-center">
             <h2 className="text-xl font-bold uppercase inline-block">
-              Bảng chi tiết sản lượng
+              {t("detailedModal.title")}
             </h2>
           </div>
           <button
             onClick={onClose}
             className="text-red-500 text-base font-bold ml-auto"
           >
-            Đóng
+            {t("detailedModal.close")}
           </button>
         </div>
 
@@ -178,7 +180,7 @@ export default function DetailedModal({ isOpen, onClose, area }) {
 
           <input
             type="text"
-            placeholder="Search Model"
+            placeholder={t("detailedModal.searchModel")}
             value={selectedModel}
             onChange={(e) => setSelectedModel(e.target.value)}
             className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition w-48"
@@ -257,24 +259,24 @@ export default function DetailedModal({ isOpen, onClose, area }) {
                 }}
               />
             ) : loading ? (
-              <p className="text-center text-gray-500 italic">Đang tải biểu đồ...</p>
+              <p className="text-center text-gray-500 italic">{t("detailedModal.loadingChart")}</p>
             ) : (
-              <p>Không có dữ liệu để hiển thị.</p>
+              <p>{t("detailedModal.noChartData")}</p>
             )}
           </div>
           {/* Bảng chi tiết (1/3) */}
           <div className="w-1/3 overflow-auto">
             {loading ? (
-              <p className="text-center text-gray-500 italic">Đang tải dữ liệu...</p>
+              <p className="text-center text-gray-500 italic">{t("detailedModal.loadingData")}</p>
             ) : (
               <>
                 <table className="w-full text-sm border-collapse">
                   <thead>
                     <tr>
-                      <th className="border-b p-1 text-center">Arena</th>
-                      <th className="border-b p-1 text-center">Model</th>
-                      <th className="border-b p-1 text-center">Ngày</th>
-                      <th className="border-b p-1 text-center">Sản lượng</th>
+                      <th className="border-b p-1 text-center">{t("detailedModal.area")}</th>
+                      <th className="border-b p-1 text-center">{t("detailedModal.model")}</th>
+                      <th className="border-b p-1 text-center">{t("detailedModal.date")}</th>
+                      <th className="border-b p-1 text-center">{t("detailedModal.quantity")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -299,13 +301,13 @@ export default function DetailedModal({ isOpen, onClose, area }) {
                         logUserAction(
                           user.email,
                           "view_more_detail_output",
-                          `Xem thêm chi tiết sản lượng khu vực: ${selectedArea}, ngày: ${selectedDate}`
+                          t("detailedModal.logViewMore", { area: selectedArea, date: selectedDate })
                         );
                       }
                     }}
                     className="mt-2 w-full bg-blue-500 hover:bg-blue-700 py-1 rounded font-bold text-white"
                   >
-                    Xem thêm
+                    {t("detailedModal.viewMore")}
                   </button>
                 )}
               </>

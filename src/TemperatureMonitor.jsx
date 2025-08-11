@@ -8,7 +8,6 @@ import { db } from "./firebase";
 import { HiHome, HiCalendar, HiFolder } from "react-icons/hi";
 import {
   FaCheck,
-  FaTimes,
   FaChartLine,
   FaPlus,
   FaEdit,
@@ -257,7 +256,6 @@ const TemperatureMonitor = () => {
     }
     setIsLoading(false);
   };
-
   return (
     <div className="flex">
       {/* Sidebar */}
@@ -270,12 +268,10 @@ const TemperatureMonitor = () => {
             </span>
           </div>
         </div>
-
         <div className="space-y-4">
           <p className="uppercase text-sm text-white tracking-wide pt-2">
             {t("temperatureMonitor.filters")}
           </p>
-
           {/* Area toggle */}
           <div>
             <div

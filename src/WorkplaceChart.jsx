@@ -756,25 +756,25 @@ export default function WorkplaceChart() {
                 <thead>
                   <tr>
                     <th className="border-b pb-1" style={{ width: "40%" }}>
-                      Khu vực
+                      {t("workplaceChart.area")}
                     </th>
                     <th
                       className="border-b pb-1 text-right"
                       style={{ width: "20%" }}
                     >
-                      Normal
+                      {t("workplaceChart.normal")}
                     </th>
                     <th
                       className="border-b pb-1 text-right"
                       style={{ width: "20%" }}
                     >
-                      Rework
+                      {t("workplaceChart.rework")}
                     </th>
                     <th
                       className="border-b pb-1 text-right font-bold"
                       style={{ width: "20%" }}
                     >
-                      Tổng
+                      {t("workplaceChart.total")}
                     </th>
                   </tr>
                 </thead>
@@ -831,7 +831,7 @@ export default function WorkplaceChart() {
               </table>
             )
           ) : (
-            <p>Không có dữ liệu hiển thị.</p>
+            <p>{t("workplaceChart.noData")}</p>
           )}
         </div>
       </div>

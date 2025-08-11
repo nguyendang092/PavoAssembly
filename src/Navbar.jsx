@@ -166,7 +166,7 @@ export default function Navbar({
                             d="M12 11c0-1.657 1.343-3 3-3s3 1.343 3 3-1.343 3-3 3-3-1.343-3-3zm0 0V7m0 4v4m0 0H8m4 0h4"
                           />
                         </svg>
-                        Đổi mật khẩu
+                        {t("navbar.changePassword")}
                       </button>
                       <button
                         onClick={() => {
@@ -188,7 +188,7 @@ export default function Navbar({
                             d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1"
                           />
                         </svg>
-                        Đăng xuất
+                        {t("navbar.logOut")}
                       </button>
                     </div>
                   )}
@@ -198,10 +198,10 @@ export default function Navbar({
               <>
                 <button
                   onClick={handleSignIn}
-                  className="px-1 py-1 rounded bg-white border border-blue-400 text-blue-700 font-semibold hover:bg-blue-50 shadow-sm text-xs"
+                  className="px-2 mx-2 py-2 rounded bg-white border border-blue-400 text-blue-700 font-semibold hover:bg-blue-50 shadow-sm text-xs"
                   style={{ minWidth: 70 }}
                 >
-                  Đăng nhập
+                  {t("navbar.dangNhap")}
                 </button>
                 {/* <button
                   onClick={handleSignUp}
