@@ -257,52 +257,58 @@ export default function DetailedModal({ isOpen, onClose, area }) {
                 }}
               />
             ) : loading ? (
-              <p>Đang tải biểu đồ...</p>
+              <p className="text-center text-gray-500 italic">Đang tải biểu đồ...</p>
             ) : (
               <p>Không có dữ liệu để hiển thị.</p>
             )}
           </div>
           {/* Bảng chi tiết (1/3) */}
           <div className="w-1/3 overflow-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr>
-                  <th className="border-b p-1 text-center">Arena</th>
-                  <th className="border-b p-1 text-center">Model</th>
-                  <th className="border-b p-1 text-center">Ngày</th>
-                  <th className="border-b p-1 text-center">Sản lượng</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredData.slice(0, visibleCount).map((item, i) => (
-                  <tr key={i}>
-                    <td className="border-b p-1 text-center">{selectedArea}</td>
-                    <td className="border-b p-1 text-center">{item.model}</td>
-                    <td className="border-b p-1 text-center">{item.date}</td>
-                    <td className="border-b p-1 text-center">
-                      {item.quantity.toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {filteredData.length > visibleCount && (
-              <button
-                onClick={() => {
-                  setVisibleCount(visibleCount + 10);
-                  // Ghi log khi người dùng xem thêm dữ liệu
-                  if (user && user.email) {
-                    logUserAction(
-                      user.email,
-                      "view_more_detail_output",
-                      `Xem thêm chi tiết sản lượng khu vực: ${selectedArea}, ngày: ${selectedDate}`
-                    );
-                  }
-                }}
-                className="mt-2 w-full bg-blue-500 hover:bg-blue-700 py-1 rounded font-bold text-white"
-              >
-                Xem thêm
-              </button>
+            {loading ? (
+              <p className="text-center text-gray-500 italic">Đang tải dữ liệu...</p>
+            ) : (
+              <>
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="border-b p-1 text-center">Arena</th>
+                      <th className="border-b p-1 text-center">Model</th>
+                      <th className="border-b p-1 text-center">Ngày</th>
+                      <th className="border-b p-1 text-center">Sản lượng</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredData.slice(0, visibleCount).map((item, i) => (
+                      <tr key={i}>
+                        <td className="border-b p-1 text-center">{selectedArea}</td>
+                        <td className="border-b p-1 text-center">{item.model}</td>
+                        <td className="border-b p-1 text-center">{item.date}</td>
+                        <td className="border-b p-1 text-center">
+                          {item.quantity.toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filteredData.length > visibleCount && (
+                  <button
+                    onClick={() => {
+                      setVisibleCount(visibleCount + 10);
+                      // Ghi log khi người dùng xem thêm dữ liệu
+                      if (user && user.email) {
+                        logUserAction(
+                          user.email,
+                          "view_more_detail_output",
+                          `Xem thêm chi tiết sản lượng khu vực: ${selectedArea}, ngày: ${selectedDate}`
+                        );
+                      }
+                    }}
+                    className="mt-2 w-full bg-blue-500 hover:bg-blue-700 py-1 rounded font-bold text-white"
+                  >
+                    Xem thêm
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

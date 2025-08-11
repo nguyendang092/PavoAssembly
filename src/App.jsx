@@ -8,7 +8,7 @@ import "./i18n";
 import WorkplaceChart from "./WorkplaceChart";
 import ModelProductionChart from "./ModelProductionChart";
 import { UserContext } from "./UserContext";
-import NGWorkplaceChart from "./NGplaceChart";
+import NGWorkplaceChart from "./NGWorkplaceChart";
 import { useLoading } from "./LoadingContext"; // ✅ Dùng context loading
 import "./App.css";
 
@@ -18,7 +18,6 @@ const App = () => {
   const [leaderMap, setLeaderMap] = useState({});
   const [isScrolled, setIsScrolled] = useState(false);
   const [user, setUser] = useState(null);
-
   const { setLoading } = useLoading(); // ✅ Hook loading context
 
   // Lấy user từ localStorage

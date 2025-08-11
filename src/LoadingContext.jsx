@@ -13,8 +13,8 @@ export const LoadingProvider = ({ children }) => {
   return (
     <LoadingContext.Provider value={{ loading, setLoading }}>
       {loading && (
-        <div className="fixed inset-0 z-[9999] bg-white/80 flex items-center justify-center">
-          <svg className="animate-spin h-10 w-10 text-blue-600" viewBox="0 0 24 24">
+        <div className="fixed inset-0 z-[9999] bg-white/80 flex flex-col items-center justify-center">
+          <svg className="animate-spin h-10 w-10 text-blue-600 mb-4" viewBox="0 0 24 24">
             <circle
               className="opacity-25"
               cx="12"
@@ -29,6 +29,7 @@ export const LoadingProvider = ({ children }) => {
               d="M4 12a8 8 0 018-8v8z"
             />
           </svg>
+          <p className="text-blue-700 text-xl font-semibold">Đang tải dữ liệu...</p>
         </div>
       )}
       {children}

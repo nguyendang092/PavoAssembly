@@ -295,7 +295,7 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
                 }}
               />
             ) : loading ? (
-              <p>Đang tải biểu đồ...</p>
+              <p className="text-center text-gray-500 italic">Đang tải biểu đồ...</p>
             ) : (
               <p>Không có dữ liệu để hiển thị.</p>
             )}

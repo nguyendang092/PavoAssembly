@@ -15,10 +15,11 @@ import {
   Legend,
   Tooltip,
 } from "chart.js";
-import { format, parseISO, getISOWeek } from "date-fns";
 import ChartDataLabels from "chartjs-plugin-datalabels";
-import { getDatabase, ref, update, get } from "firebase/database";
-import { db } from "./firebase"; // đường dẫn tới file cấu hình firebase của bạn
+import { ref, update, get } from "firebase/database";
+import { db } from "./firebase";
+import { useLoading } from "./LoadingContext";
+
 ChartJS.register(
   BarElement,
   CategoryScale,
@@ -73,8 +74,8 @@ export default function NGWorkplaceChart() {
     setIsModalOpen(false);
     setModalArea("");
   };
-  // Loading state
-  const [loading, setLoading] = useState(false);
+  // Loading toàn cục
+  const { setLoading } = useLoading();
   // Tối ưu: chỉ load dữ liệu cho tuần được chọn
   useEffect(() => {
     setLoading(true);
@@ -165,7 +166,6 @@ export default function NGWorkplaceChart() {
             }
           }
         }
-
         // Chuẩn bị dataMap cho bảng tổng
         const map = {};
         rows.forEach((row) => {
@@ -317,22 +317,13 @@ export default function NGWorkplaceChart() {
   };
 
   return (
-    <div className="flex bg-gray-50 overflow-hidden">
-      {loading && (
-        <div className="fixed inset-0 bg-white bg-opacity-70 z-50 flex items-center justify-center">
-          <span className="text-blue-700 text-2xl font-bold animate-pulse">
-            {t("workplaceNGChart.alertTitle")}
-          </span>
-        </div>
-      )}
-      {/* Sidebar */}
+  <div className="flex bg-gray-50 overflow-hidden">
       <aside className="w-64 bg-gradient-to-b from-indigo-600 to-purple-600 shadow-lg border-r flex flex-col">
         {/* Title + Week Select => scrollable */}
         <div className="flex-1 overflow-y-auto p-6">
           <h2 className="text-2xl font-bold text-white mb-6 uppercase flex items-center gap-2 tracking-wide">
             {t("workplaceNGChart.menuTitle")}
           </h2>
-
           {Object.keys(weekData).length > 0 && (
             <div className="mb-4">
               <label className="block text-white font-medium mb-2">

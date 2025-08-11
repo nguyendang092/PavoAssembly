@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useLoading } from "./LoadingContext";
 import { logUserAction } from "./userLog";
 import Modal from "react-modal";
 import { ref, set, get, update } from "firebase/database";
@@ -56,7 +57,8 @@ const AddEmployeeModal = ({
   // const [inputModel, setInputModel] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [previewImage, setPreviewImage] = useState(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // Local state, can be removed if not used elsewhere
+  const { setLoading } = useLoading();
 
   const attendanceCache = useRef({});
 
@@ -184,7 +186,8 @@ const AddEmployeeModal = ({
       }
     }
 
-    setIsSaving(true);
+  setIsSaving(true);
+  setLoading(true);
 
     try {
       let employeeId = newEmployee.employeeId || `PAVO${Date.now()}`;
@@ -267,12 +270,13 @@ const AddEmployeeModal = ({
 
       resetForm();
       onClose();
-    } catch (err) {
+  } catch (err) {
       console.error("🔥 Lỗi chi tiết:", err);
       alert(t("addEmployeeModal.saveError", { message: err.message || "" }));
+    } finally {
+      setIsSaving(false);
+      setLoading(false);
     }
-
-    setIsSaving(false);
   };
 
   const resetForm = () => {
