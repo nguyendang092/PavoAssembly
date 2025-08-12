@@ -48,6 +48,17 @@ export default function CertificateGenerator2() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.drawImage(backgroundRef.current, 0, 0, baseWidth, baseHeight);
 
+    // Dòng tháng và năm nằm trên tên người khen thưởng
+    const topNow = new Date();
+    const topMonth = (topNow.getMonth() + 1).toString().padStart(2, '0');
+    const topYear = topNow.getFullYear();
+    const topText = `THÁNG ${topMonth} - ${topYear}`;
+    ctx.font = `bold ${70 * dpr}px 'Arial', 'Cambria', 'serif'`;
+    ctx.fillStyle = "#1e293b";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(topText, baseWidth / 2, 890);
+
     // Tên người được khen (dòng chính) - tự động giảm font nếu quá dài, viết hoa chữ cái đầu mỗi từ
     function toTitleCase(str) {
       return str
@@ -72,28 +83,28 @@ export default function CertificateGenerator2() {
     // Bộ phận (nếu có) nằm dưới tên
     let offsetDept = 0;
     if (department && department.trim() !== "") {
-      ctx.font = `italic ${55 * dpr}px 'Arial', 'Cambria', 'serif'`;
+      ctx.font = `italic ${65 * dpr}px 'Arial', 'Cambria', 'serif'`;
       ctx.fillStyle = "#222";
-      ctx.fillText(`BỘ PHẬN: ${department.toUpperCase()}`, baseWidth / 2, 1750 + 90);
+      ctx.fillText(`BỘ PHẬN: ${department.toUpperCase()}`, baseWidth / 2, 1780 + 90);
       offsetDept = 90;
     }
 
     // Dòng phụ bên dưới tên (hoặc bộ phận)
     const offsetSub = 470; // nếu có bộ phận thì đẩy xuống thêm
-    ctx.font = `bold ${65 * dpr}px 'Arial', 'Cambria', 'serif'`;
+    ctx.font = `bold ${80 * dpr}px 'Arial', 'Cambria', 'serif'`;
     ctx.fillStyle = "#444";
     // Tự động lấy quý hiện tại và năm hiện tại
-    const nowSub = new Date();
-    const month = nowSub.getMonth(); // 0-11
-    const quarter = Math.floor(month / 3) + 1;
-    const year = nowSub.getFullYear();
-    const subText = `Nhân viên ưu tú quý ${quarter} năm ${year}`.toUpperCase();
-    ctx.fillText(subText, baseWidth / 2, 1800 + offsetSub);
+    const nowSub2 = new Date();
+    const month2 = nowSub2.getMonth(); // 0-11
+    const quarter2 = Math.floor(month2 / 3) + 1;
+    const year2 = nowSub2.getFullYear();
+    const subText = `Nhân viên ưu tú quý ${quarter2} năm ${year2}`.toUpperCase();
+    ctx.fillText(subText, baseWidth / 2, 1900 + offsetSub);
 
     // Ngày tháng năm bên trái dưới
-    const dateFontSize = 42;   // chỉnh font size tại đây
+    const dateFontSize = 46;   // chỉnh font size tại đây
     const paddingLeft = 200;   // khoảng cách từ lề trái
-    const paddingBottom = 910; // tăng khoảng cách từ đáy lên để chữ cao hơn
+    const paddingBottom = 630; // tăng khoảng cách từ đáy lên để chữ cao hơn
 
     ctx.font = `italic ${dateFontSize * dpr}px 'Arial', 'Times New Roman', 'serif'`;
     ctx.textAlign = "left";
