@@ -32,7 +32,7 @@ export default function CertificateGenerator2() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     const img = new Image();
-    img.src = "/certificate2.png";
+    img.src = "/certificate1.png";
     img.onload = () => {
       backgroundRef.current = img;
       drawCertificate(name, dpr);
