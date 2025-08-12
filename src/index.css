@@ -65,3 +65,9 @@
 .notification.hide {
   animation: slideOutFade 0.3s ease forwards;
 }
+@font-face {
+  font-family: 'TDF_cut-putroe-navisha-kyokm3';
+  src: url('/fonts/TDF_cut-putroe-navisha-kyokm3.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}

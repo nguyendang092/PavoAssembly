@@ -1,5 +1,5 @@
 /* Đây là component hiển thị navbar */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { getAuth, signOut } from "firebase/auth";
 import SignIn from "./SignIn";
 import ChangePasswordModal from "./ChangePasswordModal";
@@ -19,6 +19,9 @@ export default function Navbar({
     temperature: "nhietdo",
     bieudo: "bieudo",
     ng: "ng",
+    certificate: "bangKhen",
+    certificate1: "bangKhen1",
+    certificate2: "bangKhen2",
     ngocThanh: "NgocThanh",
     chiThanh: "ChiThanh",
     muoi: "Muoi",
@@ -57,10 +60,7 @@ export default function Navbar({
   // Modal state for SignIn
   const [signInOpen, setSignInOpen] = useState(false);
   const handleSignIn = () => setSignInOpen(true);
-  const handleSignUp = () => {
-    // TODO: show sign up modal or redirect
-    alert("Chức năng đăng ký chưa được triển khai");
-  };
+  
   const handleSignInSuccess = (userInfo) => {
     if (setUser) setUser(userInfo);
     setSignInOpen(false);
@@ -76,6 +76,8 @@ export default function Navbar({
 
   const [changePwOpen, setChangePwOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [certificateDropdownOpen, setCertificateDropdownOpen] = useState(false);
+  const certificateDropdownTimer = useRef(null);
   // Đóng dropdown khi click ngoài
   useEffect(() => {
     if (!userDropdownOpen) return;
@@ -86,6 +88,17 @@ export default function Navbar({
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [userDropdownOpen]);
+
+  const openCertificateDropdown = () => {
+    if (certificateDropdownTimer.current) clearTimeout(certificateDropdownTimer.current);
+    setCertificateDropdownOpen(true);
+  };
+  const closeCertificateDropdown = () => {
+    if (certificateDropdownTimer.current) clearTimeout(certificateDropdownTimer.current);
+    certificateDropdownTimer.current = setTimeout(() => {
+      setCertificateDropdownOpen(false);
+    }, 5000);
+  };
 
   return (
     <>
@@ -277,24 +290,70 @@ export default function Navbar({
             id="navbar-cta"
           >
             <ul className="flex flex-col font-medium p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-white shadow-md md:shadow-none md:space-x-6 md:flex-row md:mt-0 md:border-0 md:bg-transparent dark:bg-gray-900">
-              {Object.keys(leaderMap).map((key) => (
-                <li key={key}>
-                  <button
-                    onClick={() => handleSelect(key)}
-                    className={`block py-2 px-4 md:px-3 rounded-md transition-all duration-200 font-semibold text-sm uppercase ${
-                      key === activeLeaderKey
-                        ? "bg-blue-100 text-blue-700 font-semibold underline underline-offset-4"
-                        : "text-gray-800 hover:text-blue-600 hover:bg-blue-50"
-                    } dark:text-white dark:hover:text-blue-300`}
+              {Object.keys(leaderMap).map((key) =>
+                key === "certificate" ? (
+                  <li
+                    key={key}
+                    className="relative"
+                    onMouseEnter={openCertificateDropdown}
+                    onMouseLeave={closeCertificateDropdown}
+                    onFocus={openCertificateDropdown}
+                    onBlur={closeCertificateDropdown}
+                    tabIndex={0}
                   >
-                    {t(`navbar.${key}`)}
-                  </button>
-                </li>
-              ))}
+                    <button
+                      className={`block py-2 px-4 md:px-3 rounded-md transition-all duration-200 font-semibold text-sm uppercase ${
+                        (key === activeLeaderKey || ["certificate1","certificate2"].includes(activeLeaderKey))
+                          ? "bg-blue-100 text-blue-700 font-semibold underline underline-offset-4"
+                          : "text-gray-800 hover:text-blue-600 hover:bg-blue-50"
+                      } dark:text-white dark:hover:text-blue-300`}
+                      type="button"
+                      tabIndex={0}
+                    >
+                      {t(`navbar.${key}`)}
+                    </button>
+                    {certificateDropdownOpen && (
+                      <div className="absolute left-0 mt-2 w-48 bg-white border rounded shadow-lg z-50">
+                        <button
+                          onClick={() => handleSelect("certificate1")}
+                          className="block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs"
+                          tabIndex={0}
+                        >
+                          {t(`navbar.certificate1`)}
+                        </button>
+                        <button
+                          onClick={() => handleSelect("certificate2")}
+                          className="block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs"
+                          tabIndex={0}
+                        >
+                          {t(`navbar.certificate2`)}
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                ) :
+                key === "certificate1" || key === "certificate2" ? null : (
+                  <li key={key}>
+                    <button
+                      onClick={() => handleSelect(key)}
+                      className={`block py-2 px-4 md:px-3 rounded-md transition-all duration-200 font-semibold text-sm uppercase ${
+                        key === activeLeaderKey
+                          ? "bg-blue-100 text-blue-700 font-semibold underline underline-offset-4"
+                          : "text-gray-800 hover:text-blue-600 hover:bg-blue-50"
+                      } dark:text-white dark:hover:text-blue-300`}
+                    >
+                      {t(`navbar.${key}`)}
+                    </button>
+                  </li>
+                )
+              )}
             </ul>
           </div>
         </div>
       </nav>
+      <style>
+        {`.dropdown-open > div { display: block !important; }`}
+      </style>
     </>
   );
 }

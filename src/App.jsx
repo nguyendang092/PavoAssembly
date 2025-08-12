@@ -10,6 +10,8 @@ import ModelProductionChart from "./ModelProductionChart";
 import { UserContext } from "./UserContext";
 import NGWorkplaceChart from "./NGWorkplaceChart";
 import { useLoading } from "./LoadingContext"; // ✅ Dùng context loading
+import CertificateGenerator1 from "./CertificateGenerator1";
+import CertificateGenerator2 from "./CertificateGenerator2";
 import "./App.css";
 
 const App = () => {
@@ -98,6 +100,10 @@ const App = () => {
             <NGWorkplaceChart />
           ) : selectedLeader === "model" ? (
             <ModelProductionChart />
+          ) : selectedLeader === "bangKhen1" ? (
+            <CertificateGenerator1 />
+          ) : selectedLeader === "bangKhen2" ? (
+            <CertificateGenerator2 />
           ) : (
             <Employ showToast={showToast} selectedLeader={selectedLeader} />
           )}

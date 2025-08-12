@@ -53,7 +53,10 @@ const resources = {
         ng: "SL NG",
         dangNhap: "Đăng Nhập",
         logOut: "Đăng xuất",
-        changePassword: "Đổi mật khẩu"
+        changePassword: "Đổi mật khẩu",
+        certificate: "Giấy khen",
+        certificate1: "Nhân viên ưu tú nhất",
+        certificate2: "Nhân viên ưu tú"
       },
       temperatureMonitor: {
         dashboard: "Bảng điều khiển",
