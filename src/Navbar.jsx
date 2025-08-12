@@ -97,7 +97,7 @@ export default function Navbar({
     if (certificateDropdownTimer.current) clearTimeout(certificateDropdownTimer.current);
     certificateDropdownTimer.current = setTimeout(() => {
       setCertificateDropdownOpen(false);
-    }, 5000);
+    }, 3000);
   };
 
   return (
