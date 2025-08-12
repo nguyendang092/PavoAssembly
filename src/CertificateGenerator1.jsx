@@ -48,11 +48,12 @@ export default function CertificateGenerator2() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.drawImage(backgroundRef.current, 0, 0, baseWidth, baseHeight);
 
-    // Dòng tháng và năm nằm trên tên người khen thưởng
-    const topNow = new Date();
-    const topMonth = (topNow.getMonth() + 1).toString().padStart(2, '0');
-    const topYear = topNow.getFullYear();
-    const topText = `THÁNG ${topMonth} - ${topYear}`;
+    // Dòng quý và năm nằm trên tên người khen thưởng
+    const nowSub = new Date();
+    const month = nowSub.getMonth(); // 0-11
+    const quarter = Math.floor(month / 3) + 1;
+    const year = nowSub.getFullYear();
+    const topText = `QUÝ ${quarter} NĂM ${year}`;
     ctx.font = `bold ${70 * dpr}px 'Arial', 'Cambria', 'serif'`;
     ctx.fillStyle = "#1e293b";
     ctx.textAlign = "center";
@@ -83,15 +84,15 @@ export default function CertificateGenerator2() {
     // Bộ phận (nếu có) nằm dưới tên
     let offsetDept = 0;
     if (department && department.trim() !== "") {
-      ctx.font = `italic ${65 * dpr}px 'Arial', 'Cambria', 'serif'`;
+      ctx.font = `italic ${55 * dpr}px 'Arial', 'Cambria', 'serif'`;
       ctx.fillStyle = "#222";
-      ctx.fillText(`BỘ PHẬN: ${department.toUpperCase()}`, baseWidth / 2, 1780 + 90);
+      ctx.fillText(`Bộ phận: ${department}`, baseWidth / 2, 1750 + 90);
       offsetDept = 90;
     }
 
     // Dòng phụ bên dưới tên (hoặc bộ phận)
     const offsetSub = 470; // nếu có bộ phận thì đẩy xuống thêm
-    ctx.font = `bold ${80 * dpr}px 'Arial', 'Cambria', 'serif'`;
+    ctx.font = `bold ${75 * dpr}px 'Arial', 'Cambria', 'serif'`;
     ctx.fillStyle = "#444";
     // Tự động lấy quý hiện tại và năm hiện tại
     const nowSub2 = new Date();
