@@ -76,33 +76,33 @@ export default function CertificateGenerator1() {
     ctx.fillStyle = "#000";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(displayName, baseWidth / 2, 1350);
+    ctx.fillText(displayName, baseWidth / 2, 1450);
 
     // Bộ phận (nếu có) nằm dưới tên
     let offsetDept = 0;
     if (department && department.trim() !== "") {
-      ctx.font = `italic ${65 * dpr}px 'Arial', 'Cambria', 'serif'`;
+      ctx.font = `italic ${75 * dpr}px 'Arial', 'Cambria', 'serif'`;
       ctx.fillStyle = "#222";
-      ctx.fillText(`Bộ phận: ${department}`, baseWidth / 2, 1420 + 90);
+      ctx.fillText(`Bộ phận: ${department}`, baseWidth / 2, 1550 + 90);
       offsetDept = 90;
     }
 
     // Dòng phụ bên dưới tên (hoặc bộ phận)
     const offsetSub = 470; // nếu có bộ phận thì đẩy xuống thêm
-    ctx.font = `bold ${65 * dpr}px 'Cabin', 'serif'`;
+    ctx.font = `${70 * dpr}px 'Cabin', 'serif'`;
     ctx.fillStyle = "#000";
     // Tự động lấy quý hiện tại và năm hiện tại
     const nowSub2 = new Date();
     const month2 = nowSub2.getMonth(); // 0-11
     const quarter2 = Math.floor(month2 / 3) + 1;
     const year2 = nowSub2.getFullYear();
-    const subText = `nhân viên ưu tú nhất quý ${quarter2} năm ${year2}.`.toUpperCase();
-    ctx.fillText(subText, baseWidth / 2, 1680 + offsetSub);
+    const subText = `nhân viên ưu tú nhất quý ${quarter2} năm ${year2}.`;
+    ctx.fillText(subText, baseWidth / 2, 1900 + offsetSub);
 
     // Ngày tháng năm bên trái dưới
     const dateFontSize = 50;   // chỉnh font size tại đây
     const paddingLeft = 1320;   // khoảng cách từ lề trái
-    const paddingBottom = 1060; // tăng khoảng cách từ đáy lên để chữ cao hơn
+    const paddingBottom = 840; // tăng khoảng cách từ đáy lên để chữ cao hơn
 
     ctx.font = `italic ${dateFontSize * dpr}px 'Arial', 'Times New Roman', 'serif'`;
     ctx.textAlign = "left";
