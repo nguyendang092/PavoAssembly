@@ -62,7 +62,7 @@ export default function CertificateGenerator1() {
     ctx.fillStyle = "#000";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(topText, baseWidth / 2, 1040);
+    ctx.fillText(topText, baseWidth / 2, 1060);
 
     // Tên người được khen (dòng chính) - tự động giảm font nếu quá dài, viết hoa chữ cái đầu mỗi từ
     const displayName = toTitleCase(text);
@@ -89,15 +89,15 @@ export default function CertificateGenerator1() {
 
     // Dòng phụ bên dưới tên (hoặc bộ phận)
     const offsetSub = 470; // nếu có bộ phận thì đẩy xuống thêm
-    ctx.font = `bold ${80 * dpr}px 'Cabin', 'serif'`;
+    ctx.font = `bold ${65 * dpr}px 'Cabin', 'serif'`;
     ctx.fillStyle = "#000";
     // Tự động lấy quý hiện tại và năm hiện tại
     const nowSub2 = new Date();
     const month2 = nowSub2.getMonth(); // 0-11
     const quarter2 = Math.floor(month2 / 3) + 1;
     const year2 = nowSub2.getFullYear();
-    const subText = `nhân viên ưu tú nhất quý ${quarter2} năm ${year2}.`;
-    ctx.fillText(subText, baseWidth / 2, 1700 + offsetSub);
+    const subText = `nhân viên ưu tú nhất quý ${quarter2} năm ${year2}.`.toUpperCase();
+    ctx.fillText(subText, baseWidth / 2, 1680 + offsetSub);
 
     // Ngày tháng năm bên trái dưới
     const dateFontSize = 50;   // chỉnh font size tại đây
