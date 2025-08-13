@@ -25,7 +25,7 @@ export default function Navbar({
     ngocThanh: "NgocThanh",
     chiThanh: "ChiThanh",
     muoi: "Muoi",
-    duyHinh: "DuyHinh",
+    // duyHinh: "DuyHinh",
   };
 
   useEffect(() => {
