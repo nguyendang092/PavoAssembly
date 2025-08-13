@@ -295,10 +295,10 @@ export default function Navbar({
                   <li
                     key={key}
                     className="relative"
-                    onMouseEnter={openCertificateDropdown}
-                    onMouseLeave={closeCertificateDropdown}
-                    onFocus={openCertificateDropdown}
-                    onBlur={closeCertificateDropdown}
+                    onMouseEnter={user && user.email === "admin@gmail.com" ? openCertificateDropdown : undefined}
+                    onMouseLeave={user && user.email === "admin@gmail.com" ? closeCertificateDropdown : undefined}
+                    onFocus={user && user.email === "admin@gmail.com" ? openCertificateDropdown : undefined}
+                    onBlur={user && user.email === "admin@gmail.com" ? closeCertificateDropdown : undefined}
                     tabIndex={0}
                   >
                     <button
@@ -309,10 +309,16 @@ export default function Navbar({
                       } dark:text-white dark:hover:text-blue-300`}
                       type="button"
                       tabIndex={0}
+                      disabled={!user || user.email !== "admin@gmail.com"}
+                      style={
+                        !user || user.email !== "admin@gmail.com"
+                          ? { opacity: 0.5, cursor: "not-allowed" }
+                          : {}
+                      }
                     >
                       {t(`navbar.${key}`)}
                     </button>
-                    {certificateDropdownOpen && (
+                    {certificateDropdownOpen && user && user.email === "admin@gmail.com" && (
                       <div className="absolute left-0 mt-2 w-48 bg-white border rounded shadow-lg z-50">
                         <button
                           onClick={() => handleSelect("certificate1")}
