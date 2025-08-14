@@ -91,23 +91,27 @@ export default function WorkplaceChart() {
               const days = reworks[reworkKey];
               for (const dayKey in days) {
                 const shifts = days[dayKey];
-                let totalGood = 0, totalNG = 0;
-                if (typeof shifts === "object" && shifts !== null) {
-                  totalGood = shifts.Total_Good ?? shifts.Total_Product ?? 0;
-                  totalNG = shifts.Total_NG ?? 0;
-                } else {
-                  totalGood = shifts ?? 0;
-                  totalNG = 0;
+                // Sửa đoạn này: lặp qua từng shiftKey trong shifts
+                for (const shiftKey in shifts) {
+                  const shiftData = shifts[shiftKey];
+                  let totalGood = 0, totalNG = 0;
+                  if (typeof shiftData === "object" && shiftData !== null) {
+                    totalGood = shiftData.Total_Good ?? shiftData.Total_Product ?? 0;
+                    totalNG = shiftData.Total_NG ?? 0;
+                  } else {
+                    totalGood = shiftData ?? 0;
+                    totalNG = 0;
+                  }
+                  rows.push({
+                    Week: weekKey,
+                    WorkplaceName: workplaceName,
+                    ReworkorNot: reworkKey,
+                    time_monthday: dayKey,
+                    WorkingLight: shiftKey,
+                    Total_Good: totalGood,
+                    Total_NG: totalNG,
+                  });
                 }
-                rows.push({
-                  Week: weekKey,
-                  WorkplaceName: workplaceName,
-                  ReworkorNot: reworkKey,
-                  time_monthday: dayKey,
-                  WorkingLight: shiftKey,
-                  Total_Good: totalGood,
-                  Total_NG: totalNG,
-                });
               }
             }
           }
