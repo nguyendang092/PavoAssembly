@@ -347,7 +347,14 @@ export default function WorkplaceChart() {
       } else {
         dataArr = map[area].map(
           ({ Day, Night }) =>
-            Day.normal + Day.rework + Night.normal + Night.rework
+           Day.normal +
+            Day.rework +
+            Night.normal +
+            Night.rework +
+            Day.ng_normal +
+            Day.ng_rework +
+            Night.ng_normal +
+            Night.ng_rework
         );
       }
       return {
