@@ -70,7 +70,6 @@ export default function WorkplaceChart() {
   const [dataMap, setDataMap] = useState({});
   const [tableView, setTableView] = useState("detailed");
   const [rawData, setRawData] = useState(null);
-  // ...existing code...
   // Load dữ liệu từ Firebase khi component mount
   useEffect(() => {
     const loadDataFromFirebase = async () => {
@@ -92,17 +91,23 @@ export default function WorkplaceChart() {
               const days = reworks[reworkKey];
               for (const dayKey in days) {
                 const shifts = days[dayKey];
-                for (const shiftKey in shifts) {
-                  const totalProduct = shifts[shiftKey];
-                  rows.push({
-                    Week: weekKey,
-                    WorkplaceName: workplaceName,
-                    ReworkorNot: reworkKey,
-                    time_monthday: dayKey,
-                    WorkingLight: shiftKey,
-                    Total_Product: totalProduct,
-                  });
+                let totalGood = 0, totalNG = 0;
+                if (typeof shifts === "object" && shifts !== null) {
+                  totalGood = shifts.Total_Good ?? shifts.Total_Product ?? 0;
+                  totalNG = shifts.Total_NG ?? 0;
+                } else {
+                  totalGood = shifts ?? 0;
+                  totalNG = 0;
                 }
+                rows.push({
+                  Week: weekKey,
+                  WorkplaceName: workplaceName,
+                  ReworkorNot: reworkKey,
+                  time_monthday: dayKey,
+                  WorkingLight: shiftKey,
+                  Total_Good: totalGood,
+                  Total_NG: totalNG,
+                });
               }
             }
           }
@@ -133,6 +138,7 @@ export default function WorkplaceChart() {
     }
     const updates = {};
     const sanitizeKey = (key) => key.replace(/[.#$/\[\]]/g, "_");
+    // Khi upload lên Firebase, đổi Total_Product thành Total_Good và thêm Total_NG
     data.forEach((row) => {
       const {
         Week,
@@ -140,11 +146,14 @@ export default function WorkplaceChart() {
         ReworkorNot,
         time_monthday,
         WorkingLight,
-        Total_Product,
+        Total_Good,
+        Total_NG,
       } = row;
       const safeWorkplaceName = sanitizeKey(WorkplaceName);
-      const path = `bar/${safeWorkplaceName}/${Week}/${ReworkorNot}/${time_monthday}/${WorkingLight}`;
-      updates[path] = Total_Product;
+      const pathGood = `bar/${safeWorkplaceName}/${Week}/${ReworkorNot}/${time_monthday}/${WorkingLight}/Total_Good`;
+      const pathNG = `bar/${safeWorkplaceName}/${Week}/${ReworkorNot}/${time_monthday}/${WorkingLight}/Total_NG`;
+      updates[pathGood] = Total_Good;
+      updates[pathNG] = Total_NG;
     });
     await update(ref(db), updates);
   };
@@ -290,19 +299,23 @@ export default function WorkplaceChart() {
     const map = {};
     areas.forEach((area) => {
       map[area] = days.map(() => ({
-        Day: { normal: 0, rework: 0 },
-        Night: { normal: 0, rework: 0 },
+        Day: { normal: 0, rework: 0, ng_normal: 0, ng_rework: 0 },
+        Night: { normal: 0, rework: 0, ng_normal: 0, ng_rework: 0 },
       }));
     });
     rows.forEach((row) => {
       const dayIndex = days.indexOf(row.time_monthday);
       const area = row.WorkplaceName;
       const shift = row.WorkingLight || "Day";
-      const val = Number(row.Total_Product) || 0;
+      const val = Number(row.Total_Good) || 0;
+      const ngVal = Number(row.Total_NG) || 0;
       const type = row.ReworkorNot === "Rework" ? "rework" : "normal";
+      const ngType = "ng_" + type;
 
       if (dayIndex !== -1 && map[area]) {
+        // Chỉ lấy giá trị cuối cùng, không cộng dồn
         map[area][dayIndex][shift][type] = val;
+        map[area][dayIndex][shift][ngType] = ngVal;
       }
     });
     if (map["CNC"]) {
@@ -596,25 +609,16 @@ export default function WorkplaceChart() {
                 >
                   <thead>
                     <tr className="uppercase">
-                      <th className="border-b pb-1" style={{ width: "40%" }}>
+                      <th className="border-b pb-1" style={{ width: "35%" }}>
                         {t("workplaceChart.areaDay")}
                       </th>
-                      <th
-                        className="border-b pb-1 text-right"
-                        style={{ width: "30%" }}
-                      >
+                      <th className="border-b pb-1 text-right" style={{ width: "25%" }}>
                         {t("workplaceChart.normal")}
                       </th>
-                      <th
-                        className="border-b pb-1 text-right"
-                        style={{ width: "15%" }}
-                      >
-                        {t("workplaceChart.rework")}
+                      <th className="border-b pb-1 text-right" style={{ width: "20%" }}>
+                        NG
                       </th>
-                      <th
-                        className="border-b pb-1 text-right font-bold"
-                        style={{ width: "25%" }}
-                      >
+                      <th className="border-b pb-1 text-right font-bold" style={{ width: "20%" }}>
                         {t("workplaceChart.total")}
                       </th>
                     </tr>
@@ -626,23 +630,22 @@ export default function WorkplaceChart() {
                       )
                       .map(([area, dayArr]) => {
                         let totalNormal = 0;
-                        let totalRework = 0;
+                        let totalNG = 0;
                         chartData.labels.forEach((_, idx) => {
                           const { Day, Night } = dayArr[idx] || {
                             Day: {},
                             Night: {},
                           };
-                          let normal, rework;
-
+                          let normal, ng;
                           if (area === "CNC") {
                             normal = Day.normal;
-                            rework = Day.rework;
+                            ng = Day.ng_normal + Day.ng_rework;
                           } else {
                             normal = Day.normal + Night.normal;
-                            rework = Day.rework + Night.rework;
+                            ng = Day.ng_normal + Night.ng_normal + Day.ng_rework + Night.ng_rework;
                           }
                           totalNormal += normal;
-                          totalRework += rework;
+                          totalNG += ng;
                         });
                         return (
                           <React.Fragment key={area}>
@@ -653,39 +656,30 @@ export default function WorkplaceChart() {
                               <td style={{ padding: "6px 8px" }}>
                                 {t(`areas.${area}`)}
                               </td>
-                              <td
-                                className="text-right"
-                                style={{ padding: "6px 8px" }}
-                              >
+                              <td className="text-right" style={{ padding: "6px 8px" }}>
                                 {totalNormal.toLocaleString()}
                               </td>
-                              <td
-                                className="text-right"
-                                style={{ padding: "6px 8px" }}
-                              >
-                                {totalRework.toLocaleString()}
+                              <td className="text-right" style={{ padding: "6px 8px" }}>
+                                {totalNG.toLocaleString()}
                               </td>
-                              <td
-                                className="text-right"
-                                style={{ padding: "6px 8px" }}
-                              >
-                                {(totalNormal + totalRework).toLocaleString()}
+                              <td className="text-right" style={{ padding: "6px 8px" }}>
+                                {(totalNormal + totalNG).toLocaleString()}
                               </td>
                             </tr>
                             {chartData.labels.map((label, idx) => {
                               const { Day, Night } = dayArr[idx] || {
-                                Day: { normal: 0, rework: 0 },
-                                Night: { normal: 0, rework: 0 },
+                                Day: { normal: 0, ng_normal: 0, ng_rework: 0 },
+                                Night: { normal: 0, ng_normal: 0, ng_rework: 0 },
                               };
-                              let normal, rework;
+                              let normal, ng;
                               if (area === "CNC") {
                                 normal = Day.normal;
-                                rework = Day.rework;
+                                ng = Day.ng_normal + Day.ng_rework;
                               } else {
                                 normal = Day.normal + Night.normal;
-                                rework = Day.rework + Night.rework;
+                                ng = Day.ng_normal + Night.ng_normal + Day.ng_rework + Night.ng_rework;
                               }
-                              const total = normal + rework;
+                              const total = normal + ng; // Tổng = good + NG
                               if (total === 0) return null;
                               return (
                                 <tr
@@ -693,31 +687,20 @@ export default function WorkplaceChart() {
                                   className="text-gray-700"
                                   style={{ fontSize: "0.8rem" }}
                                 >
-                                  <td
-                                    style={{
-                                      paddingLeft: 32,
-                                      paddingTop: 2,
-                                      paddingBottom: 2,
-                                    }}
-                                  >
+                                  <td style={{
+                                    paddingLeft: 32,
+                                    paddingTop: 2,
+                                    paddingBottom: 2,
+                                  }}>
                                     {label}
                                   </td>
-                                  <td
-                                    className="text-right"
-                                    style={{ paddingTop: 2, paddingBottom: 2 }}
-                                  >
+                                  <td className="text-right" style={{ paddingTop: 2, paddingBottom: 2 }}>
                                     {normal.toLocaleString()}
                                   </td>
-                                  <td
-                                    className="text-right"
-                                    style={{ paddingTop: 2, paddingBottom: 2 }}
-                                  >
-                                    {rework.toLocaleString()}
+                                  <td className="text-right" style={{ paddingTop: 2, paddingBottom: 2 }}>
+                                    {ng.toLocaleString()}
                                   </td>
-                                  <td
-                                    className="text-right"
-                                    style={{ paddingTop: 2, paddingBottom: 2 }}
-                                  >
+                                  <td className="text-right" style={{ paddingTop: 2, paddingBottom: 2 }}>
                                     {total.toLocaleString()}
                                   </td>
                                 </tr>
