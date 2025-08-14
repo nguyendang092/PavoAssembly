@@ -302,7 +302,7 @@ export default function WorkplaceChart() {
       const type = row.ReworkorNot === "Rework" ? "rework" : "normal";
 
       if (dayIndex !== -1 && map[area]) {
-        map[area][dayIndex][shift][type] += val;
+        map[area][dayIndex][shift][type] = val;
       }
     });
     if (map["CNC"]) {
