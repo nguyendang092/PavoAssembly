@@ -17,8 +17,11 @@ export default function Navbar({
 
   const leaderMap = {
     temperature: "nhietdo",
-    bieudo: "bieudo",
-    ng: "ng",
+    sanLuongNormal: "sanLuongNormal",
+    sanLuongNG: "sanLuongNG",
+    ap5: "ap5",
+    AP5FF: "AP5FF",      // Thêm dòng này
+    AP5FZ: "AP5FZ",      // Thêm dòng này
     certificate: "bangKhen",
     certificate1: "bangKhen1",
     certificate2: "bangKhen2",
@@ -77,7 +80,11 @@ export default function Navbar({
   const [changePwOpen, setChangePwOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [certificateDropdownOpen, setCertificateDropdownOpen] = useState(false);
+  const [sanLuongDropdownOpen, setSanLuongDropdownOpen] = useState(false);
+  const [ap5DropdownOpen, setAp5DropdownOpen] = useState(false);
   const certificateDropdownTimer = useRef(null);
+  const sanLuongDropdownTimer = useRef(null);
+  const ap5DropdownTimer = useRef(null);
   // Đóng dropdown khi click ngoài
   useEffect(() => {
     if (!userDropdownOpen) return;
@@ -97,7 +104,31 @@ export default function Navbar({
     if (certificateDropdownTimer.current) clearTimeout(certificateDropdownTimer.current);
     certificateDropdownTimer.current = setTimeout(() => {
       setCertificateDropdownOpen(false);
-    }, 3000);
+    }, 300);
+  };
+
+  // Thêm hàm mở/đóng dropdown sản lượng
+  const openSanLuongDropdown = () => {
+    if (sanLuongDropdownTimer.current) clearTimeout(sanLuongDropdownTimer.current);
+    setSanLuongDropdownOpen(true);
+  };
+  const closeSanLuongDropdown = () => {
+    if (sanLuongDropdownTimer.current) clearTimeout(sanLuongDropdownTimer.current);
+    sanLuongDropdownTimer.current = setTimeout(() => {
+      setSanLuongDropdownOpen(false);
+    }, 300);
+  };
+
+  // Thêm hàm mở/đóng dropdown AP5
+  const openAp5Dropdown = () => {
+    if (ap5DropdownTimer.current) clearTimeout(ap5DropdownTimer.current);
+    setAp5DropdownOpen(true);
+  };
+  const closeAp5Dropdown = () => {
+    if (ap5DropdownTimer.current) clearTimeout(ap5DropdownTimer.current);
+    ap5DropdownTimer.current = setTimeout(() => {
+      setAp5DropdownOpen(false);
+    }, 300);
   };
 
   return (
@@ -291,24 +322,133 @@ export default function Navbar({
           >
             <ul className="flex flex-col font-medium p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-white shadow-md md:shadow-none md:space-x-6 md:flex-row md:mt-0 md:border-0 md:bg-transparent dark:bg-gray-900">
               {Object.keys(leaderMap).map((key) =>
-                key === "certificate" ? (
+                key === "sanLuongNormal" ? (
                   <li
                     key={key}
                     className="relative"
-                    onMouseEnter={user && user.email === "admin@gmail.com" ? openCertificateDropdown : undefined}
-                    onMouseLeave={user && user.email === "admin@gmail.com" ? closeCertificateDropdown : undefined}
-                    onFocus={user && user.email === "admin@gmail.com" ? openCertificateDropdown : undefined}
-                    onBlur={user && user.email === "admin@gmail.com" ? closeCertificateDropdown : undefined}
+                    onMouseEnter={openSanLuongDropdown}
+                    onMouseLeave={closeSanLuongDropdown}
+                    onFocus={openSanLuongDropdown}
+                    onBlur={closeSanLuongDropdown}
                     tabIndex={0}
                   >
                     <button
-                      className={`block py-2 px-4 md:px-3 rounded-md transition-all duration-200 font-semibold text-sm uppercase ${
-                        (key === activeLeaderKey || ["certificate1","certificate2"].includes(activeLeaderKey))
+                      className={`flex items-center py-2 px-4 md:px-3 rounded-md transition-all duration-200 font-semibold text-sm uppercase ${
+                        (activeLeaderKey === "sanLuongNormal" || activeLeaderKey === "sanLuongNG")
                           ? "bg-blue-100 text-blue-700 font-semibold underline underline-offset-4"
                           : "text-gray-800 hover:text-blue-600 hover:bg-blue-50"
                       } dark:text-white dark:hover:text-blue-300`}
                       type="button"
-                      tabIndex={0}
+                      aria-haspopup="true"
+                      aria-expanded={sanLuongDropdownOpen}
+                    >
+                      {t("navbar.sanLuong")}
+                      <svg className="inline w-4 h-4 ml-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {sanLuongDropdownOpen && (
+                      <div
+                        className="absolute left-0 mt-2 w-36 bg-white border rounded shadow-lg z-50"
+                        style={{ minWidth: 120 }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={() => { handleSelect("sanLuongNormal"); setSanLuongDropdownOpen(false); }}
+                          className={`block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs ${
+                            activeLeaderKey === "sanLuongNormal" ? "bg-blue-100 text-blue-700" : ""
+                          }`}
+                          tabIndex={0}
+                        >
+                          Normal
+                        </button>
+                        <button
+                          onClick={() => { handleSelect("sanLuongNG"); setSanLuongDropdownOpen(false); }}
+                          className={`block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs ${
+                            activeLeaderKey === "sanLuongNG" ? "bg-blue-100 text-blue-700" : ""
+                          }`}
+                          tabIndex={0}
+                        >
+                          NG
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                ) :
+                key === "sanLuongNG" ? null :
+                key === "ap5" ? (
+                  <li
+                    key={key}
+                    className="relative"
+                    onMouseEnter={openAp5Dropdown}
+                    onMouseLeave={closeAp5Dropdown}
+                    onFocus={openAp5Dropdown}
+                    onBlur={closeAp5Dropdown}
+                    tabIndex={0}
+                  >
+                    <button
+                      className={`flex items-center py-2 px-4 md:px-3 rounded-md transition-all duration-200 font-semibold text-sm uppercase ${
+                        (activeLeaderKey === "AP5FF" || activeLeaderKey === "AP5FZ")
+                          ? "bg-blue-100 text-blue-700 font-semibold underline underline-offset-4"
+                          : "text-gray-800 hover:text-blue-600 hover:bg-blue-50"
+                      } dark:text-white dark:hover:text-blue-300`}
+                      type="button"
+                      aria-haspopup="true"
+                      aria-expanded={ap5DropdownOpen}
+                    >
+                      AP5
+                      <svg className="inline w-4 h-4 ml-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {ap5DropdownOpen && (
+                      <div
+                        className="absolute left-0 mt-2 w-36 bg-white border rounded shadow-lg z-50"
+                        style={{ minWidth: 120 }}
+                        onClick={e => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={() => { handleSelect("AP5FF"); setAp5DropdownOpen(false); }}
+                          className={`block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs ${
+                            activeLeaderKey === "AP5FF" ? "bg-blue-100 text-blue-700" : ""
+                          }`}
+                          tabIndex={0}
+                        >
+                          AP5FF
+                        </button>
+                        <button
+                          onClick={() => { handleSelect("AP5FZ"); setAp5DropdownOpen(false); }}
+                          className={`block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs ${
+                            activeLeaderKey === "AP5FZ" ? "bg-blue-100 text-blue-700" : ""
+                          }`}
+                          tabIndex={0}
+                        >
+                          AP5FZ
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                ) :
+                key === "AP5FF" || key === "AP5FZ" ? null :
+                key === "certificate" ? (
+                  <li
+                    key={key}
+                    className="relative"
+                    onMouseEnter={openCertificateDropdown}
+                    onMouseLeave={closeCertificateDropdown}
+                    onFocus={openCertificateDropdown}
+                    onBlur={closeCertificateDropdown}
+                    tabIndex={0}
+                  >
+                    <button
+                      className={`flex items-center py-2 px-4 md:px-3 rounded-md transition-all duration-200 font-semibold text-sm uppercase ${
+                        (activeLeaderKey === "certificate1" || activeLeaderKey === "certificate2")
+                          ? "bg-blue-100 text-blue-700 font-semibold underline underline-offset-4"
+                          : "text-gray-800 hover:text-blue-600 hover:bg-blue-50"
+                      } dark:text-white dark:hover:text-blue-300`}
+                      type="button"
+                      aria-haspopup="true"
+                      aria-expanded={certificateDropdownOpen}
                       disabled={!user || user.email !== "admin@gmail.com"}
                       style={
                         !user || user.email !== "admin@gmail.com"
@@ -316,29 +456,53 @@ export default function Navbar({
                           : {}
                       }
                     >
-                      {t(`navbar.${key}`)}
+                      {t("navbar.certificate")}
+                      <svg className="inline w-4 h-4 ml-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
                     </button>
-                    {certificateDropdownOpen && user && user.email === "admin@gmail.com" && (
-                      <div className="absolute left-0 mt-2 w-48 bg-white border rounded shadow-lg z-50">
+                    {certificateDropdownOpen && (
+                      <div
+                        className="absolute left-0 mt-2 w-36 bg-white border rounded shadow-lg z-50"
+                        style={{ minWidth: 120 }}
+                        onClick={e => e.stopPropagation()}
+                      >
                         <button
-                          onClick={() => handleSelect("certificate1")}
-                          className="block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs"
+                          onClick={() => { handleSelect("certificate1"); setCertificateDropdownOpen(false); }}
+                          className={`block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs ${
+                            activeLeaderKey === "certificate1" ? "bg-blue-100 text-blue-700" : ""
+                          }`}
                           tabIndex={0}
+                          disabled={!user || user.email !== "admin@gmail.com"}
+                          style={
+                            !user || user.email !== "admin@gmail.com"
+                              ? { opacity: 0.5, cursor: "not-allowed" }
+                              : {}
+                          }
                         >
-                          {t(`navbar.certificate1`)}
+                          {t("navbar.certificate1")}
                         </button>
                         <button
-                          onClick={() => handleSelect("certificate2")}
-                          className="block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs"
+                          onClick={() => { handleSelect("certificate2"); setCertificateDropdownOpen(false); }}
+                          className={`block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs ${
+                            activeLeaderKey === "certificate2" ? "bg-blue-100 text-blue-700" : ""
+                          }`}
                           tabIndex={0}
+                          disabled={!user || user.email !== "admin@gmail.com"}
+                          style={
+                            !user || user.email !== "admin@gmail.com"
+                              ? { opacity: 0.5, cursor: "not-allowed" }
+                              : {}
+                          }
                         >
-                          {t(`navbar.certificate2`)}
+                          {t("navbar.certificate2")}
                         </button>
                       </div>
                     )}
                   </li>
                 ) :
-                key === "certificate1" || key === "certificate2" ? null : (
+                key === "certificate1" || key === "certificate2" ? null :
+                (
                   <li key={key}>
                     <button
                       onClick={() => handleSelect(key)}

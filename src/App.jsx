@@ -12,11 +12,12 @@ import NGWorkplaceChart from "./NGWorkplaceChart";
 import { useLoading } from "./LoadingContext"; // ✅ Dùng context loading
 import CertificateGenerator1 from "./CertificateGenerator1";
 import CertificateGenerator2 from "./CertificateGenerator2";
+import Metandeco from "./Metandeco"; // ✅ 
 import "./App.css";
 
 const App = () => {
   const [toastMessage, setToastMessage] = useState("");
-  const [selectedLeader, setSelectedLeader] = useState("");
+  const [selectedLeader, setSelectedLeader] = useState("sanLuongNormal");
   const [leaderMap, setLeaderMap] = useState({});
   const [isScrolled, setIsScrolled] = useState(false);
   const [user, setUser] = useState(null);
@@ -94,12 +95,14 @@ const App = () => {
         <div className="pt-16 overflow-hidden">
           {selectedLeader === "nhietdo" ? (
             <TemperatureMonitor />
-          ) : selectedLeader === "bieudo" ? (
+          ) : selectedLeader === "sanLuongNormal" ? (
             <WorkplaceChart />
-          ) : selectedLeader === "ng" ? (
+          ) : selectedLeader === "sanLuongNG" ? (
             <NGWorkplaceChart />
           ) : selectedLeader === "model" ? (
             <ModelProductionChart />
+          ) : selectedLeader === "AP5FF" || selectedLeader === "AP5FZ" ? (
+            <Metandeco />
           ) : selectedLeader === "bangKhen1" ? (
             <CertificateGenerator1 />
           ) : selectedLeader === "bangKhen2" ? (
