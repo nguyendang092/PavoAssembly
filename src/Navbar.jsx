@@ -7,8 +7,6 @@ import ChangePasswordModal from "./ChangePasswordModal";
 import { useTranslation } from "react-i18next";
 import { menuConfig } from "./menuConfig";
 export default function Navbar({
-  onSelectLeader,
-  onLeaderMapReady,
   user,
   setUser,
 }) {
@@ -19,21 +17,25 @@ export default function Navbar({
   const location = useLocation();
   // Đồng bộ activeLeaderKey với route
   useEffect(() => {
-    if (location.pathname === "/ng") {
-      setActiveLeaderKey("sanLuongNG");
-    } else if (location.pathname === "/sanluong") {
-      setActiveLeaderKey("sanLuongNormal");
-    } else if (location.pathname === "/ap5ff") {
-      setActiveLeaderKey("AP5FF");
-    } else if (location.pathname === "/ap5fz") {
-      setActiveLeaderKey("AP5FZ");
+    let foundKey = null;
+    for (const item of menuConfig) {
+      if (item.type === "dropdown" && item.children) {
+        for (const child of item.children) {
+          if (child.path === location.pathname) {
+            foundKey = child.key;
+            break;
+          }
+        }
+      } else if (item.path === location.pathname) {
+        foundKey = item.key;
+      }
+      if (foundKey) break;
     }
+    if (foundKey) setActiveLeaderKey(foundKey);
   }, [location.pathname]);
-  // State & timer for Leader dropdown
-  const [leaderDropdownOpen, setLeaderDropdownOpen] = useState(false);
-  const leaderDropdownTimer = useRef(null);
-
-  // Đã chuyển toàn bộ menu sang menuConfig, không cần leaderMap nữa
+  // Dropdown state động cho tất cả dropdown
+  const [dropdownOpen, setDropdownOpen] = useState({});
+  const dropdownTimers = useRef({});
 
   const flagMap = {
     vi: "https://flagcdn.com/w40/vn.png",
@@ -75,55 +77,26 @@ export default function Navbar({
 
   const [changePwOpen, setChangePwOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [certificateDropdownOpen, setCertificateDropdownOpen] = useState(false);
-  const [sanLuongDropdownOpen, setSanLuongDropdownOpen] = useState(false);
-  const [ap5DropdownOpen, setAp5DropdownOpen] = useState(false);
-  const certificateDropdownTimer = useRef(null);
-  const sanLuongDropdownTimer = useRef(null);
-  const ap5DropdownTimer = useRef(null);
-  // Đóng dropdown khi click ngoài
+  // Đã chuyển dropdown sang state động, các state/timer cũ không còn cần thiết
+  // Đóng dropdown user khi click ngoài
   useEffect(() => {
     if (!userDropdownOpen) return;
     const handleClick = (e) => {
-      // Nếu click ngoài dropdown và ngoài nút, thì đóng
       if (!e.target.closest(".user-dropdown-btn")) setUserDropdownOpen(false);
     };
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [userDropdownOpen]);
 
-  const openCertificateDropdown = () => {
-    if (certificateDropdownTimer.current) clearTimeout(certificateDropdownTimer.current);
-    setCertificateDropdownOpen(true);
+  // Hàm mở/đóng dropdown động
+  const openDropdown = (key) => {
+    if (dropdownTimers.current[key]) clearTimeout(dropdownTimers.current[key]);
+    setDropdownOpen((prev) => ({ ...prev, [key]: true }));
   };
-  const closeCertificateDropdown = () => {
-    if (certificateDropdownTimer.current) clearTimeout(certificateDropdownTimer.current);
-    certificateDropdownTimer.current = setTimeout(() => {
-      setCertificateDropdownOpen(false);
-    }, 300);
-  };
-
-  // Thêm hàm mở/đóng dropdown sản lượng
-  const openSanLuongDropdown = () => {
-    if (sanLuongDropdownTimer.current) clearTimeout(sanLuongDropdownTimer.current);
-    setSanLuongDropdownOpen(true);
-  };
-  const closeSanLuongDropdown = () => {
-    if (sanLuongDropdownTimer.current) clearTimeout(sanLuongDropdownTimer.current);
-    sanLuongDropdownTimer.current = setTimeout(() => {
-      setSanLuongDropdownOpen(false);
-    }, 300);
-  };
-
-  // Thêm hàm mở/đóng dropdown AP5
-  const openAp5Dropdown = () => {
-    if (ap5DropdownTimer.current) clearTimeout(ap5DropdownTimer.current);
-    setAp5DropdownOpen(true);
-  };
-  const closeAp5Dropdown = () => {
-    if (ap5DropdownTimer.current) clearTimeout(ap5DropdownTimer.current);
-    ap5DropdownTimer.current = setTimeout(() => {
-      setAp5DropdownOpen(false);
+  const closeDropdown = (key) => {
+    if (dropdownTimers.current[key]) clearTimeout(dropdownTimers.current[key]);
+    dropdownTimers.current[key] = setTimeout(() => {
+      setDropdownOpen((prev) => ({ ...prev, [key]: false }));
     }, 300);
   };
 
@@ -319,42 +292,9 @@ export default function Navbar({
             <ul className="flex flex-col font-medium p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-white shadow-md md:shadow-none md:space-x-6 md:flex-row md:mt-0 md:border-0 md:bg-transparent dark:bg-gray-900">
               {menuConfig.map((item) => {
                 if (item.type === "dropdown") {
-                  const isOpen =
-                    item.key === "ap5"
-                      ? ap5DropdownOpen
-                      : item.key === "certificate"
-                      ? certificateDropdownOpen
-                      : item.key === "leader"
-                      ? leaderDropdownOpen
-                      : item.key === "sanluong"
-                      ? sanLuongDropdownOpen
-                      : false;
-                  const openFn =
-                    item.key === "ap5"
-                      ? openAp5Dropdown
-                      : item.key === "certificate"
-                      ? openCertificateDropdown
-                      : item.key === "leader"
-                      ? () => {
-                          if (leaderDropdownTimer.current) clearTimeout(leaderDropdownTimer.current);
-                          setLeaderDropdownOpen(true);
-                        }
-                      : item.key === "sanluong"
-                      ? openSanLuongDropdown
-                      : undefined;
-                  const closeFn =
-                    item.key === "ap5"
-                      ? closeAp5Dropdown
-                      : item.key === "certificate"
-                      ? closeCertificateDropdown
-                      : item.key === "leader"
-                      ? () => {
-                          if (leaderDropdownTimer.current) clearTimeout(leaderDropdownTimer.current);
-                          leaderDropdownTimer.current = setTimeout(() => setLeaderDropdownOpen(false), 300);
-                        }
-                      : item.key === "sanluong"
-                      ? closeSanLuongDropdown
-                      : undefined;
+                  const isOpen = !!dropdownOpen[item.key];
+                  const openFn = () => openDropdown(item.key);
+                  const closeFn = () => closeDropdown(item.key);
                   if (item.adminOnly && (!user || user.email !== "admin@gmail.com")) return null;
                   return (
                     <li
@@ -399,10 +339,7 @@ export default function Navbar({
                               to={child.path}
                               onClick={() => {
                                 setActiveLeaderKey(child.key);
-                                if (item.key === "ap5") setAp5DropdownOpen(false);
-                                if (item.key === "certificate") setCertificateDropdownOpen(false);
-                                if (item.key === "leader") setLeaderDropdownOpen(false);
-                                if (item.key === "sanluong") setSanLuongDropdownOpen(false);
+                                setDropdownOpen((prev) => ({ ...prev, [item.key]: false }));
                               }}
                               className={`block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs ${
                                 activeLeaderKey === child.key ? "bg-blue-100 text-blue-700" : ""

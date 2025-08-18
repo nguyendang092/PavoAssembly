@@ -22,8 +22,8 @@ const App = () => {
   // Nếu reload (F5) thì về trang chủ /sanluong
   useEffect(() => {
     if (typeof window !== 'undefined' && window.performance && window.performance.navigation && window.performance.navigation.type === 1) {
-      if (window.location.pathname !== '/sanluong' && window.location.pathname !== '/') {
-        window.history.replaceState({}, '', '/sanluong');
+      if (window.location.pathname !== '/normal' && window.location.pathname !== '/') {
+        window.history.replaceState({}, '', '/normal');
         window.location.reload();
       }
     }
@@ -90,7 +90,7 @@ const App = () => {
           {/* Nội dung chính */}
           <div className="pt-16 overflow-hidden">
             <Routes>
-              <Route path="/" element={<Navigate to="/sanluong" replace />} />
+              <Route path="/" element={<Navigate to="/normal" replace />} />
               {routeConfig.map((r) => {
                 let Element;
                 switch (r.element) {
@@ -108,7 +108,7 @@ const App = () => {
                   <Route key={r.path} path={r.path} element={<Element />} />
                 ) : null;
               })}
-              <Route path="*" element={<Navigate to="/sanluong" replace />} />
+              <Route path="*" element={<Navigate to="/normal" replace />} />
             </Routes>
           </div>
 

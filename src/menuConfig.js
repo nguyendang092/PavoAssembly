@@ -3,11 +3,11 @@
 
 export const menuConfig = [
   {
-    key: "sanluong",
+    key: "sanLuong",
     label: "navbar.sanLuong",
     type: "dropdown",
     children: [
-      { key: "sanLuongNormal", label: "Normal", path: "/sanluong" },
+      { key: "sanLuongNormal", label: "Normal", path: "/normal" },
       { key: "sanLuongNG", label: "NG", path: "/ng" },
     ],
   },
@@ -47,7 +47,7 @@ export const menuConfig = [
 
 // Cấu hình route cho App.jsx
 export const routeConfig = [
-  { path: "/sanluong", element: "WorkplaceChart" },
+  { path: "/normal", element: "WorkplaceChart" },
   { path: "/ng", element: "NGWorkplaceChart" },
   { path: "/ap5ff", element: "Metandeco" },
   { path: "/ap5fz", element: "Metandeco" },
