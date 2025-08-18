@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { db } from "./firebase";
 import { ref, onValue } from "firebase/database";
 import AreaProductionTable from "./AreaProductionTable";
@@ -8,6 +9,9 @@ import AddEmployeeForm from "./AddEmployeeModal";
 import { useTranslation } from "react-i18next";
 
 const Employ = ({ showToast, selectedLeader }) => {
+  const params = useParams();
+  // Nếu có leader trên URL thì ưu tiên lấy leader này
+  const leaderFromUrl = params.leader;
   const [assignments, setAssignments] = useState([]);
   const [toastMessage, setToastMessage] = useState("");
   const { t } = useTranslation();
@@ -47,7 +51,11 @@ const Employ = ({ showToast, selectedLeader }) => {
 
         <div className="space-y-8">
           {assignments
-            .filter((a) => !selectedLeader || a.area === selectedLeader)
+            .filter((a) => {
+              if (leaderFromUrl) return a.area === leaderFromUrl;
+              if (selectedLeader) return a.area === selectedLeader;
+              return true;
+            })
             .map((a, idx) => {
               const key = a.area.replace(/\//g, "_");
               const currentViewMode = viewModes[a.area] || "time"; // mặc định là "time"

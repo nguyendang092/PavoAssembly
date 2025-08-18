@@ -9,23 +9,32 @@ import WorkplaceChart from "./WorkplaceChart";
 import ModelProductionChart from "./ModelProductionChart";
 import { UserContext } from "./UserContext";
 import NGWorkplaceChart from "./NGWorkplaceChart";
-import { useLoading } from "./LoadingContext"; // ✅ Dùng context loading
+import { useLoading } from "./LoadingContext";
 import CertificateGenerator1 from "./CertificateGenerator1";
 import CertificateGenerator2 from "./CertificateGenerator2";
-import Metandeco from "./Metandeco"; // ✅ 
+import Metandeco from "./Metandeco";
+import { routeConfig } from "./menuConfig";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import "./App.css";
 
 const App = () => {
+
+  // Nếu reload (F5) thì về trang chủ /sanluong
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.performance && window.performance.navigation && window.performance.navigation.type === 1) {
+      if (window.location.pathname !== '/sanluong' && window.location.pathname !== '/') {
+        window.history.replaceState({}, '', '/sanluong');
+        window.location.reload();
+      }
+    }
+  }, []);
   const [toastMessage, setToastMessage] = useState("");
-  const [selectedLeader, setSelectedLeader] = useState("sanLuongNormal");
-  const [leaderMap, setLeaderMap] = useState({});
   const [isScrolled, setIsScrolled] = useState(false);
   const [user, setUser] = useState(null);
-  const { setLoading } = useLoading(); // ✅ Hook loading context
+  const { setLoading } = useLoading();
 
-  // Lấy user từ localStorage
   useEffect(() => {
-    setLoading(true); // 👈 Bắt đầu loading
+    setLoading(true);
     const loginData = localStorage.getItem("userLogin");
     if (loginData) {
       const { email, name, expire } = JSON.parse(loginData);
@@ -40,7 +49,6 @@ const App = () => {
         setUser(null);
       }
     }
-    // Nhỏ delay để tránh nháy spinner
     setTimeout(() => setLoading(false), 800);
   }, []);
 
@@ -64,67 +72,60 @@ const App = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Khi chọn tab mới (như "nhietdo", "ng", ...)
-  useEffect(() => {
-    if (!selectedLeader) return;
-    setLoading(true);
-    const timer = setTimeout(() => setLoading(false), 500); // Giả lập load
-    return () => clearTimeout(timer);
-  }, [selectedLeader]);
-
   return (
     <UserContext.Provider value={{ user, setUser }}>
-      <div>
-        {/* Navbar cố định */}
-        <div
-          className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
-            isScrolled
-              ? "bg-white/30 backdrop-blur-md shadow-md"
-              : "bg-transparent"
-          }`}
-        >
-          <Navbar
-            onSelectLeader={setSelectedLeader}
-            onLeaderMapReady={setLeaderMap}
-            user={user}
-            setUser={setUser}
-          />
-        </div>
+      <Router>
+        <div>
+          {/* Navbar cố định */}
+          <div
+            className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
+              isScrolled
+                ? "bg-white/30 backdrop-blur-md shadow-md"
+                : "bg-transparent"
+            }`}
+          >
+            <Navbar user={user} setUser={setUser} />
+          </div>
 
-        {/* Nội dung chính */}
-        <div className="pt-16 overflow-hidden">
-          {selectedLeader === "nhietdo" ? (
-            <TemperatureMonitor />
-          ) : selectedLeader === "sanLuongNormal" ? (
-            <WorkplaceChart />
-          ) : selectedLeader === "sanLuongNG" ? (
-            <NGWorkplaceChart />
-          ) : selectedLeader === "model" ? (
-            <ModelProductionChart />
-          ) : selectedLeader === "AP5FF" || selectedLeader === "AP5FZ" ? (
-            <Metandeco />
-          ) : selectedLeader === "bangKhen1" ? (
-            <CertificateGenerator1 />
-          ) : selectedLeader === "bangKhen2" ? (
-            <CertificateGenerator2 />
-          ) : (
-            <Employ showToast={showToast} selectedLeader={selectedLeader} />
+          {/* Nội dung chính */}
+          <div className="pt-16 overflow-hidden">
+            <Routes>
+              <Route path="/" element={<Navigate to="/sanluong" replace />} />
+              {routeConfig.map((r) => {
+                let Element;
+                switch (r.element) {
+                  case "WorkplaceChart": Element = WorkplaceChart; break;
+                  case "NGWorkplaceChart": Element = NGWorkplaceChart; break;
+                  case "ModelProductionChart": Element = ModelProductionChart; break;
+                  case "Metandeco": Element = Metandeco; break;
+                  case "CertificateGenerator1": Element = CertificateGenerator1; break;
+                  case "CertificateGenerator2": Element = CertificateGenerator2; break;
+                  case "TemperatureMonitor": Element = TemperatureMonitor; break;
+                  case "Employ": Element = (props) => <Employ {...props} showToast={showToast} />; break;
+                  default: Element = null;
+                }
+                return Element ? (
+                  <Route key={r.path} path={r.path} element={<Element />} />
+                ) : null;
+              })}
+              <Route path="*" element={<Navigate to="/sanluong" replace />} />
+            </Routes>
+          </div>
+
+          {/* Toast */}
+          <Toast message={toastMessage} onClose={() => setToastMessage("")} />
+
+          {/* Nút scroll to top */}
+          {isScrolled && (
+            <button
+              onClick={scrollToTop}
+              className="fixed bottom-6 right-6 z-50 text-blue-600 hover:text-white bg-white hover:bg-blue-600 rounded-full shadow-lg p-3 transition duration-300"
+            >
+              <FaArrowCircleUp size={24} />
+            </button>
           )}
         </div>
-
-        {/* Toast */}
-        <Toast message={toastMessage} onClose={() => setToastMessage("")} />
-
-        {/* Nút scroll to top */}
-        {isScrolled && (
-          <button
-            onClick={scrollToTop}
-            className="fixed bottom-6 right-6 z-50 text-blue-600 hover:text-white bg-white hover:bg-blue-600 rounded-full shadow-lg p-3 transition duration-300"
-          >
-            <FaArrowCircleUp size={24} />
-          </button>
-        )}
-      </div>
+      </Router>
     </UserContext.Provider>
   );
 };
