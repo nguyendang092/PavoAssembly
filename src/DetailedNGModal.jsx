@@ -66,30 +66,24 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
     }
   }, [selectedDate]);
   useEffect(() => {
-    if (!selectedArea || !selectedDate) return;
+    if (!isOpen || !selectedArea || !selectedDate) return;
     let isMounted = true;
     const fetchData = async () => {
       setLoading(true);
-      // Lấy toàn bộ tuần của area, lọc đúng ngày đã chọn
       const areaRef = ref(db, `ng/${selectedArea}`);
       const snapshot = await get(areaRef);
       if (!isMounted) return;
       const details = [];
       if (snapshot.exists()) {
         const weekData = snapshot.val();
-        // console.log('Firebase weekData:', weekData);
         for (const weekKey in weekData) {
           const reworkData = weekData[weekKey];
-          // console.log('weekKey:', weekKey, 'reworkData:', reworkData);
           for (const rework in reworkData) {
             const dayData = reworkData[rework];
-            // console.log('rework:', rework, 'dayData:', dayData);
             for (const day in dayData) {
-              // Chỉ lấy ngày đúng định dạng yyyy-mm-dd
               if (day !== selectedDate || !/^\d{4}-\d{2}-\d{2}$/.test(day))
                 continue;
               const modelData = dayData[day];
-              // console.log("day:", day, "modelData:", modelData);
               for (const model in modelData) {
                 let quantity = 0;
                 let notes = "";
@@ -97,7 +91,6 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
                   typeof modelData[model] === "object" &&
                   modelData[model] !== null
                 ) {
-                  // Nếu lưu kiểu mới: { Day: { quantity, reason } }
                   if (
                     typeof modelData[model].Day === "object" &&
                     modelData[model].Day !== null
@@ -133,7 +126,7 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
     return () => {
       isMounted = false;
     };
-  }, [selectedArea, selectedDate]);
+  }, [selectedArea, selectedDate, isOpen]);
   const filteredData = allDetailData.filter((item) =>
     item.model.toLowerCase().includes(selectedModel.toLowerCase())
   );

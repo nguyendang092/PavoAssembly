@@ -1,16 +1,30 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { db } from "./firebase";
 import { ref, set, get } from "firebase/database";
 
+
+// Định nghĩa mapping giữa tên cột Excel và key trong code
+const COLUMN_MAP = {
+  "Line": "AP5",
+  "Công đoạn": "công đoạn",
+  "Phân Loại": "Phân Loại",
+  "Tháng": "Tháng",
+  "Năm": "Năm",
+  "Khung giờ": "Khung giờ",
+  "Sản lượng": "Sản lượng",
+  "Sản lượng NG": "Sản lượng NG",
+  "% Hiệu suất": "% Hiệu suất",
+  "Lỗi": "Lỗi"
+};
+
 function Metandeco() {
   const [data, setData] = useState([]);
-  const [allLoiKeys, setAllLoiKeys] = useState([]);
-  const [filterMonth, setFilterMonth] = useState('');
-  const [filterArena, setFilterArena] = useState('');
+  const [filterMonth, setFilterMonth] = useState("");
+  const [filterCongDoan, setFilterCongDoan] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
-  // Lấy dữ liệu từ Firebase
+  // Fetch data from Firebase
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -18,27 +32,29 @@ function Metandeco() {
         const snapshot = await get(dbRef);
         if (snapshot.exists()) {
           const rows = [];
-          const loiKeySet = new Set();
           const ap5Obj = snapshot.val();
           Object.entries(ap5Obj).forEach(([ap5Value, arenas]) => {
-            Object.entries(arenas).forEach(([arena, thangObj]) => {
-              Object.entries(thangObj).forEach(([thang, namObj]) => {
-                Object.entries(namObj).forEach(([nam, khungGioObj]) => {
-                  Object.entries(khungGioObj).forEach(([khungGio, payload]) => {
-                    let loiObj = (payload["Lỗi"] && typeof payload["Lỗi"] === "object") ? payload["Lỗi"] : {};
-                    Object.keys(loiObj).forEach((k) => loiKeySet.add(k));
-                    rows.push({
-                      AP5: ap5Value,
-                      Arena: arena,
-                      "Tháng": thang,
-                      "Năm": nam,
-                      "Khung giờ": khungGio,
-                      "Ngày": payload["Ngày"] || "",
-                      "Tháng Năm": payload["Tháng Năm"] || (thang + "/" + nam),
-                      "Sản lượng": payload["Sản lượng"] || 0,
-                      "Sản lượng NG": payload["Sản lượng NG"] || 0,
-                      "% Hiệu suất": payload["% Hiệu suất"] || "",
-                      Lỗi: loiObj
+            Object.entries(arenas).forEach(([congDoan, thangObj]) => {
+              Object.entries(thangObj).forEach(([phanLoai, thangObj2]) => {
+                Object.entries(thangObj2).forEach(([thang, namObj]) => {
+                  Object.entries(namObj).forEach(([nam, khungGioObj]) => {
+                    Object.entries(khungGioObj).forEach(([khungGio, payload]) => {
+                      let loiObj = (payload["Lỗi"] && typeof payload["Lỗi"] === "object") ? payload["Lỗi"] : {};
+                      // Đảm bảo luôn có trường 'Tháng Năm' cho cả dữ liệu cũ và mới
+                      const thangNam = payload["Tháng Năm"] || `${thang}/${nam}`;
+                      rows.push({
+                        [COLUMN_MAP["Line"]]: ap5Value,
+                        [COLUMN_MAP["Công đoạn"]]: congDoan,
+                        [COLUMN_MAP["Phân Loại"]]: phanLoai,
+                        [COLUMN_MAP["Tháng"]]: thang,
+                        [COLUMN_MAP["Năm"]]: nam,
+                        [COLUMN_MAP["Khung giờ"]]: khungGio,
+                        [COLUMN_MAP["Sản lượng"]]: payload["Sản lượng"] || 0,
+                        [COLUMN_MAP["Sản lượng NG"]]: payload["Sản lượng NG"] || 0,
+                        [COLUMN_MAP["% Hiệu suất"]]: payload["% Hiệu suất"] || "0%",
+                        [COLUMN_MAP["Lỗi"]]: loiObj,
+                        "Tháng Năm": thangNam,
+                      });
                     });
                   });
                 });
@@ -46,127 +62,114 @@ function Metandeco() {
             });
           });
           setData(rows);
-          // Nếu chưa có allLoiKeys (chưa upload file Excel), lấy từ dữ liệu Firebase
-          if (loiKeySet.size > 0) setAllLoiKeys(Array.from(loiKeySet));
-        } else {
-          setData([]);
         }
       } catch (err) {
-        console.error("Lỗi lấy dữ liệu từ Firebase:", err);
-        setData([]);
+        console.error("Lỗi fetch data:", err);
       }
     };
     fetchData();
   }, []);
 
-  // Upload Excel
+  // Handle Excel file upload
+  // Hàm chuẩn hóa key lỗi cho Firebase
+  function normalizeKey(key) {
+    return String(key)
+      .replace(/[.#$\/[\]\n\r\t]+/g, '') // loại bỏ ký tự cấm và xuống dòng/tab
+      .replace(/\s+/g, ' ') // thay nhiều khoảng trắng bằng 1 dấu cách
+      .trim();
+  }
+
+  // Hàm lấy tháng/năm từ cột Ngày
+  function getMonthYear(ngay) {
+    if (!ngay) return { thang: "Unknown", nam: "Unknown" };
+    // Nếu là số (Excel date), chuyển sang chuỗi ngày
+    if (typeof ngay === 'number') {
+      const date = XLSX.SSF.parse_date_code(ngay);
+      if (date) return { thang: String(date.m), nam: String(date.y) };
+    }
+    // Nếu là chuỗi
+    const parts = String(ngay).split('/');
+    if (parts.length === 3) return { thang: parts[0], nam: parts[2] };
+    return { thang: "Unknown", nam: "Unknown" };
+  }
+
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (evt) => {
       const bstr = evt.target.result;
       const workbook = XLSX.read(bstr, { type: "binary" });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
-
-      let jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: 0 });
-
-      // Lấy header gốc
-      const headerRaw = XLSX.utils.sheet_to_json(worksheet, { header: 1 })[0] || [];
-
-      // Gom tất cả các cột không phải thông tin mặc định vào object "Lỗi"
-      const defaultKeys = [
-        "AP5", "AP5FF", "AP5FZ", "Hàng AP5FF", "Arena", "Ngày", "Tháng", "Năm", "Khung giờ", "Sản lượng", "Sản lượng NG", "% Hiệu suất", "Tháng Năm"
+      const rawData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+      // Xác định các cột cố định
+      const fixedCols = [
+        "Ngày", "Khung giờ", "Công đoạn", "Phân Loại", "Line", "Sản lượng"
       ];
-      function normalizeKey(key) {
-        return String(key)
-          .replace(/[.#$\[\]/]/g, "_")
-          .replace(/\s+/g, " ")
-          .replace(/\n|\r|\t/g, " ")
-          .trim();
-      }
-
-      // Lấy allLoiKeys từ header (sau khi normalize)
-      const loiKeysFromHeader = headerRaw
-        .filter((key) => key && !defaultKeys.includes(String(key).trim()))
-        .map((key) => normalizeKey(key));
-      setAllLoiKeys(loiKeysFromHeader);
-
-      // Thêm cột "Tháng Năm" dựa vào cột "Ngày"
-      jsonData = jsonData.map((row) => {
-        let ngay = row["Ngày"];
-        if (typeof ngay === "number") {
-          const date = XLSX.SSF.parse_date_code(ngay);
-          if (date) {
-            ngay = `${String(date.d).padStart(2, "0")}/${String(date.m).padStart(2, "0")}/${date.y}`;
-          }
-        } else if (typeof ngay === "string") {
-          if (/^\d{4}-\d{2}-\d{2}$/.test(ngay)) {
-            const [y, m, d] = ngay.split("-");
-            ngay = `${d}/${m}/${y}`;
-          }
-        }
-        let thangNam = "";
-        if (ngay && typeof ngay === "string" && ngay.includes("/")) {
-          const parts = ngay.split("/");
-          if (parts.length === 3) thangNam = `${parts[1]}/${parts[2]}`;
-        }
-        // Chuẩn hóa lỗi cho từng dòng
-        const loiPayload = {};
-        Object.keys(row).forEach((key) => {
-          if (!defaultKeys.includes(key)) {
-            const normKey = normalizeKey(key);
-            loiPayload[normKey] = Number(row[key] || 0);
-          }
+      // Tìm các cột lỗi động (tất cả cột không thuộc fixedCols)
+      const allKeys = rawData.length > 0 ? Object.keys(rawData[0]) : [];
+      const errorKeys = allKeys.filter(k => !fixedCols.includes(k));
+      const jsonData = rawData.map(row => {
+        const newRow = {};
+        // Map các cột cố định
+        Object.entries(COLUMN_MAP).forEach(([excelKey, codeKey]) => {
+          newRow[codeKey] = row[excelKey];
         });
-        return { ...row, "Ngày": ngay, "Tháng Năm": thangNam, "Lỗi": loiPayload };
+        // Nếu thiếu Tháng/Năm thì lấy từ cột Ngày
+        if (!newRow["Tháng"] || !newRow["Năm"]) {
+          const { thang, nam } = getMonthYear(row["Ngày"]);
+          newRow["Tháng"] = newRow["Tháng"] || thang;
+          newRow["Năm"] = newRow["Năm"] || nam;
+        }
+        // Gom các cột lỗi động thành object 'Lỗi'
+        const loiObj = {};
+        errorKeys.forEach(k => {
+          const safeKey = normalizeKey(k);
+          loiObj[safeKey] = row[k] !== undefined && row[k] !== "" ? Number(row[k]) : 0;
+        });
+        newRow["Lỗi"] = loiObj;
+        // Xóa các key lỗi động dư thừa khỏi newRow
+        errorKeys.forEach(k => {
+          delete newRow[k];
+        });
+        // Thêm trường Ngày nếu có
+        if (row["Ngày"]) newRow["Ngày"] = row["Ngày"];
+        return newRow;
       });
-
       setData(jsonData);
     };
     reader.readAsBinaryString(file);
   };
 
-  // Upload lên Firebase
+  // Upload to Firebase
   const uploadToFirebase = async () => {
     try {
       for (const row of data) {
-        const ap5Key = Object.keys(row).find(
-          (k) =>
-            k.toLowerCase() === "ap5" ||
-            k.toLowerCase() === "ap5ff" ||
-            k.toLowerCase() === "ap5fz" ||
-            k.toLowerCase() === "hàng ap5ff"
-        );
-        const ap5Value = row[ap5Key] || "Unknown";
-        const arena = row["Arena"] || "Unknown";
-        const khungGio = row["Khung giờ"] || "Unknown";
-        const thangNam = row["Tháng Năm"] || "";
+        const line = row[COLUMN_MAP["Line"]] || "Unknown";
+        const congDoan = row[COLUMN_MAP["Công đoạn"]] || "Unknown";
+        const phanLoai = row[COLUMN_MAP["Phân Loại"]] || "Unknown";
+        const thang = row[COLUMN_MAP["Tháng"]] || "Unknown";
+        const nam = row[COLUMN_MAP["Năm"]] || "Unknown";
+        const khungGio = row[COLUMN_MAP["Khung giờ"]] || "Unknown";
 
-        const loiPayload = row["Lỗi"] || {};
-        const sanLuongNG = Object.values(loiPayload).reduce(
-          (sum, val) => sum + val,
-          0
-        );
-        const sanLuong = Number(row["Sản lượng"] || 0);
+        const loiPayload = row[COLUMN_MAP["Lỗi"]] || {};
+        const sanLuongNG = Object.values(loiPayload).reduce((sum, val) => sum + val, 0);
+        const sanLuong = Number(row[COLUMN_MAP["Sản lượng"]] || 0);
         const total = sanLuong + sanLuongNG;
-        const hieuSuat =
-          total > 0 ? ((sanLuong / total) * 100).toFixed(2) + "%" : "0%";
+        const hieuSuat = total > 0 ? ((sanLuong / total) * 100).toFixed(2) + "%" : "0%";
 
         const payload = {
           "Sản lượng": sanLuong,
           "Sản lượng NG": sanLuongNG,
           "% Hiệu suất": hieuSuat,
           "Lỗi": loiPayload,
-          "Tháng Năm": thangNam,
+          "Tháng Năm": `${thang}/${nam}`,
           "Ngày": row["Ngày"] || "",
         };
 
-        // Đổi path: dùng Tháng Năm thay cho Ngày
-        const dataRef = ref(db, `AP5/${ap5Value}/${arena}/${thangNam}/${khungGio}/`);
-        await set(dataRef, payload); // Ghi đè dữ liệu mới lên dữ liệu cũ
+        const dataRef = ref(db, `AP5/${line}/${congDoan}/${phanLoai}/${thang}/${nam}/${khungGio}/`);
+        await set(dataRef, payload);
       }
       setUploadSuccess(true);
       setTimeout(() => setUploadSuccess(false), 2500);
@@ -175,15 +178,32 @@ function Metandeco() {
     }
   };
 
-  // allLoiKeys lấy từ header file Excel, luôn đầy đủ các cột lỗi
-
-  // Lấy danh sách tháng/năm và arena duy nhất từ data
+  // Static and dynamic keys
+  // Các cột hiển thị cố định, dễ chỉnh sửa
+  const staticKeys = [
+    COLUMN_MAP["Line"],
+    COLUMN_MAP["Công đoạn"],
+    COLUMN_MAP["Phân Loại"],
+    COLUMN_MAP["Tháng"],
+    COLUMN_MAP["Năm"],
+    COLUMN_MAP["Khung giờ"],
+    COLUMN_MAP["Sản lượng"],
+    COLUMN_MAP["Sản lượng NG"],
+    COLUMN_MAP["% Hiệu suất"]
+  ];
+  const allLoiKeys = Array.from(
+    data.reduce((set, row) => {
+      if (row.Lỗi && typeof row.Lỗi === 'object') {
+        Object.keys(row.Lỗi).forEach(k => set.add(k));
+      }
+      return set;
+    }, new Set())
+  );
+  // Chuẩn hóa key lỗi khi tổng hợp dynamic keys
   const monthOptions = Array.from(new Set(data.map(row => row['Tháng Năm']).filter(Boolean)));
-  const arenaOptions = Array.from(new Set(data.map(row => row['Arena']).filter(Boolean)));
-
-  // Lọc dữ liệu theo tháng và arena
+  const congDoanOptions = Array.from(new Set(data.map(row => row[COLUMN_MAP["Công đoạn"]]).filter(Boolean)));
   const filteredData = data.filter(row => {
-    return (!filterMonth || row['Tháng Năm'] === filterMonth) && (!filterArena || row['Arena'] === filterArena);
+    return (!filterMonth || row['Tháng Năm'] === filterMonth) && (!filterCongDoan || row[COLUMN_MAP["Công đoạn"]] === filterCongDoan);
   });
 
   return (
@@ -209,14 +229,14 @@ function Metandeco() {
           <option value="">Tất cả</option>
           {monthOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
         </select>
-        {/* Bộ lọc Arena */}
-        <label style={{marginBottom: 6, fontWeight: 500, fontSize: 15}}>Lọc theo Arena</label>
-        <select value={filterArena} onChange={e => setFilterArena(e.target.value)} style={{marginBottom: 18, width: '100%', padding: 7, borderRadius: 7, fontSize: 15, border: 'none', color: '#1e293b'}}>
+        {/* Bộ lọc Công đoạn */}
+        <label style={{marginBottom: 6, fontWeight: 500, fontSize: 15}}>Lọc theo Công đoạn</label>
+        <select value={filterCongDoan} onChange={e => setFilterCongDoan(e.target.value)} style={{marginBottom: 18, width: '100%', padding: 7, borderRadius: 7, fontSize: 15, border: 'none', color: '#1e293b'}}>
           <option value="">Tất cả</option>
-          {arenaOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          {congDoanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
         </select>
         <div style={{flex: 1}}></div>
-        {/* Upload file và nút upload đặt dưới cùng sidebar - style sang trọng */}
+        {/* Upload file và nút upload đặt dưới cùng sidebar */}
         <div style={{
           width: '100%',
           background: 'rgba(255,255,255,0.10)',
@@ -247,9 +267,7 @@ function Metandeco() {
             <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><rect width="20" height="20" rx="4" fill="#0ea5e9"/><path d="M6.5 10.5l2.5 2.5 4.5-4.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
             Chọn file
           </label>
-          <input id="excel-upload" type="file" accept=".xlsx, .xls" onChange={handleFileUpload} style={{
-            display: 'none'
-          }} />
+          <input id="excel-upload" type="file" accept=".xlsx, .xls" onChange={handleFileUpload} style={{ display: 'none' }} />
           <button onClick={uploadToFirebase} style={{
             background: 'linear-gradient(90deg, #0ea5e9 0%, #2563eb 100%)',
             color: '#fff',
@@ -283,144 +301,105 @@ function Metandeco() {
           <div style={{background: '#22c55e', color: '#fff', padding: 12, borderRadius: 8, marginBottom: 18, fontWeight: 600, fontSize: 16, textAlign: 'center', boxShadow: '0 2px 8px 0 rgba(34,197,94,0.10)'}}>Upload lên Firebase thành công!</div>
         )}
         {filteredData.length > 0 && (
-          <div style={{overflowX: 'auto', marginTop: 0, borderRadius: 12, border: '1px solid #cbd5e1', background: '#f8fafc'}}>
-            <table
-              style={{
-                minWidth: 1100,
-                borderCollapse: "separate",
-                borderSpacing: 0,
-                background: "#fff",
-                borderRadius: 12,
-                boxShadow: "0 2px 12px 0 rgba(30,41,59,0.08)",
-                fontFamily: 'Segoe UI, Arial, sans-serif',
-                fontSize: 14,
-                margin: 0,
-                width: '100%'
-              }}
-            >
+            <div style={{marginBottom: 24, borderRadius: 12, border: '1px solid #cbd5e1', background: '#fff'}}>
+              <table style={{borderCollapse: 'collapse', width: '100%', fontSize: 12, tableLayout: 'fixed', textTransform: 'uppercase'}}>
               <thead>
-                <tr style={{background: 'linear-gradient(90deg, #334155 0%, #64748b 100%)', borderBottom: '2px solid #2563eb'}}>
-                  <th style={{
-                    color: '#fff',
-                    padding: '7px 9px',
-                    fontWeight: 700,
-                    fontSize: 12,
-                    borderTopLeftRadius: 12,
-                    textAlign: 'center',
-                    position: 'sticky',
-                    left: 0,
-                    background: 'inherit',
-                    zIndex: 2,
-                    borderRight: '1px solid #64748b',
-                    textTransform: 'uppercase',
-                  }}>AP5</th>
-                  <th style={{color: '#fff', padding: '7px 9px', fontWeight: 700, fontSize: 12, textAlign: 'center', borderRight: '1px solid #64748b', textTransform: 'uppercase'}}>Arena</th>
-                  <th style={{color: '#fff', padding: '7px 9px', fontWeight: 700, fontSize: 12, textAlign: 'center', borderRight: '1px solid #64748b', textTransform: 'uppercase'}}>Tháng</th>
-                  <th style={{color: '#fff', padding: '7px 9px', fontWeight: 700, fontSize: 12, textAlign: 'center', borderRight: '1px solid #64748b', textTransform: 'uppercase'}}>Năm</th>
-                  <th style={{color: '#fff', padding: '7px 9px', fontWeight: 700, fontSize: 10, textAlign: 'center', borderRight: '1px solid #64748b', textTransform: 'uppercase'}}>Khung giờ</th>
-                  <th style={{color: '#fff', padding: '7px 9px', fontWeight: 700, fontSize: 10, textAlign: 'center', borderRight: '1px solid #64748b', textTransform: 'uppercase'}}>Tổng sản lượng</th>
-                  <th style={{color: '#fff', padding: '7px 9px', fontWeight: 700, fontSize: 10, textAlign: 'center', borderRight: '1px solid #64748b', textTransform: 'uppercase'}}>Sản lượng NG</th>
-                  <th style={{color: '#fff', padding: '7px 9px', fontWeight: 700, fontSize: 10, textAlign: 'center', borderRight: '1px solid #64748b', textTransform: 'uppercase'}}>% Hiệu suất</th>
-                  {allLoiKeys.map((loi, i) => (
+                <tr style={{background: '#232e3e', color: '#e0e7ef', fontSize: 12, textTransform: 'uppercase'}}>
+                  <th style={{padding: 2, width: 20}}>Line</th>
+                  <th style={{padding: 2, width: 40}}>Công đoạn</th>
+                  <th style={{padding: 2, width: 40}}>Phân loại</th>
+                  <th style={{padding: 2, width: 20}}>Tháng</th>
+                  <th style={{padding: 2, width: 20}}>Năm</th>
+                  <th style={{padding: 2, width: 20}}>Khung giờ</th>
+                  <th style={{padding: 2, width: 40}}>Sản lượng</th>
+                  <th style={{padding: 2, width: 40}}>% Hiệu suất</th>
+                  {allLoiKeys.map(loi => (
                     <th key={loi} style={{
-                      color: '#fff',
-                      padding: '7px 9px',
-                      fontWeight: 700,
+                      padding: 1,
+                      background: '#232e3e',
+                      color: '#e0e7ef',
+                      whiteSpace: 'pre-line',
                       fontSize: 10,
-                      textAlign: 'center',
-                      borderRight: i === allLoiKeys.length-1 ? undefined : '1px solid #64748b',
-                      textTransform: 'uppercase',
-                      ...(i === allLoiKeys.length-1 ? {borderTopRightRadius: 12} : {})
+                      lineHeight: 1.3,
+                      width: 25,
+                      wordBreak: 'break-word',
+                      height: 38,
+                      verticalAlign: 'middle',
+                      textTransform: 'uppercase'
                     }}>{loi}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {/* Nhóm theo Arena */}
+
+                {/* Hiển thị từng nhóm công đoạn và tổng kết ngay dưới */}
                 {(() => {
-                  const rows = [];
-                  const grouped = {};
-                  filteredData.forEach((row) => {
-                    if (!grouped[row.Arena]) grouped[row.Arena] = [];
-                    grouped[row.Arena].push(row);
+                  // Gom dữ liệu theo từng công đoạn
+                  const congDoanGroups = {};
+                  filteredData.forEach(row => {
+                    const congDoan = row[COLUMN_MAP["Công đoạn"]] || "";
+                    if (!congDoanGroups[congDoan]) congDoanGroups[congDoan] = [];
+                    congDoanGroups[congDoan].push(row);
                   });
-                  let rowIdx = 0;
-                  Object.entries(grouped).forEach(([arena, groupRows]) => {
-                    // Render từng dòng của Arena
-                    groupRows.forEach((row, idx) => {
-                      const baseStyle = {
-                        background: rowIdx % 2 === 0 ? '#f1f5f9' : '#e2e8f0',
-                        transition: 'background 0.2s',
-                        cursor: 'pointer',
-                      };
-                      rows.push(
-                        <tr
-                          key={rowIdx}
-                          style={baseStyle}
-                          onMouseOver={e => e.currentTarget.style.background='#bae6fd'}
-                          onMouseOut={e => e.currentTarget.style.background=rowIdx%2===0 ? '#f1f5f9' : '#e2e8f0'}
-                        >
-                          <td style={{
-                            padding: '5px 8px',
-                            borderBottom: '1px solid #cbd5e1',
-                            textAlign: 'center',
-                            fontWeight: 600,
-                            background: '#fff',
-                            position: 'sticky',
-                            left: 0,
-                            zIndex: 1,
-                            borderRight: '1px solid #cbd5e1',
-                          }}>{row.AP5}</td>
-                          <td style={{padding: '5px 8px', borderBottom: '1px solid #cbd5e1', textAlign: 'center', borderRight: '1px solid #cbd5e1'}}>{row.Arena}</td>
-                          <td style={{padding: '5px 8px', borderBottom: '1px solid #cbd5e1', textAlign: 'center', borderRight: '1px solid #cbd5e1'}}>{row["Tháng"]}</td>
-                          <td style={{padding: '5px 8px', borderBottom: '1px solid #cbd5e1', textAlign: 'center', borderRight: '1px solid #cbd5e1'}}>{row["Năm"]}</td>
-                          <td style={{padding: '5px 8px', borderBottom: '1px solid #cbd5e1', textAlign: 'center', borderRight: '1px solid #cbd5e1'}}>{row["Khung giờ"]}</td>
-                          <td style={{padding: '5px 8px', borderBottom: '1px solid #cbd5e1', color: '#0f766e', fontWeight: 600, textAlign: 'center', borderRight: '1px solid #cbd5e1'}}>{row["Sản lượng"]}</td>
-                          <td style={{padding: '5px 8px', borderBottom: '1px solid #cbd5e1', color: '#be123c', fontWeight: 600, textAlign: 'center', borderRight: '1px solid #cbd5e1'}}>{row["Sản lượng NG"]}</td>
-                          <td style={{padding: '5px 8px', borderBottom: '1px solid #cbd5e1', color: '#2563eb', fontWeight: 600, textAlign: 'center', borderRight: '1px solid #cbd5e1'}}>{row["% Hiệu suất"]}</td>
-                          {allLoiKeys.map((loi, i) => (
-                            <td key={loi} style={{
-                              padding: '5px 8px',
-                              borderBottom: '1px solid #cbd5e1',
-                              color: '#b45309',
-                              fontWeight: 500,
-                              textAlign: 'center',
-                              borderRight: i === allLoiKeys.length-1 ? undefined : '1px solid #cbd5e1',
-                            }}>
+                  // Sử dụng flatMap để trả về mảng phẳng các phần tử React
+                  return Object.entries(congDoanGroups).flatMap(([congDoan, rows]) => {
+                    const rowEls = rows.map((row, idx) => {
+                      const line = row[COLUMN_MAP["Line"]] || "";
+                      const congDoanVal = row[COLUMN_MAP["Công đoạn"]] || "";
+                      const phanLoai = row[COLUMN_MAP["Phân Loại"]] || "";
+                      const thang = row[COLUMN_MAP["Tháng"]] || "";
+                      const nam = row[COLUMN_MAP["Năm"]] || "";
+                      const khungGio = row[COLUMN_MAP["Khung giờ"]] || "";
+                      return (
+                        <tr key={congDoan+"-"+idx} style={{background: idx%2===0 ? '#e2e8f0' : '#f1f5f9'}}>
+                          <td style={{padding: 6, textAlign: 'center', width: 80, color: '#111827', fontWeight: 700}}>{line}</td>
+                          <td style={{padding: 6, textAlign: 'center', width: 120, color: '#111827', fontWeight: 700}}>{congDoanVal}</td>
+                          <td style={{padding: 6, textAlign: 'center', width: 110, color: '#111827', fontWeight: 700}}>{phanLoai}</td>
+                          <td style={{padding: 6, textAlign: 'center', width: 70, color: '#111827', fontWeight: 700}}>{thang}</td>
+                          <td style={{padding: 6, textAlign: 'center', width: 70, color: '#111827', fontWeight: 700}}>{nam}</td>
+                          <td style={{padding: 6, textAlign: 'center', width: 100, color: '#111827', fontWeight: 700}}>{khungGio}</td>
+                          <td style={{padding: 6, textAlign: 'center', width: 80, color: '#111827', fontWeight: 700}}>{row["Sản lượng"]}</td>
+                          <td style={{padding: 6, textAlign: 'center', width: 80, color: '#111827', fontWeight: 700}}>{row["% Hiệu suất"]}</td>
+                          {allLoiKeys.map(loi => (
+                            <td key={loi} style={{padding: 6, textAlign: 'center', background: idx%2===0 ? '#e2e8f0' : '#f1f5f9', color: '#111827', fontWeight: 700, width: 60, overflow: 'hidden', textOverflow: 'ellipsis'}}>
                               {row.Lỗi && row.Lỗi[loi] !== undefined ? row.Lỗi[loi] : 0}
                             </td>
                           ))}
                         </tr>
                       );
-                      rowIdx++;
                     });
-                    // Dòng tổng cho Arena này
-                    const totalSanLuong = groupRows.reduce((sum, r) => sum + Number(r["Sản lượng"] || 0), 0);
-                    const totalSanLuongNG = groupRows.reduce((sum, r) => sum + Number(r["Sản lượng NG"] || 0), 0);
-                    const totalLoi = {};
-                    allLoiKeys.forEach(loi => {
-                      totalLoi[loi] = groupRows.reduce((sum, r) => sum + Number(r.Lỗi && r.Lỗi[loi] ? r.Lỗi[loi] : 0), 0);
-                    });
-                    rows.push(
-                      <tr key={arena + "-total"} style={{background: '#fde68a', fontWeight: 700}}>
-                        <td colSpan={5} style={{textAlign: 'right', padding: '5px 8px', borderBottom: '2px solid #f59e42', color: '#b45309'}}>TỔNG {arena}</td>
-                        <td style={{padding: '5px 8px', borderBottom: '2px solid #f59e42', color: '#0f766e', fontWeight: 700, textAlign: 'center'}}>{totalSanLuong}</td>
-                        <td style={{padding: '5px 8px', borderBottom: '2px solid #f59e42', color: '#be123c', fontWeight: 700, textAlign: 'center'}}>{totalSanLuongNG}</td>
-                        <td style={{padding: '5px 8px', borderBottom: '2px solid #f59e42', color: '#2563eb', fontWeight: 700, textAlign: 'center'}}>-</td>
-                        {allLoiKeys.map((loi, i) => (
-                          <td key={loi} style={{
-                            padding: '5px 8px',
-                            borderBottom: '2px solid #f59e42',
-                            color: '#b45309',
-                            fontWeight: 700,
-                            textAlign: 'center',
-                            background: '#fde68a',
-                          }}>{totalLoi[loi]}</td>
+                    // Tổng kết ngay dưới nhóm công đoạn
+                    const sumRow = (
+                      <tr key={"sum-"+congDoan} style={{background: '#232e3e', color: '#e0e7ef', fontWeight: 700}}>
+                        <td style={{textAlign: 'right', padding: 6}} colSpan={1}>TỔNG</td>
+                        <td style={{textAlign: 'center', padding: 6}} colSpan={1}>{congDoan}</td>
+                        <td style={{textAlign: 'center', padding: 6}} colSpan={1}>
+                          {(() => {
+                            const unique = Array.from(new Set(rows.map(r => r[COLUMN_MAP["Phân Loại"]]).filter(Boolean)));
+                            if (unique.length === 1) return unique[0];
+                            if (unique.length > 1) return 'Tất cả';
+                            return '';
+                          })()}
+                        </td>
+                        <td colSpan={3} style={{textAlign: 'right', padding: 6}}></td>
+                        <td style={{padding: 6, textAlign: 'center', color: '#e0e7ef'}}>
+                          {rows.reduce((sum, r) => sum + Number(r["Sản lượng"] || 0), 0)}
+                        </td>
+                        <td style={{padding: 6, textAlign: 'center', color: '#e0e7ef'}}>
+                          {(() => {
+                            const valid = rows.map(r => parseFloat((r["% Hiệu suất"]||'').replace('%',''))).filter(v => !isNaN(v));
+                            return valid.length ? (valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(2) + '%' : '-';
+                          })()}
+                        </td>
+                        {allLoiKeys.map(loi => (
+                          <td key={loi} style={{padding: 6, textAlign: 'center', background: '#232e3e', color: '#e0e7ef'}}>
+                            {rows.reduce((sum, r) => r.Lỗi && r.Lỗi[loi] ? sum + Number(r.Lỗi[loi]) : sum, 0)}
+                          </td>
                         ))}
                       </tr>
                     );
+                    return [...rowEls, sumRow];
                   });
-                  return rows;
                 })()}
               </tbody>
             </table>
