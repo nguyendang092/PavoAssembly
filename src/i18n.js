@@ -59,7 +59,9 @@ const resources = {
         sanLuongNG: "Sản lượng NG",
         dangNhap: "Đăng nhập",
         logOut: "Đăng xuất",
-        changePassword: "Đổi mật khẩu"
+        changePassword: "Đổi mật khẩu",
+        Normal: "Normal",
+        ng: "NG"
       },
       temperatureMonitor: {
         dashboard: "Bảng điều khiển",
@@ -389,7 +391,9 @@ const resources = {
         sanLuongNG: "NG 생산량",
         dangNhap: "로그인",
         logOut: "로그아웃",
-        changePassword: "비밀번호 변경"
+        changePassword: "비밀번호 변경",
+        Normal: "정상",
+        ng: "불량"
       },
       temperatureMonitor: {
         dashboard: "대시보드",

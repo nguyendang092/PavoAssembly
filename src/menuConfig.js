@@ -7,8 +7,8 @@ export const menuConfig = [
     label: "navbar.sanLuong",
     type: "dropdown",
     children: [
-      { key: "sanLuongNormal", label: "Normal", path: "/normal" },
-      { key: "sanLuongNG", label: "NG", path: "/ng" },
+      { key: "sanLuongNormal", label: "navbar.Normal", path: "/normal" },
+      { key: "sanLuongNG", label: "navbar.ng", path: "/ng" },
     ],
   },
   { key: "nhietdo", label: "navbar.nhietdo", path: "/nhietdo" },
@@ -17,8 +17,22 @@ export const menuConfig = [
     label: "AP5",
     type: "dropdown",
     children: [
-      { key: "AP5FF", label: "AP5FF", path: "/ap5ff" },
-      { key: "AP5FZ", label: "AP5FZ", path: "/ap5fz" },
+      { 
+        key: "AP5 MD", 
+        label: "AP5MD", 
+        path: "/ap5md",
+        children: [
+          { key: "ap5mdff", label: "AP5 MD FF", path: "/ap5md/ap5mdff" },
+          { key: "ap5mdfz", label: "AP5 MD FZ", path: "/ap5md/ap5mdfz" },
+          { key: "ap5mdfl", label: "AP5 MD FL", path: "/ap5md/ap5mdfl" }
+        ]
+      },
+      { key: "AP5", label: "AP5", path: "/ap5" ,
+        children: [
+          { key: "ap5ff", label: "AP5FF", path: "/ap5/ap5ff" },
+          { key: "ap5fz", label: "AP5FZ", path: "/ap5/ap5fz" },
+        ]
+      },
     ],
   },
   {
@@ -49,8 +63,11 @@ export const menuConfig = [
 export const routeConfig = [
   { path: "/normal", element: "WorkplaceChart" },
   { path: "/ng", element: "NGWorkplaceChart" },
-  { path: "/ap5ff", element: "Metandeco" },
-  { path: "/ap5fz", element: "Metandeco" },
+  { path: "/ap5md/ap5mdff", element: "Metandeco" },
+  { path: "/ap5md/ap5mdfz", element: "Metandeco" },
+  {path: "/ap5md/ap5mdfl", element: "Metandeco" },
+  { path: "/ap5/ap5ff", element: "Metandeco" },
+  { path: "/ap5/ap5fz", element: "Metandeco" },
   { path: "/bangkhen1", element: "CertificateGenerator1" },
   { path: "/bangkhen2", element: "CertificateGenerator2" },
   { path: "/nhietdo", element: "TemperatureMonitor" },

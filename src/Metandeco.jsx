@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { db } from "./firebase";
 import { ref, set, get } from "firebase/database";
@@ -19,6 +20,19 @@ const COLUMN_MAP = {
 };
 
 function Metandeco() {
+  const location = useLocation();
+  // Map route key to line name
+  const lineKeyToName = {
+    ap5mdff: "AP5 MD FF",
+    ap5mdfz: "AP5 MD FZ",
+    ap5mdfl: "AP5 MD FL",
+    ap5ff: "AP5FF",
+    ap5fz: "AP5FZ",
+  };
+  // Extract last segment from path
+  const pathSegments = location.pathname.split("/").filter(Boolean);
+  const lastSegment = pathSegments[pathSegments.length - 1];
+  const selectedLine = lineKeyToName[lastSegment] || null;
   const [data, setData] = useState([]);
   const [filterMonth, setFilterMonth] = useState("");
   const [filterCongDoan, setFilterCongDoan] = useState("");
@@ -203,7 +217,8 @@ function Metandeco() {
   const monthOptions = Array.from(new Set(data.map(row => row['Tháng Năm']).filter(Boolean)));
   const congDoanOptions = Array.from(new Set(data.map(row => row[COLUMN_MAP["Công đoạn"]]).filter(Boolean)));
   const filteredData = data.filter(row => {
-    return (!filterMonth || row['Tháng Năm'] === filterMonth) && (!filterCongDoan || row[COLUMN_MAP["Công đoạn"]] === filterCongDoan);
+    const matchLine = selectedLine ? row[COLUMN_MAP["Line"]] === selectedLine : true;
+    return matchLine && (!filterMonth || row['Tháng Năm'] === filterMonth) && (!filterCongDoan || row[COLUMN_MAP["Công đoạn"]] === filterCongDoan);
   });
 
   return (
@@ -305,12 +320,12 @@ function Metandeco() {
               <table style={{borderCollapse: 'collapse', width: '100%', fontSize: 12, tableLayout: 'fixed', textTransform: 'uppercase'}}>
               <thead>
                 <tr style={{background: '#232e3e', color: '#e0e7ef', fontSize: 12, textTransform: 'uppercase'}}>
-                  <th style={{padding: 2, width: 20}}>Line</th>
+                  <th style={{padding: 2, width: 35}}>Line</th>
                   <th style={{padding: 2, width: 40}}>Công đoạn</th>
                   <th style={{padding: 2, width: 40}}>Phân loại</th>
                   <th style={{padding: 2, width: 20}}>Tháng</th>
                   <th style={{padding: 2, width: 20}}>Năm</th>
-                  <th style={{padding: 2, width: 20}}>Khung giờ</th>
+                  <th style={{padding: 2, width: 60}}>Khung giờ</th>
                   <th style={{padding: 2, width: 40}}>Sản lượng</th>
                   <th style={{padding: 2, width: 40}}>% Hiệu suất</th>
                   {allLoiKeys.map(loi => (
@@ -334,31 +349,32 @@ function Metandeco() {
 
                 {/* Hiển thị từng nhóm công đoạn và tổng kết ngay dưới */}
                 {(() => {
-                  // Gom dữ liệu theo từng công đoạn
-                  const congDoanGroups = {};
+                  // Gom dữ liệu theo từng cặp (Line, Công đoạn)
+                  const lineCongDoanGroups = {};
                   filteredData.forEach(row => {
+                    const line = row[COLUMN_MAP["Line"]] || "";
                     const congDoan = row[COLUMN_MAP["Công đoạn"]] || "";
-                    if (!congDoanGroups[congDoan]) congDoanGroups[congDoan] = [];
-                    congDoanGroups[congDoan].push(row);
+                    const key = `${line}__${congDoan}`;
+                    if (!lineCongDoanGroups[key]) lineCongDoanGroups[key] = { line, congDoan, rows: [] };
+                    lineCongDoanGroups[key].rows.push(row);
                   });
                   // Sử dụng flatMap để trả về mảng phẳng các phần tử React
-                  return Object.entries(congDoanGroups).flatMap(([congDoan, rows]) => {
+                  return Object.values(lineCongDoanGroups).flatMap(group => {
+                    const { line, congDoan, rows } = group;
                     const rowEls = rows.map((row, idx) => {
-                      const line = row[COLUMN_MAP["Line"]] || "";
-                      const congDoanVal = row[COLUMN_MAP["Công đoạn"]] || "";
                       const phanLoai = row[COLUMN_MAP["Phân Loại"]] || "";
                       const thang = row[COLUMN_MAP["Tháng"]] || "";
                       const nam = row[COLUMN_MAP["Năm"]] || "";
                       const khungGio = row[COLUMN_MAP["Khung giờ"]] || "";
                       return (
-                        <tr key={congDoan+"-"+idx} style={{background: idx%2===0 ? '#e2e8f0' : '#f1f5f9'}}>
+                        <tr key={line+"-"+congDoan+"-"+idx} style={{background: idx%2===0 ? '#e2e8f0' : '#f1f5f9'}}>
                           <td style={{padding: 6, textAlign: 'center', width: 80, color: '#111827', fontWeight: 700}}>{line}</td>
-                          <td style={{padding: 6, textAlign: 'center', width: 120, color: '#111827', fontWeight: 700}}>{congDoanVal}</td>
-                          <td style={{padding: 6, textAlign: 'center', width: 110, color: '#111827', fontWeight: 700}}>{phanLoai}</td>
-                          <td style={{padding: 6, textAlign: 'center', width: 70, color: '#111827', fontWeight: 700}}>{thang}</td>
+                          <td style={{padding: 6, textAlign: 'center', width: 80, color: '#111827', fontWeight: 700}}>{congDoan}</td>
+                          <td style={{padding: 6, textAlign: 'center', width: 80, color: '#111827', fontWeight: 700}}>{phanLoai}</td>
+                          <td style={{padding: 6, textAlign: 'center', width: 40, color: '#111827', fontWeight: 700}}>{thang}</td>
                           <td style={{padding: 6, textAlign: 'center', width: 70, color: '#111827', fontWeight: 700}}>{nam}</td>
-                          <td style={{padding: 6, textAlign: 'center', width: 100, color: '#111827', fontWeight: 700}}>{khungGio}</td>
-                          <td style={{padding: 6, textAlign: 'center', width: 80, color: '#111827', fontWeight: 700}}>{row["Sản lượng"]}</td>
+                          <td style={{padding: 6, textAlign: 'center', width: 120, color: '#111827', fontWeight: 700}}>{khungGio}</td>
+                          <td style={{padding: 6, textAlign: 'center', width: 40, color: '#111827', fontWeight: 700}}>{row["Sản lượng"]}</td>
                           <td style={{padding: 6, textAlign: 'center', width: 80, color: '#111827', fontWeight: 700}}>{row["% Hiệu suất"]}</td>
                           {allLoiKeys.map(loi => (
                             <td key={loi} style={{padding: 6, textAlign: 'center', background: idx%2===0 ? '#e2e8f0' : '#f1f5f9', color: '#111827', fontWeight: 700, width: 60, overflow: 'hidden', textOverflow: 'ellipsis'}}>
@@ -368,9 +384,9 @@ function Metandeco() {
                         </tr>
                       );
                     });
-                    // Tổng kết ngay dưới nhóm công đoạn
+                    // Tổng kết ngay dưới nhóm (Line, Công đoạn)
                     const sumRow = (
-                      <tr key={"sum-"+congDoan} style={{background: '#232e3e', color: '#e0e7ef', fontWeight: 700}}>
+                      <tr key={"sum-"+line+"-"+congDoan} style={{background: '#232e3e', color: '#e0e7ef', fontWeight: 700}}>
                         <td style={{textAlign: 'right', padding: 6}} colSpan={1}>TỔNG</td>
                         <td style={{textAlign: 'center', padding: 6}} colSpan={1}>{congDoan}</td>
                         <td style={{textAlign: 'center', padding: 6}} colSpan={1}>

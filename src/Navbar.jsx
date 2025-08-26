@@ -6,13 +6,10 @@ import SignIn from "./SignIn";
 import ChangePasswordModal from "./ChangePasswordModal";
 import { useTranslation } from "react-i18next";
 import { menuConfig } from "./menuConfig";
-export default function Navbar({
-  user,
-  setUser,
-}) {
+export default function Navbar({ user, setUser }) {
   const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-    const [language, setLanguage] = useState(i18n.language || "vi");
+  const [language, setLanguage] = useState(i18n.language || "vi");
   const [activeLeaderKey, setActiveLeaderKey] = useState("bieudo");
   const location = useLocation();
   // Đồng bộ activeLeaderKey với route
@@ -61,7 +58,7 @@ export default function Navbar({
   // Modal state for SignIn
   const [signInOpen, setSignInOpen] = useState(false);
   const handleSignIn = () => setSignInOpen(true);
-  
+
   const handleSignInSuccess = (userInfo) => {
     if (setUser) setUser(userInfo);
     setSignInOpen(false);
@@ -97,7 +94,7 @@ export default function Navbar({
     if (dropdownTimers.current[key]) clearTimeout(dropdownTimers.current[key]);
     dropdownTimers.current[key] = setTimeout(() => {
       setDropdownOpen((prev) => ({ ...prev, [key]: false }));
-    }, 300);
+    }, 300); 
   };
 
   return (
@@ -295,7 +292,11 @@ export default function Navbar({
                   const isOpen = !!dropdownOpen[item.key];
                   const openFn = () => openDropdown(item.key);
                   const closeFn = () => closeDropdown(item.key);
-                  if (item.adminOnly && (!user || user.email !== "admin@gmail.com")) return null;
+                  if (
+                    item.adminOnly &&
+                    (!user || user.email !== "admin@gmail.com")
+                  )
+                    return null;
                   return (
                     <li
                       key={item.key}
@@ -315,45 +316,107 @@ export default function Navbar({
                         type="button"
                         aria-haspopup="true"
                         aria-expanded={isOpen}
-                        disabled={item.adminOnly && (!user || user.email !== "admin@gmail.com")}
+                        disabled={
+                          item.adminOnly &&
+                          (!user || user.email !== "admin@gmail.com")
+                        }
                         style={
-                          item.adminOnly && (!user || user.email !== "admin@gmail.com")
+                          item.adminOnly &&
+                          (!user || user.email !== "admin@gmail.com")
                             ? { opacity: 0.5, cursor: "not-allowed" }
                             : {}
                         }
                       >
                         {t(item.label)}
-                        <svg className="inline w-4 h-4 ml-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                        <svg
+                          className="inline w-4 h-4 ml-1"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19 9l-7 7-7-7"
+                          />
                         </svg>
                       </button>
                       {isOpen && (
                         <div
                           className="absolute left-0 mt-2 w-36 bg-white border rounded shadow-lg z-50"
                           style={{ minWidth: 120 }}
-                          onClick={e => e.stopPropagation()}
+                          onClick={(e) => e.stopPropagation()}
                         >
                           {item.children.map((child) => (
-                            <Link
-                              key={child.key}
-                              to={child.path}
-                              onClick={() => {
-                                setActiveLeaderKey(child.key);
-                                setDropdownOpen((prev) => ({ ...prev, [item.key]: false }));
-                              }}
-                              className={`block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs ${
-                                activeLeaderKey === child.key ? "bg-blue-100 text-blue-700" : ""
-                              }`}
-                              tabIndex={0}
-                              style={
-                                item.adminOnly && (!user || user.email !== "admin@gmail.com")
-                                  ? { opacity: 0.5, cursor: "not-allowed" }
-                                  : {}
-                              }
-                              disabled={item.adminOnly && (!user || user.email !== "admin@gmail.com")}
-                            >
-                              {t(child.label)}
-                            </Link>
+                            child.children ? (
+                              <div key={child.key} className="relative group">
+                                <button
+                                  className={`block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs ${
+                                    activeLeaderKey === child.key
+                                      ? "bg-blue-100 text-blue-700"
+                                      : ""
+                                  } flex items-center justify-between`}
+                                  tabIndex={0}
+                                >
+                                  {t(child.label)}
+                                  <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                </button>
+                                <div className="absolute left-full top-0 mt-0 ml-0 w-36 bg-white border rounded shadow-lg z-50 hidden group-hover:block group-focus:block" style={{ minWidth: 120 }}>
+                                  {child.children.map((sub) => (
+                                    <Link
+                                      key={sub.key}
+                                      to={sub.path}
+                                      onClick={() => {
+                                        setActiveLeaderKey(sub.key);
+                                        setDropdownOpen((prev) => ({
+                                          ...prev,
+                                          [item.key]: false,
+                                        }));
+                                      }}
+                                      className={`block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs ${
+                                        activeLeaderKey === sub.key
+                                          ? "bg-blue-100 text-blue-700"
+                                          : ""
+                                      }`}
+                                      tabIndex={0}
+                                    >
+                                      {t(sub.label)}
+                                    </Link>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <Link
+                                key={child.key}
+                                to={child.path}
+                                onClick={() => {
+                                  setActiveLeaderKey(child.key);
+                                  setDropdownOpen((prev) => ({
+                                    ...prev,
+                                    [item.key]: false,
+                                  }));
+                                }}
+                                className={`block w-full text-left px-4 py-2 hover:bg-blue-50 uppercase text-xs ${
+                                  activeLeaderKey === child.key
+                                    ? "bg-blue-100 text-blue-700"
+                                    : ""
+                                }`}
+                                tabIndex={0}
+                                style={
+                                  item.adminOnly &&
+                                  (!user || user.email !== "admin@gmail.com")
+                                    ? { opacity: 0.5, cursor: "not-allowed" }
+                                    : {}
+                                }
+                                disabled={
+                                  item.adminOnly &&
+                                  (!user || user.email !== "admin@gmail.com")
+                                }
+                              >
+                                {t(child.label)}
+                              </Link>
+                            )
                           ))}
                         </div>
                       )}
@@ -381,9 +444,7 @@ export default function Navbar({
           </div>
         </div>
       </nav>
-      <style>
-        {`.dropdown-open > div { display: block !important; }`}
-      </style>
-	</>
+      <style>{`.dropdown-open > div { display: block !important; }`}</style>
+    </>
   );
 }
