@@ -50,6 +50,7 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
   const [allDetailData, setAllDetailData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [visibleCount, setVisibleCount] = useState(10);
+  const [forceFetch, setForceFetch] = useState(0);
   useEffect(() => {
     const fetchAreas = async () => {
       const snapshot = await get(ref(db, "details"));
@@ -156,6 +157,21 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
       }
     }
   }, [isOpen]);
+  const handleExportExcel = () => {
+    if (!filteredData.length) return;
+    const ws = XLSX.utils.json_to_sheet(
+      filteredData.map((item) => ({
+        [t("detailedNGModal.area")]: selectedArea,
+        [t("detailedNGModal.model")]: item.model,
+        [t("detailedNGModal.date")]: item.date,
+        [t("detailedNGModal.quantity")]: item.quantity,
+        [t("detailedNGModal.ngReason")]: item.notes || "",
+      }))
+    );
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Details-NG");
+    XLSX.writeFile(wb, `detailsNG_${selectedArea}_${selectedDate}.xlsx`);
+  };
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
@@ -176,7 +192,9 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
         </div>
 
         {/* Bộ lọc */}
-        <div className="flex flex-wrap gap-4 mb-4 items-center">
+        {/* Bộ lọc + Nút xuất Excel: sang trọng, hiện đại (glassmorphism, gradient, icon) */}
+        <div className="flex flex-wrap gap-6 mb-6 items-end px-8 pt-2 pb-5 rounded-3xl shadow-2xl border border-transparent bg-white/60 backdrop-blur-md"
+          style={{ borderImage: 'linear-gradient(90deg, #a18cd1 0%, #fbc2eb 100%) 1' }}>
           <select
             value={selectedArea}
             onChange={(e) => setSelectedArea(e.target.value)}
@@ -216,6 +234,17 @@ export default function DetailedNGModal({ isOpen, onClose, area }) {
             onChange={(e) => setSelectedModel(e.target.value)}
             className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition w-48"
           />
+          <div className="flex flex-col min-w-[150px] mt-2 sm:mt-0">
+            <label className="text-xs text-gray-600 mb-1 font-semibold invisible select-none">Export</label>
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-400 via-pink-300 to-pink-400 hover:from-purple-500 hover:to-pink-500 active:from-purple-700 active:to-pink-700 text-white font-bold py-2 px-5 rounded-2xl shadow-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-pink-300"
+              style={{ boxShadow: '0 4px 16px 0 rgba(251,194,235,0.15)' }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" /></svg>
+              {t("detailedNGModal.exportExcel")}
+            </button>
+          </div>
         </div>
 
         {/* Nội dung chính: Biểu đồ + bảng */}

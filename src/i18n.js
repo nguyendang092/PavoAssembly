@@ -4,6 +4,23 @@ import { initReactI18next } from "react-i18next";
 const resources = {
   vi: {
     translation: {
+      metandeco: {
+        dashboardTitle: "Dashboard - AP5FF & AP5FZ",
+        filterMonth: "Lọc theo Tháng/Năm",
+        filterCongDoan: "Lọc theo Công đoạn",
+        chooseFile: "Chọn file",
+        upload: "Upload",
+        uploadSuccess: "Upload lên Firebase thành công!",
+        line: "Line",
+        congDoan: "Công đoạn",
+        phanLoai: "Phân loại",
+        thang: "Tháng",
+        nam: "Năm",
+        khungGio: "Khung giờ",
+        sanLuong: "Sản lượng",
+        hieuSuat: "% Hiệu suất",
+        total: "TỔNG"
+      },
       loading: {
         loading: "Đang tải dữ liệu...",
       },
@@ -297,6 +314,7 @@ const resources = {
         quantity: "Sản lượng",
         viewMore: "Xem thêm",
         logViewMore: "Xem thêm chi tiết sản lượng khu vực: {{area}}, ngày: {{date}}",
+        exportExcel: "Xuất Excel"
       },
       detailedNGModal: {
         title: "Bảng chi tiết sản lượng NG",
@@ -311,6 +329,7 @@ const resources = {
         ngReason: "Lỗi NG",
         viewMore: "Xem thêm",
         logViewMore: "Xem thêm chi tiết sản lượng NG khu vực: {{area}}, ngày: {{date}}",
+        exportExcel: "Xuất Excel"
       },
       workplaceNGChart: {
         menuTitle: "📁 Menu",
@@ -337,6 +356,23 @@ const resources = {
   },
     ko: {
       translation: {
+        metandeco: {
+          dashboardTitle: "대시보드 - AP5FF & AP5FZ",
+          filterMonth: "월/년별 필터",
+          filterCongDoan: "공정별 필터",
+          chooseFile: "파일 선택",
+          upload: "업로드",
+          uploadSuccess: "Firebase에 업로드 성공!",
+          line: "라인",
+          congDoan: "공정",
+          phanLoai: "분류",
+          thang: "월",
+          nam: "년",
+          khungGio: "시간대",
+          sanLuong: "생산량",
+          hieuSuat: "% 효율",
+          total: "합계"
+        },
         signIn: {
           login: "로그인",
           signup: "회원가입",
@@ -393,7 +429,8 @@ const resources = {
         logOut: "로그아웃",
         changePassword: "비밀번호 변경",
         Normal: "정상",
-        ng: "불량"
+        ng: "불량",
+        leader: "리더"
       },
       temperatureMonitor: {
         dashboard: "대시보드",
@@ -630,6 +667,7 @@ const resources = {
         quantity: "생산량",
         viewMore: "더 보기",
         logViewMore: "상세 생산량 더 보기: {{area}}, 날짜: {{date}}",
+        exportExcel: "엑셀로 내보내기"
       },
       detailedNGModal: {
         title: "NG 상세 생산량 표",
@@ -644,6 +682,7 @@ const resources = {
         ngReason: "NG 사유",
         viewMore: "더 보기",
         logViewMore: "NG 상세 생산량 더 보기: {{area}}, 날짜: {{date}}",
+        exportExcel: "엑셀로 내보내기"
       },
       workplaceNGChart: {
         menuTitle: "📁 메뉴",

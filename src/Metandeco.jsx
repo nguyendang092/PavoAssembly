@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocation } from "react-router-dom";
 import * as XLSX from "xlsx";
 import { db } from "./firebase";
@@ -20,6 +21,7 @@ const COLUMN_MAP = {
 };
 
 function Metandeco() {
+  const { t } = useTranslation();
   const location = useLocation();
   // Map route key to line name
   const lineKeyToName = {
@@ -237,15 +239,15 @@ function Metandeco() {
         borderBottomRightRadius: 24,
         minHeight: '100vh',
       }}>
-        <h2 style={{ fontWeight: 700, fontSize: 22, marginBottom: 32, letterSpacing: 1 }}>Dashboard - AP5FF & AP5FZ</h2>
+  <h2 style={{ fontWeight: 700, fontSize: 22, marginBottom: 32, letterSpacing: 1 }}>{t('metandeco.dashboardTitle')}</h2>
         {/* Bộ lọc Tháng Năm */}
-        <label style={{marginBottom: 6, fontWeight: 500, fontSize: 15, marginTop: 8}}>Lọc theo Tháng/Năm</label>
+  <label style={{marginBottom: 6, fontWeight: 500, fontSize: 15, marginTop: 8}}>{t('metandeco.filterMonth')}</label>
         <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{marginBottom: 14, width: '100%', padding: 7, borderRadius: 7, fontSize: 15, border: 'none', color: '#1e293b'}}>
           <option value="">Tất cả</option>
           {monthOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
         </select>
         {/* Bộ lọc Công đoạn */}
-        <label style={{marginBottom: 6, fontWeight: 500, fontSize: 15}}>Lọc theo Công đoạn</label>
+  <label style={{marginBottom: 6, fontWeight: 500, fontSize: 15}}>{t('metandeco.filterCongDoan')}</label>
         <select value={filterCongDoan} onChange={e => setFilterCongDoan(e.target.value)} style={{marginBottom: 18, width: '100%', padding: 7, borderRadius: 7, fontSize: 15, border: 'none', color: '#1e293b'}}>
           <option value="">Tất cả</option>
           {congDoanOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -280,7 +282,7 @@ function Metandeco() {
             boxShadow: '0 1px 4px 0 rgba(30,41,59,0.10)'
           }}>
             <svg width="20" height="20" fill="none" viewBox="0 0 20 20"><rect width="20" height="20" rx="4" fill="#0ea5e9"/><path d="M6.5 10.5l2.5 2.5 4.5-4.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            Chọn file
+            {t('metandeco.chooseFile')}
           </label>
           <input id="excel-upload" type="file" accept=".xlsx, .xls" onChange={handleFileUpload} style={{ display: 'none' }} />
           <button onClick={uploadToFirebase} style={{
@@ -304,7 +306,7 @@ function Metandeco() {
           >
             <span style={{display:'inline-flex',alignItems:'center',gap:7}}>
               <svg width="18" height="18" fill="none" viewBox="0 0 20 20" style={{marginRight:2}}><path d="M10 3v10m0 0l-3.5-3.5M10 13l3.5-3.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><rect x="3" y="15" width="14" height="2" rx="1" fill="#fff"/></svg>
-              Upload
+              {t('metandeco.upload')}
             </span>
           </button>
         </div>
@@ -313,21 +315,21 @@ function Metandeco() {
       {/* Main content */}
       <div style={{ flex: 1, padding: '36px 32px 32px 32px' }}>
         {uploadSuccess && (
-          <div style={{background: '#22c55e', color: '#fff', padding: 12, borderRadius: 8, marginBottom: 18, fontWeight: 600, fontSize: 16, textAlign: 'center', boxShadow: '0 2px 8px 0 rgba(34,197,94,0.10)'}}>Upload lên Firebase thành công!</div>
+          <div style={{background: '#22c55e', color: '#fff', padding: 12, borderRadius: 8, marginBottom: 18, fontWeight: 600, fontSize: 16, textAlign: 'center', boxShadow: '0 2px 8px 0 rgba(34,197,94,0.10)'}}>{t('metandeco.uploadSuccess')}</div>
         )}
         {filteredData.length > 0 && (
             <div style={{marginBottom: 24, borderRadius: 12, border: '1px solid #cbd5e1', background: '#fff'}}>
               <table style={{borderCollapse: 'collapse', width: '100%', fontSize: 12, tableLayout: 'fixed', textTransform: 'uppercase'}}>
               <thead>
                 <tr style={{background: '#232e3e', color: '#e0e7ef', fontSize: 12, textTransform: 'uppercase'}}>
-                  <th style={{padding: 2, width: 35}}>Line</th>
-                  <th style={{padding: 2, width: 40}}>Công đoạn</th>
-                  <th style={{padding: 2, width: 40}}>Phân loại</th>
-                  <th style={{padding: 2, width: 20}}>Tháng</th>
-                  <th style={{padding: 2, width: 20}}>Năm</th>
-                  <th style={{padding: 2, width: 60}}>Khung giờ</th>
-                  <th style={{padding: 2, width: 40}}>Sản lượng</th>
-                  <th style={{padding: 2, width: 40}}>% Hiệu suất</th>
+                  <th style={{padding: 2, width: 40}}>{t('metandeco.line')}</th>
+                  <th style={{padding: 2, width: 40}}>{t('metandeco.congDoan')}</th>
+                  <th style={{padding: 2, width: 40}}>{t('metandeco.phanLoai')}</th>
+                  <th style={{padding: 2, width: 20}}>{t('metandeco.thang')}</th>
+                  <th style={{padding: 2, width: 20}}>{t('metandeco.nam')}</th>
+                  <th style={{padding: 2, width: 80}}>{t('metandeco.khungGio')}</th>
+                  <th style={{padding: 2, width: 40}}>{t('metandeco.sanLuong')}</th>
+                  <th style={{padding: 2, width: 40}}>{t('metandeco.hieuSuat')}</th>
                   {allLoiKeys.map(loi => (
                     <th key={loi} style={{
                       padding: 1,
@@ -346,7 +348,6 @@ function Metandeco() {
                 </tr>
               </thead>
               <tbody>
-
                 {/* Hiển thị từng nhóm công đoạn và tổng kết ngay dưới */}
                 {(() => {
                   // Gom dữ liệu theo từng cặp (Line, Công đoạn)
@@ -387,7 +388,7 @@ function Metandeco() {
                     // Tổng kết ngay dưới nhóm (Line, Công đoạn)
                     const sumRow = (
                       <tr key={"sum-"+line+"-"+congDoan} style={{background: '#232e3e', color: '#e0e7ef', fontWeight: 700}}>
-                        <td style={{textAlign: 'right', padding: 6}} colSpan={1}>TỔNG</td>
+                        <td style={{textAlign: 'right', padding: 6}} colSpan={1}>{t('metandeco.total')}</td>
                         <td style={{textAlign: 'center', padding: 6}} colSpan={1}>{congDoan}</td>
                         <td style={{textAlign: 'center', padding: 6}} colSpan={1}>
                           {(() => {
@@ -425,6 +426,4 @@ function Metandeco() {
     </div>
   );
 }
-
 export default Metandeco;
-

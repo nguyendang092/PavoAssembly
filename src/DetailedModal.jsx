@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import * as XLSX from "xlsx";
 import { useTranslation } from "react-i18next";
 import { logUserAction } from "./userLog";
 import { ref, get, child } from "firebase/database";
@@ -41,15 +42,14 @@ export default function DetailedModal({ isOpen, onClose, area }) {
   const { t } = useTranslation();
   const { user } = useUser();
   const [selectedArea, setSelectedArea] = useState(area || "Assembly");
-  const [selectedWeek, setSelectedWeek] = useState(
-    getCurrentWeekNumber().toString()
-  );
+  const [selectedWeek, setSelectedWeek] = useState(getCurrentWeekNumber().toString());
   const [selectedDate, setSelectedDate] = useState(getYesterday());
   const [selectedModel, setSelectedModel] = useState("");
   const [areas, setAreas] = useState([]);
   const [allDetailData, setAllDetailData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [visibleCount, setVisibleCount] = useState(10);
+  const [forceFetch, setForceFetch] = useState(0); // trigger fetchData khi mở modal
   useEffect(() => {
     const fetchAreas = async () => {
       const snapshot = await get(ref(db, "details"));
@@ -95,10 +95,26 @@ export default function DetailedModal({ isOpen, onClose, area }) {
     return () => {
       isMounted = false;
     };
-  }, [selectedArea, selectedDate]);
+  }, [selectedArea, selectedDate, forceFetch]);
   const filteredData = allDetailData.filter((item) =>
     item.model.toLowerCase().includes(selectedModel.toLowerCase())
   );
+
+  // Xuất Excel toàn bộ dữ liệu đang lọc
+  const handleExportExcel = () => {
+    if (!filteredData.length) return;
+    const ws = XLSX.utils.json_to_sheet(
+      filteredData.map((item) => ({
+        [t("detailedModal.area")]: selectedArea,
+        [t("detailedModal.model")]: item.model,
+        [t("detailedModal.date")]: item.date,
+        [t("detailedModal.quantity")]: item.quantity,
+      }))
+    );
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Details");
+    XLSX.writeFile(wb, `details_${selectedArea}_${selectedDate}.xlsx`);
+  };
   const chartData = {
     labels: filteredData.map((item) => item.model),
     datasets: [
@@ -115,16 +131,19 @@ export default function DetailedModal({ isOpen, onClose, area }) {
       setSelectedModel("");
       setVisibleCount(10);
     } else {
+      // Reset selectedArea về prop area mỗi lần mở modal
+      setSelectedArea(area || "Assembly");
+      setForceFetch(f => f + 1); // trigger fetchData lại kể cả khi selectedArea không đổi
       // Ghi log khi mở modal chi tiết sản lượng
       if (user && user.email) {
         logUserAction(
           user.email,
           "view_detail_output",
-          `Xem chi tiết sản lượng khu vực: ${selectedArea}, ngày: ${selectedDate}`
+          `Xem chi tiết sản lượng khu vực: ${area || "Assembly"}, ngày: ${selectedDate}`
         );
       }
     }
-  }, [isOpen]);
+  }, [isOpen, area]);
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
@@ -144,47 +163,76 @@ export default function DetailedModal({ isOpen, onClose, area }) {
           </button>
         </div>
 
-        {/* Bộ lọc */}
-        <div className="flex flex-wrap gap-4 mb-4 items-center">
-          <select
-            value={selectedArea}
-            onChange={(e) => setSelectedArea(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-          >
-            {areas.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            ))}
-          </select>
-
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-          />
-
-          <select
-            value={selectedWeek}
-            onChange={(e) => setSelectedWeek(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm cursor-not-allowed opacity-60"
-            disabled
-          >
-            {Array.from({ length: 52 }, (_, i) => i + 1).map((w) => (
-              <option key={w} value={w}>
-                {w}
-              </option>
-            ))}
-          </select>
-
-          <input
-            type="text"
-            placeholder={t("detailedModal.searchModel")}
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            className="border border-gray-300 rounded-md px-3 py-2 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition w-48"
-          />
+        {/* Bộ lọc + Nút xuất Excel: sang trọng, hiện đại (glassmorphism, gradient, icon) */}
+        <div className="flex flex-wrap gap-6 mb-6 items-end px-8 pt-2 pb-5 rounded-3xl shadow-2xl border border-transparent bg-white/60 backdrop-blur-md"
+          style={{ borderImage: 'linear-gradient(90deg, #a18cd1 0%, #fbc2eb 100%) 1' }}>
+          <div className="flex flex-col min-w-[140px]">
+            <label className="text-xs text-gray-600 mb-1 font-semibold tracking-wide" htmlFor="area-select">{t("detailedModal.area")}</label>
+            <select
+              id="area-select"
+              value={selectedArea}
+              onChange={(e) => setSelectedArea(e.target.value)}
+              className="border-0 rounded-xl px-4 py-2 bg-white/80 shadow focus:outline-none focus:ring-2 focus:ring-purple-400 transition hover:bg-white/100 text-gray-800 font-medium"
+              style={{ boxShadow: '0 2px 8px 0 rgba(161,140,209,0.10)' }}
+            >
+              {areas.map((a) => (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col min-w-[140px]">
+            <label className="text-xs text-gray-600 mb-1 font-semibold tracking-wide" htmlFor="date-input">{t("detailedModal.date")}</label>
+            <input
+              id="date-input"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="border-0 rounded-xl px-4 py-2 bg-white/80 shadow focus:outline-none focus:ring-2 focus:ring-purple-400 transition hover:bg-white/100 text-gray-800 font-medium"
+              style={{ boxShadow: '0 2px 8px 0 rgba(161,140,209,0.10)' }}
+            />
+          </div>
+          <div className="flex flex-col min-w-[120px]">
+            <label className="text-xs text-gray-600 mb-1 font-semibold tracking-wide" htmlFor="week-select">Tuần</label>
+            <select
+              id="week-select"
+              value={selectedWeek}
+              onChange={(e) => setSelectedWeek(e.target.value)}
+              className="border-0 rounded-xl px-4 py-2 bg-white/80 shadow cursor-not-allowed opacity-60 text-gray-800 font-medium"
+              style={{ boxShadow: '0 2px 8px 0 rgba(161,140,209,0.10)' }}
+              disabled
+            >
+              {Array.from({ length: 52 }, (_, i) => i + 1).map((w) => (
+                <option key={w} value={w}>
+                  {w}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col min-w-[180px]">
+            <label className="text-xs text-gray-600 mb-1 font-semibold tracking-wide" htmlFor="model-search">{t("detailedModal.model")}</label>
+            <input
+              id="model-search"
+              type="text"
+              placeholder={t("detailedModal.searchModel")}
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              className="border-0 rounded-xl px-4 py-2 bg-white/80 shadow focus:outline-none focus:ring-2 focus:ring-purple-400 transition hover:bg-white/100 text-gray-800 font-medium"
+              style={{ boxShadow: '0 2px 8px 0 rgba(161,140,209,0.10)' }}
+            />
+          </div>
+          <div className="flex flex-col min-w-[150px] mt-2 sm:mt-0">
+            <label className="text-xs text-gray-600 mb-1 font-semibold invisible select-none">Export</label>
+            <button
+              onClick={handleExportExcel}
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-400 via-pink-300 to-pink-400 hover:from-purple-500 hover:to-pink-500 active:from-purple-700 active:to-pink-700 text-white font-bold py-2 px-5 rounded-2xl shadow-lg transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-pink-300"
+              style={{ boxShadow: '0 4px 16px 0 rgba(251,194,235,0.15)' }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" /></svg>
+              {t("detailedModal.exportExcel")}
+            </button>
+          </div>
         </div>
 
         {/* Nội dung chính: Biểu đồ + bảng */}
