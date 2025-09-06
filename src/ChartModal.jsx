@@ -51,19 +51,21 @@ const ChartModal = ({
   selectedDate = "",
 }) => {
   const { t } = useTranslation();
-  const [selectedModel, setSelectedModel] = useState("");
+  // Group UI state
+  const [ui, setUI] = useState({
+    selectedModel: "",
+  });
 
   useEffect(() => {
     if (isOpen && modelList.length > 0) {
-      setSelectedModel(modelList[0]);
+      setUI((prev) => ({ ...prev, selectedModel: modelList[0] }));
     } else if (!isOpen) {
-      setSelectedModel("");
+      setUI((prev) => ({ ...prev, selectedModel: "" }));
     }
   }, [isOpen, modelList]);
 
-  const modelData = Array.isArray(chartData[selectedModel])
-    ? chartData[selectedModel]
-    : [];
+  const handleModelChange = (e) => setUI((prev) => ({ ...prev, selectedModel: e.target.value }));
+  const modelData = Array.isArray(chartData[ui.selectedModel]) ? chartData[ui.selectedModel] : [];
 
   return (
     <Modal
@@ -86,20 +88,18 @@ const ChartModal = ({
       <h2 className="text-3xl font-bold mb-4 uppercase text-center">
         {t("chart.title", { week: weekNumber })} - {selectedDate}
       </h2>
-
       {area && (
         <h3 className="text-xl text-center font-semibold mb-4">
           {t("chart.leader", { area })}
         </h3>
       )}
-
       <div className="mb-4">
         <label className="font-semibold mr-2 uppercase">
           {t("chart.selectModel")}:
         </label>
         <select
-          value={selectedModel}
-          onChange={(e) => setSelectedModel(e.target.value)}
+          value={ui.selectedModel}
+          onChange={handleModelChange}
           className="border border-gray-300 rounded px-2 py-1"
         >
           {modelList.map((m) => (
@@ -109,7 +109,6 @@ const ChartModal = ({
           ))}
         </select>
       </div>
-
       {modelData.length > 0 ? (
         <ResponsiveContainer width="100%" height={500}>
           <LineChart
@@ -222,7 +221,6 @@ const ChartModal = ({
       ) : (
         <p className="text-center text-gray-500 italic">{t("chart.noData")}</p>
       )}
-
       <button
         onClick={onClose}
         className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"

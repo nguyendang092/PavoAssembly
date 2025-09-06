@@ -26,94 +26,89 @@ const COLORS = [
   "#a83279",
 ];
 
+
 const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
-  const [chartData, setChartData] = useState([]);
-  const [alerts, setAlerts] = useState([]);
   const { t } = useTranslation();
+  // Group UI state
+  const [ui, setUI] = useState({
+    chartData: [],
+    alerts: [],
+  });
 
   const getThreshold = () => {
     if (type === "temperature") return { min: 25, max: 35 };
     if (type === "humidity") return { min: 60, max: 85 };
     return { min: -Infinity, max: Infinity };
   };
-
   const threshold = getThreshold();
+
+  // Helper: fetch chart data and alerts
+  const fetchChartData = async () => {
+    const year = parseInt(selectedMonth.split("-")[0], 10);
+    const month = parseInt(selectedMonth.split("-")[1], 10) - 1;
+    const daysInMonth = getDaysInMonth(new Date(year, month));
+    const newAlerts = [];
+    const result = {};
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateObj = new Date(year, month, d);
+      if (getDay(dateObj) === 0) continue;
+      const dayKey = d.toString().padStart(2, "0");
+      result[dayKey] = { day: dayKey };
+      machines.forEach((machine) => {
+        result[dayKey][machine] = null;
+      });
+    }
+    const promises = machines.map((machine) =>
+      get(
+        ref(
+          db,
+          `temperature_monitor/${selectedArea}/${machine}/${selectedMonth}/${type}`
+        )
+      ).then((snapshot) => ({
+        machine,
+        data: snapshot.exists() ? snapshot.val() : null,
+      }))
+    );
+    const results = await Promise.all(promises);
+    results.forEach(({ machine, data }) => {
+      if (!data) return;
+      Object.entries(data).forEach(([day, value]) => {
+        const dayKey = day.padStart(2, "0");
+        const val = parseFloat(value);
+        if (result[dayKey]) {
+          result[dayKey][machine] = val;
+          if (val < threshold.min || val > threshold.max) {
+            newAlerts.push({
+              day: `${dayKey}/${selectedMonth.split("-")[1]}`,
+              machine,
+              value: val,
+              status:
+                val < threshold.min
+                  ? t("chartView.underThreshold")
+                  : t("chartView.overThreshold"),
+            });
+          }
+        }
+      });
+    });
+    const sortedData = Object.values(result).sort(
+      (a, b) => parseInt(a.day) - parseInt(b.day)
+    );
+    setUI({ chartData: sortedData, alerts: newAlerts });
+  };
 
   useEffect(() => {
     let isMounted = true;
-    const fetchData = async () => {
-      const year = parseInt(selectedMonth.split("-")[0], 10);
-      const month = parseInt(selectedMonth.split("-")[1], 10) - 1;
-      const daysInMonth = getDaysInMonth(new Date(year, month));
-      const newAlerts = [];
-      const result = {};
-
-      for (let d = 1; d <= daysInMonth; d++) {
-        const dateObj = new Date(year, month, d);
-        if (getDay(dateObj) === 0) continue;
-        const dayKey = d.toString().padStart(2, "0");
-        result[dayKey] = { day: dayKey };
-        machines.forEach((machine) => {
-          result[dayKey][machine] = null;
-        });
-      }
-
-      const promises = machines.map((machine) =>
-        get(
-          ref(
-            db,
-            `temperature_monitor/${selectedArea}/${machine}/${selectedMonth}/${type}`
-          )
-        ).then((snapshot) => ({
-          machine,
-          data: snapshot.exists() ? snapshot.val() : null,
-        }))
-      );
-
-      const results = await Promise.all(promises);
-
-      results.forEach(({ machine, data }) => {
-        if (!data) return;
-
-        Object.entries(data).forEach(([day, value]) => {
-          const dayKey = day.padStart(2, "0");
-          const val = parseFloat(value);
-          if (result[dayKey]) {
-            result[dayKey][machine] = val;
-            if (val < threshold.min || val > threshold.max) {
-              newAlerts.push({
-                day: `${dayKey}/${selectedMonth.split("-")[1]}`,
-                machine,
-                value: val,
-                status:
-                  val < threshold.min
-                    ? t("chartView.underThreshold")
-                    : t("chartView.overThreshold"),
-              });
-            }
-          }
-        });
-      });
-
-      const sortedData = Object.values(result).sort(
-        (a, b) => parseInt(a.day) - parseInt(b.day)
-      );
-      if (isMounted) {
-        setChartData(sortedData);
-        setAlerts(newAlerts);
-      }
-    };
-
-    fetchData();
+    fetchChartData();
     return () => {
       isMounted = false;
-      setChartData([]);
-      setAlerts([]);
+      setUI({ chartData: [], alerts: [] });
     };
+    // eslint-disable-next-line
   }, [selectedArea, selectedMonth, machines, type, t]);
 
   const handleExportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(chartData);
+    const ws = XLSX.utils.json_to_sheet(ui.chartData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Chart");
     const fileName = `${selectedArea}_${selectedMonth}_${type}.xlsx`;
@@ -122,7 +117,7 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
     saveAs(blob, fileName);
   };
 
-  const hasWarning = alerts.length > 0;
+  const hasWarning = ui.alerts.length > 0;
 
   return (
     <div className="overflow-x-auto">
@@ -153,7 +148,7 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
         <LineChart
           width={1200}
           height={420}
-          data={chartData}
+          data={ui.chartData}
           margin={{ top: 20, right: 50, left: 30, bottom: 40 }}
         >
           <CartesianGrid vertical={false} horizontal={false} />
@@ -290,7 +285,7 @@ const ChartView = ({ selectedArea, selectedMonth, machines, type }) => {
                 </tr>
               </thead>
               <tbody>
-                {alerts.map((alert, i) => (
+                {ui.alerts.map((alert, i) => (
                   <tr key={i} className="bg-white even:bg-gray-50">
                     <td className="px-4 py-2 border">{alert.day}</td>
                     <td className="px-4 py-2 border">

@@ -1,5 +1,37 @@
 import React from "react";
 
+function renderRowTable(row) {
+  return Object.entries(row)
+    .filter(([key]) => key !== "Lỗi")
+    .map(([key, value]) => (
+      <tr key={key}>
+        <td className="font-semibold pr-2 py-1 text-right text-gray-700 whitespace-nowrap">{key}</td>
+        <td className="pl-2 py-1 text-left text-gray-900">{String(value)}</td>
+      </tr>
+    ));
+}
+
+function renderLoiTable(loiObj, allLoiKeys) {
+  if (!loiObj || !allLoiKeys) return null;
+  return (
+    <tr>
+      <td className="font-semibold pr-2 py-1 text-right text-gray-700 align-top">Lỗi</td>
+      <td className="pl-2 py-1 text-left text-gray-900">
+        <table className="w-full text-xs border-collapse">
+          <tbody>
+            {allLoiKeys.map((loi) => (
+              <tr key={loi}>
+                <td className="pr-2 py-0.5 text-right text-gray-600 whitespace-nowrap">{loi}</td>
+                <td className="pl-2 py-0.5 text-left text-gray-900">{loiObj[loi] ?? 0}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </td>
+    </tr>
+  );
+}
+
 export default function DetailRowModal({ open, onClose, row, allLoiKeys }) {
   if (!open || !row) return null;
   return (
@@ -14,31 +46,8 @@ export default function DetailRowModal({ open, onClose, row, allLoiKeys }) {
         <h2 className="text-xl font-bold mb-4 text-center uppercase">Chi tiết dòng dữ liệu</h2>
         <table className="w-full text-sm border-collapse mb-2">
           <tbody>
-            {Object.entries(row).map(([key, value]) =>
-              key !== "Lỗi" ? (
-                <tr key={key}>
-                  <td className="font-semibold pr-2 py-1 text-right text-gray-700 whitespace-nowrap">{key}</td>
-                  <td className="pl-2 py-1 text-left text-gray-900">{String(value)}</td>
-                </tr>
-              ) : null
-            )}
-            {row.Lỗi && allLoiKeys && (
-              <tr>
-                <td className="font-semibold pr-2 py-1 text-right text-gray-700 align-top">Lỗi</td>
-                <td className="pl-2 py-1 text-left text-gray-900">
-                  <table className="w-full text-xs border-collapse">
-                    <tbody>
-                      {allLoiKeys.map((loi) => (
-                        <tr key={loi}>
-                          <td className="pr-2 py-0.5 text-right text-gray-600 whitespace-nowrap">{loi}</td>
-                          <td className="pl-2 py-0.5 text-left text-gray-900">{row.Lỗi[loi] ?? 0}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </td>
-              </tr>
-            )}
+            {renderRowTable(row)}
+            {renderLoiTable(row.Lỗi, allLoiKeys)}
           </tbody>
         </table>
       </div>

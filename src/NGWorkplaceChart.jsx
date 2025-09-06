@@ -100,9 +100,7 @@ export default function NGWorkplaceChart() {
           }
         }
         let weekList = Array.from(weekSet);
-        // Sort tuần theo số (tăng dần)
         weekList = weekList.sort((a, b) => Number(a) - Number(b));
-
         setWeekData(
           weekList.reduce((acc, w) => {
             acc[w] = true;
@@ -112,55 +110,31 @@ export default function NGWorkplaceChart() {
 
         const currentWeek = getCurrentWeekNumber();
 
+        // Nếu chưa chọn tuần, tự động chọn tuần phù hợp nhưng vẫn fetch dữ liệu tuần đó sau khi setSelectedWeek
         if (!selectedWeek) {
-          // Check tuần hiện tại
+          let autoWeek = "";
           if (weekList.includes(currentWeek.toString())) {
-            setSelectedWeek(currentWeek.toString());
-            setLoading(false);
-            return;
+            autoWeek = currentWeek.toString();
+          } else if (weekList.includes((currentWeek - 1).toString())) {
+            autoWeek = (currentWeek - 1).toString();
+          } else if (weekList.length > 0) {
+            autoWeek = weekList[weekList.length - 1];
           }
-          // Kiểm tra tuần trước (currentWeek - 1)
-          const previousWeek = currentWeek - 1;
-          if (weekList.includes(previousWeek.toString())) {
-            setSelectedWeek(previousWeek.toString());
-            setLoading(false);
-            return;
-          }
-          // Nếu không có tuần trên, lấy tuần lớn nhất (cuối danh sách)
-          if (weekList.length > 0) {
-            setSelectedWeek(weekList[weekList.length - 1]);
-            setLoading(false);
-            return;
-          }
-          // Không có tuần nào cả
-          setSelectedWeek("");
+          setSelectedWeek(autoWeek);
           setLoading(false);
           return;
         }
 
-        // Nếu đã có selectedWeek, build dữ liệu cho tuần đó
+        // Build dữ liệu cho tuần đã chọn
         const rows = [];
         for (const workplace in ngData) {
           if (!ngData[workplace][selectedWeek]) continue;
           for (const rework in ngData[workplace][selectedWeek]) {
             for (const day in ngData[workplace][selectedWeek][rework]) {
-              for (const model in ngData[workplace][selectedWeek][rework][
-                day
-              ]) {
-                for (const shift in ngData[workplace][selectedWeek][rework][
-                  day
-                ][model]) {
-                  const qty =
-                    ngData[workplace][selectedWeek][rework][day][model][shift];
-                  rows.push({
-                    workplace,
-                    week: selectedWeek,
-                    rework,
-                    day,
-                    model,
-                    shift,
-                    qty,
-                  });
+              for (const model in ngData[workplace][selectedWeek][rework][day]) {
+                for (const shift in ngData[workplace][selectedWeek][rework][day][model]) {
+                  const qty = ngData[workplace][selectedWeek][rework][day][model][shift];
+                  rows.push({ workplace, week: selectedWeek, rework, day, model, shift, qty });
                 }
               }
             }
@@ -170,8 +144,7 @@ export default function NGWorkplaceChart() {
         const map = {};
         rows.forEach((row) => {
           if (!map[row.workplace]) map[row.workplace] = {};
-          if (!map[row.workplace][row.day])
-            map[row.workplace][row.day] = { normal: 0, rework: 0 };
+          if (!map[row.workplace][row.day]) map[row.workplace][row.day] = { normal: 0, rework: 0 };
           let value = row.qty;
           if (typeof value === "object" && value !== null) {
             value = value.quantity ?? 0;
@@ -187,19 +160,14 @@ export default function NGWorkplaceChart() {
         // Chuẩn bị dữ liệu cho biểu đồ
         const workplaces = Object.keys(map);
         let days = Array.from(new Set(rows.map((r) => r.day))).sort();
-
-        // Loại bỏ ngày chủ nhật ("Chủ nhật" hoặc "Sunday")
         days = days.filter((day) => {
           const lower = day.toLowerCase();
           return lower !== "chủ nhật" && lower !== "sunday";
         });
-
         const datasets = workplaces.map((workplace, i) => ({
           label: workplace,
           data: days.map(
-            (day) =>
-              (map[workplace][day]?.normal || 0) +
-              (map[workplace][day]?.rework || 0)
+            (day) => (map[workplace][day]?.normal || 0) + (map[workplace][day]?.rework || 0)
           ),
           backgroundColor: [
             "#4e79a7",
@@ -215,7 +183,6 @@ export default function NGWorkplaceChart() {
           ][i % 10],
           borderRadius: 6,
         }));
-
         setChartData({ labels: days, datasets });
       } catch (err) {
         setChartData(null);
@@ -568,6 +535,7 @@ export default function NGWorkplaceChart() {
         isOpen={isModalOpen}
         onClose={closeDetailModal}
         area={modalArea}
+        week={selectedWeek}
       />
     </div>
   );

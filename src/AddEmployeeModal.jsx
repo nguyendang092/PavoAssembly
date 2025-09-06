@@ -40,24 +40,39 @@ const AddEmployeeModal = ({
   const [filterDate, setFilterDate] = useState(selectedDate || "");
   const filterDateKey = filterDate?.replace(/-/g, "") || "";
 
-  const [newEmployee, setNewEmployee] = useState({
-    name: "",
-    status: "Đi làm",
-    joinDate: selectedDate || getToday(),
-    model: "",
-    imageUrl: "",
-    employeeId: "",
-  });
+    // Group UI state
+    const [ui, setUI] = useState({
+      filterDate: selectedDate || "",
+      newEmployee: {
+        name: "",
+        status: "Đi làm",
+        joinDate: selectedDate || getToday(),
+        model: "",
+        imageUrl: "",
+        employeeId: "",
+      },
+      timePhanCongFrom: "",
+      timePhanCongTo: "",
+      selectedKey: null,
+      existingEmployees: [],
+      searchKeyword: "",
+      imageFile: null,
+      previewImage: null,
+      isSaving: false,
+    });
 
   const [timePhanCongFrom, setTimePhanCongFrom] = useState("");
   const [timePhanCongTo, setTimePhanCongTo] = useState("");
   const [selectedKey, setSelectedKey] = useState(null);
   const [existingEmployees, setExistingEmployees] = useState([]);
-  const [searchKeyword, setSearchKeyword] = useState("");
-  // const [inputModel, setInputModel] = useState("");
-  const [imageFile, setImageFile] = useState(null);
-  const [previewImage, setPreviewImage] = useState(null);
-  const [isSaving, setIsSaving] = useState(false); // Local state, can be removed if not used elsewhere
+      setUI((prev) => ({
+        ...prev,
+        filterDate: selectedDate || getToday(),
+        newEmployee: {
+          ...prev.newEmployee,
+          joinDate: selectedDate || getToday(),
+        },
+      }));
   const { setLoading } = useLoading();
 
   const attendanceCache = useRef({});

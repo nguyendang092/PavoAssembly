@@ -8,11 +8,22 @@ import { useTranslation } from "react-i18next";
 import { menuConfig } from "./menuConfig";
 export default function Navbar({ user, setUser }) {
   const { t, i18n } = useTranslation();
-  const [isOpen, setIsOpen] = useState(false);
+  // Group UI state
+  const [ui, setUI] = useState({
+    isOpen: false,
+    langPopupOpen: false,
+    signInOpen: false,
+    changePwOpen: false,
+    userDropdownOpen: false,
+  });
   const [language, setLanguage] = useState(i18n.language || "vi");
   const [activeLeaderKey, setActiveLeaderKey] = useState("bieudo");
+  const [dropdownOpen, setDropdownOpen] = useState({});
+  const dropdownTimers = useRef({});
   const location = useLocation();
-  // Đồng bộ activeLeaderKey với route
+  const navigate = useNavigate();
+
+  // Sync activeLeaderKey with route
   useEffect(() => {
     let foundKey = null;
     for (const item of menuConfig) {
@@ -30,40 +41,39 @@ export default function Navbar({ user, setUser }) {
     }
     if (foundKey) setActiveLeaderKey(foundKey);
   }, [location.pathname]);
-  // Dropdown state động cho tất cả dropdown
-  const [dropdownOpen, setDropdownOpen] = useState({});
-  const dropdownTimers = useRef({});
+
+  // Close user dropdown on outside click
+  useEffect(() => {
+    if (!ui.userDropdownOpen) return;
+    const handleClick = (e) => {
+      if (!e.target.closest(".user-dropdown-btn")) setUI((prev) => ({ ...prev, userDropdownOpen: false }));
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [ui.userDropdownOpen]);
 
   const flagMap = {
     vi: "https://flagcdn.com/w40/vn.png",
     ko: "https://flagcdn.com/w40/kr.png",
   };
 
-  const toggleMenu = () => setIsOpen(!isOpen);
-  const navigate = useNavigate();
+  // Handlers
+  const toggleMenu = () => setUI((prev) => ({ ...prev, isOpen: !prev.isOpen }));
   const handleSelect = (key, path) => {
     setActiveLeaderKey(key);
-    setIsOpen(false);
+    setUI((prev) => ({ ...prev, isOpen: false }));
     if (path) navigate(path);
   };
-
-  const [langPopupOpen, setLangPopupOpen] = useState(false);
-
   const handleChangeLanguage = (lang) => {
     setLanguage(lang);
     i18n.changeLanguage(lang);
-    setLangPopupOpen(false);
+    setUI((prev) => ({ ...prev, langPopupOpen: false }));
   };
-
-  // Modal state for SignIn
-  const [signInOpen, setSignInOpen] = useState(false);
-  const handleSignIn = () => setSignInOpen(true);
-
+  const handleSignIn = () => setUI((prev) => ({ ...prev, signInOpen: true }));
   const handleSignInSuccess = (userInfo) => {
     if (setUser) setUser(userInfo);
-    setSignInOpen(false);
+    setUI((prev) => ({ ...prev, signInOpen: false }));
   };
-
   const handleSignOut = async () => {
     try {
       await signOut(getAuth());
@@ -71,21 +81,6 @@ export default function Navbar({ user, setUser }) {
     localStorage.removeItem("userLogin");
     if (setUser) setUser(null);
   };
-
-  const [changePwOpen, setChangePwOpen] = useState(false);
-  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  // Đã chuyển dropdown sang state động, các state/timer cũ không còn cần thiết
-  // Đóng dropdown user khi click ngoài
-  useEffect(() => {
-    if (!userDropdownOpen) return;
-    const handleClick = (e) => {
-      if (!e.target.closest(".user-dropdown-btn")) setUserDropdownOpen(false);
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [userDropdownOpen]);
-
-  // Hàm mở/đóng dropdown động
   const openDropdown = (key) => {
     if (dropdownTimers.current[key]) clearTimeout(dropdownTimers.current[key]);
     setDropdownOpen((prev) => ({ ...prev, [key]: true }));
@@ -94,19 +89,19 @@ export default function Navbar({ user, setUser }) {
     if (dropdownTimers.current[key]) clearTimeout(dropdownTimers.current[key]);
     dropdownTimers.current[key] = setTimeout(() => {
       setDropdownOpen((prev) => ({ ...prev, [key]: false }));
-    }, 300); 
+    }, 300);
   };
 
   return (
     <>
-      {signInOpen && (
+      {ui.signInOpen && (
         <SignIn
           onSignIn={handleSignInSuccess}
-          onClose={() => setSignInOpen(false)}
+          onClose={() => setUI((prev) => ({ ...prev, signInOpen: false }))}
         />
       )}
-      {changePwOpen && (
-        <ChangePasswordModal onClose={() => setChangePwOpen(false)} />
+      {ui.changePwOpen && (
+        <ChangePasswordModal onClose={() => setUI((prev) => ({ ...prev, changePwOpen: false }))} />
       )}
       <nav className="bg-gradient-to-r from-blue-100 via-purple-100 to-white border-b border-gray-200 dark:bg-gray-900 dark:border-gray-700 shadow-md">
         <div className="max-w-screen-xl flex flex-wrap items-center justify-between mx-auto p-4">
@@ -127,7 +122,7 @@ export default function Navbar({ user, setUser }) {
               <>
                 <div className="relative inline-block text-left mr-2">
                   <button
-                    onClick={() => setUserDropdownOpen((v) => !v)}
+                    onClick={() => setUI((prev) => ({ ...prev, userDropdownOpen: !prev.userDropdownOpen }))}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-r from-blue-200 to-purple-200 text-blue-900 font-semibold text-xs shadow hover:shadow-lg border border-blue-300 focus:outline-none transition-all duration-150 user-dropdown-btn"
                   >
                     <span className="flex w-7 h-7 rounded-full bg-blue-400 text-white items-center justify-center font-bold text-base shadow-md">
@@ -140,7 +135,7 @@ export default function Navbar({ user, setUser }) {
                     </span>
                     <svg
                       className={`w-4 h-4 ml-1 transition-transform ${
-                        userDropdownOpen ? "rotate-180" : ""
+                        ui.userDropdownOpen ? "rotate-180" : ""
                       }`}
                       fill="none"
                       stroke="currentColor"
@@ -154,12 +149,11 @@ export default function Navbar({ user, setUser }) {
                       />
                     </svg>
                   </button>
-                  {userDropdownOpen && (
+                  {ui.userDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 overflow-hidden animate-fade-in user-dropdown-btn">
                       <button
                         onClick={() => {
-                          setChangePwOpen(true);
-                          setUserDropdownOpen(false);
+                          setUI((prev) => ({ ...prev, changePwOpen: true, userDropdownOpen: false }));
                         }}
                         className="flex items-center gap-2 w-full text-left px-5 py-3 text-sm text-blue-700 hover:bg-blue-50 font-medium transition-all duration-100"
                       >
@@ -181,7 +175,7 @@ export default function Navbar({ user, setUser }) {
                       <button
                         onClick={() => {
                           handleSignOut();
-                          setUserDropdownOpen(false);
+                          setUI((prev) => ({ ...prev, userDropdownOpen: false }));
                         }}
                         className="flex items-center gap-2 w-full text-left px-5 py-3 text-sm text-red-600 hover:bg-red-50 font-medium border-t border-gray-100 transition-all duration-100"
                       >
@@ -213,19 +207,12 @@ export default function Navbar({ user, setUser }) {
                 >
                   {t("navbar.dangNhap")}
                 </button>
-                {/* <button
-                  onClick={handleSignUp}
-                  className="px-1 py-1 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700 shadow-sm text-xs"
-                  style={{ minWidth: 70 }}
-                >
-                  Đăng ký
-                </button> */}
               </>
             )}
 
             {/* Language Selector */}
             <button
-              onClick={() => setLangPopupOpen(!langPopupOpen)}
+              onClick={() => setUI((prev) => ({ ...prev, langPopupOpen: !prev.langPopupOpen }))}
               aria-label="Select language"
               title={language === "vi" ? "Tiếng Việt" : "한국어"}
               className="flex items-center space-x-1 cursor-pointer focus:outline-none text-gray-700 dark:text-gray-300"
@@ -236,7 +223,7 @@ export default function Navbar({ user, setUser }) {
               />
             </button>
 
-            {langPopupOpen && (
+            {ui.langPopupOpen && (
               <div className="absolute right-0 mt-10 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 p-2 flex space-x-3 z-50">
                 {Object.entries(flagMap).map(([langKey, flagUrl]) => (
                   <button
@@ -264,7 +251,7 @@ export default function Navbar({ user, setUser }) {
               type="button"
               className="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-600 rounded-lg md:hidden hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               aria-controls="navbar-cta"
-              aria-expanded={isOpen}
+              aria-expanded={ui.isOpen}
             >
               <span className="sr-only">Open main menu</span>
               <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24">
@@ -282,7 +269,7 @@ export default function Navbar({ user, setUser }) {
           {/* Navigation */}
           <div
             className={`items-center justify-between w-full md:flex md:w-auto md:order-1 transition-all duration-300 ease-in-out ${
-              isOpen ? "block animate-fade-in" : "hidden"
+              ui.isOpen ? "block animate-fade-in" : "hidden"
             }`}
             id="navbar-cta"
           >

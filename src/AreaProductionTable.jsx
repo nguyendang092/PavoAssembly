@@ -17,21 +17,25 @@ Modal.setAppElement("#root");
 const AreaProductionTable = ({ area, showToast }) => {
   const { t } = useTranslation();
   const areaKey = getAreaKey(area);
-  const [draftModelList, setDraftModelList] = useState([]);
-  const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
+  // UI state
+  const [ui, setUI] = useState({
+    addEmployeeModalOpen: false,
+    modalIsOpen: false,
+    attendanceModalOpen: false,
+    modelEditOpen: false,
+  });
+  // Data state
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [modelList, setModelList] = useState([]);
+  const [draftModelList, setDraftModelList] = useState([]);
+  const [newModelName, setNewModelName] = useState("");
   const [actualData, setActualData] = useState({});
   const [productionData, setProductionData] = useState({});
   const [attendanceData, setAttendanceData] = useState({});
-  const [modalIsOpen, setModalIsOpen] = useState(false);
-  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
-  const [modelList, setModelList] = useState([]);
   const weekNumber = getWeek(selectedDate, { weekStartsOn: 1 });
   const year = getYear(selectedDate);
   const weekKey = `week_${year}_${weekNumber}`;
   const dateKey = format(selectedDate, "yyyy-MM-dd");
-  const [modelEditOpen, setModelEditOpen] = useState(false);
-  const [newModelName, setNewModelName] = useState("");
   const startDateOfWeek = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const timeSlots = Array.from({ length: 6 }, (_, i) => {
     const date = addDays(startDateOfWeek, i);
@@ -44,8 +48,8 @@ const AreaProductionTable = ({ area, showToast }) => {
   });
 
   useEffect(() => {
-    if (modelEditOpen) setDraftModelList(modelList);
-  }, [modelEditOpen]);
+    if (ui.modelEditOpen) setDraftModelList(modelList);
+  }, [ui.modelEditOpen, modelList]);
 
   // Load dữ liệu actual, production, attendance chỉ theo tuần
   useEffect(() => {
@@ -124,13 +128,10 @@ const AreaProductionTable = ({ area, showToast }) => {
   }, [areaKey]);
 
   const handleDateChange = (e) => setSelectedDate(new Date(e.target.value));
-
   const changeWeek = (direction) => {
     setSelectedDate((prev) => {
       const currentStart = startOfWeek(prev, { weekStartsOn: 1 });
-      return direction === "prev"
-        ? addDays(currentStart, -7)
-        : addDays(currentStart, 7);
+      return direction === "prev" ? addDays(currentStart, -7) : addDays(currentStart, 7);
     });
   };
 
@@ -206,7 +207,7 @@ const AreaProductionTable = ({ area, showToast }) => {
       <div className="flex flex-wrap items-center justify-between mb-3 gap-2">
         <div>
           <button
-            onClick={() => setModelEditOpen(true)}
+            onClick={() => setUI((prev) => ({ ...prev, modelEditOpen: true }))}
             className="px-3 py-1 bg-gray-500 text-white rounded hover:bg-gray-600 mr-2"
           >
             {t("areaProduction.manageLine")}
@@ -226,19 +227,19 @@ const AreaProductionTable = ({ area, showToast }) => {
         </div>
         <div className="space-x-2">
           <button
-            onClick={() => setAttendanceModalOpen(true)}
+            onClick={() => setUI((prev) => ({ ...prev, attendanceModalOpen: true }))}
             className="px-4 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
           >
             {t("areaProduction.employees")}
           </button>
           <button
-            onClick={() => setAddEmployeeModalOpen(true)}
+            onClick={() => setUI((prev) => ({ ...prev, addEmployeeModalOpen: true }))}
             className="px-4 py-1 bg-orange-500 text-white rounded hover:bg-orange-600"
           >
             {t("areaProduction.addAssignment")}
           </button>
           <button
-            onClick={() => setModalIsOpen(true)}
+            onClick={() => setUI((prev) => ({ ...prev, modalIsOpen: true }))}
             className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             {t("areaProduction.chart")}
@@ -390,8 +391,8 @@ const AreaProductionTable = ({ area, showToast }) => {
         </tbody>
       </table>
       <Modal
-        isOpen={modelEditOpen}
-        onRequestClose={() => setModelEditOpen(false)}
+        isOpen={ui.modelEditOpen}
+        onRequestClose={() => setUI((prev) => ({ ...prev, modelEditOpen: false }))}
         className="bg-white p-6 max-w-md mx-auto rounded shadow"
         overlayClassName="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50"
       >
@@ -409,11 +410,7 @@ const AreaProductionTable = ({ area, showToast }) => {
                 className="border px-2 py-1 rounded flex-1"
               />
               <button
-                onClick={() =>
-                  setDraftModelList(
-                    draftModelList.filter((_, i) => i !== index)
-                  )
-                }
+                onClick={() => setDraftModelList(draftModelList.filter((_, i) => i !== index))}
               >
                 ❌
               </button>
@@ -442,7 +439,7 @@ const AreaProductionTable = ({ area, showToast }) => {
         </div>
         <div className="flex justify-end mt-4 gap-2">
           <button
-            onClick={() => setModelEditOpen(false)}
+            onClick={() => setUI((prev) => ({ ...prev, modelEditOpen: false }))}
             className="bg-gray-300 px-4 py-1 rounded"
           >
             {t("areaProduction.close")}
@@ -453,7 +450,7 @@ const AreaProductionTable = ({ area, showToast }) => {
                 .then(() => {
                   showToast(t("areaProduction.updated"));
                   setModelList(draftModelList);
-                  setModelEditOpen(false);
+                  setUI((prev) => ({ ...prev, modelEditOpen: false }));
                 })
                 .catch(() => {
                   showToast(t("areaProduction.errorSaving"));
@@ -468,8 +465,8 @@ const AreaProductionTable = ({ area, showToast }) => {
 
       {/* Biểu đồ */}
       <ChartModal
-        isOpen={modalIsOpen}
-        onClose={() => setModalIsOpen(false)}
+        isOpen={ui.modalIsOpen}
+        onClose={() => setUI((prev) => ({ ...prev, modalIsOpen: false }))}
         weekNumber={weekNumber}
         chartData={chartData}
         totalData={totalData}
@@ -477,10 +474,9 @@ const AreaProductionTable = ({ area, showToast }) => {
         area={area}
         selectedDate={format(selectedDate, "yyyy-MM-dd")}
       />
-
       <AttendanceModal
-        isOpen={attendanceModalOpen}
-        onClose={() => setAttendanceModalOpen(false)}
+        isOpen={ui.attendanceModalOpen}
+        onClose={() => setUI((prev) => ({ ...prev, attendanceModalOpen: false }))}
         selectedDate={format(selectedDate, "yyyy-MM-dd")}
         attendanceData={attendanceData[dateKey] || {}}
         timeSlots={timeSlots}
@@ -490,8 +486,8 @@ const AreaProductionTable = ({ area, showToast }) => {
         dateKey={dateKey}
       />
       <AddEmployeeModal
-        isOpen={addEmployeeModalOpen}
-        onClose={() => setAddEmployeeModalOpen(false)}
+        isOpen={ui.addEmployeeModalOpen}
+        onClose={() => setUI((prev) => ({ ...prev, addEmployeeModalOpen: false }))}
         areaKey={areaKey}
         attendanceData={attendanceData[dateKey] || {}}
         timeSlots={timeSlots}

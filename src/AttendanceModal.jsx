@@ -37,27 +37,35 @@ const AttendanceModal = ({
     areaName.replace(/\s+/g, "").replace(/\//g, "_");
   const { t } = useTranslation();
   const mappedAreaKey = getAreaKey(areaKey);
-  const [employees, setEmployees] = useState({});
-  const [editEmployeeId, setEditEmployeeId] = useState(null);
-  const [editEmployeeData, setEditEmployeeData] = useState({});
-  const [filterModel, setFilterModel] = useState("");
-  const [filterDate, setFilterDate] = useState(selectedDate || "");
-  const [showOnlyLeave, setShowOnlyLeave] = useState(false);
+  // Group UI state
+  const [ui, setUI] = useState({
+    employees: {},
+    editEmployeeId: null,
+    editEmployeeData: {},
+    filterModel: "",
+    filterDate: selectedDate || "",
+    showOnlyLeave: false,
+  });
 
   // Reset filter & edit state when modal open/close or selectedDate changes
   useEffect(() => {
     if (isOpen) {
-      setFilterModel("");
-      setFilterDate(selectedDate || "");
-      setShowOnlyLeave(false);
-      setEditEmployeeId(null);
-      setEditEmployeeData({});
+      setUI((prev) => ({
+        ...prev,
+        filterModel: "",
+        filterDate: selectedDate || "",
+        showOnlyLeave: false,
+        editEmployeeId: null,
+        editEmployeeData: {},
+      }));
     }
-    // Cleanup state when modal closes
     if (!isOpen) {
-      setEmployees({});
-      setEditEmployeeId(null);
-      setEditEmployeeData({});
+      setUI((prev) => ({
+        ...prev,
+        employees: {},
+        editEmployeeId: null,
+        editEmployeeData: {},
+      }));
     }
   }, [isOpen, selectedDate]);
   const dateKey = selectedDate?.replace(/-/g, "") || "";
@@ -66,19 +74,16 @@ const AttendanceModal = ({
   useEffect(() => {
     const fetchAttendanceData = async () => {
       if (!mappedAreaKey || !filterDateKey) {
-        setEmployees({});
+        setUI((prev) => ({ ...prev, employees: {} }));
         return;
       }
-
       const snapshot = await get(ref(db, `attendance/${mappedAreaKey}`));
       if (!snapshot.exists()) {
-        setEmployees({});
+        setUI((prev) => ({ ...prev, employees: {} }));
         return;
       }
-
       const rawData = snapshot.val();
       const result = {};
-
       Object.entries(rawData).forEach(([employeeId, emp]) => {
         const scheduleArr = Array.isArray(emp.schedules?.[filterDateKey])
           ? emp.schedules[filterDateKey]
@@ -95,10 +100,8 @@ const AttendanceModal = ({
           };
         }
       });
-
-      setEmployees(result);
+      setUI((prev) => ({ ...prev, employees: result }));
     };
-
     fetchAttendanceData();
   }, [mappedAreaKey, filterDateKey]);
 
@@ -106,68 +109,61 @@ const AttendanceModal = ({
     if (field === "name") {
       value = formatName(value);
     }
-
-    setEditEmployeeData((prev) => {
+    setUI((prev) => {
+      const prevEdit = prev.editEmployeeData;
+      let nextEdit;
       if (field === "status" && value === "Nghỉ phép") {
-        return {
-          ...prev,
+        nextEdit = {
+          ...prevEdit,
           status: value,
           model: "--",
           startTime: "",
           endTime: "",
         };
-      }
-      if (field === "status" && value === "Đi làm" && prev.model === "--") {
-        return {
-          ...prev,
+      } else if (field === "status" && value === "Đi làm" && prevEdit.model === "--") {
+        nextEdit = {
+          ...prevEdit,
           status: value,
           model: "",
         };
+      } else {
+        nextEdit = { ...prevEdit, [field]: value };
       }
-      return { ...prev, [field]: value };
+      return { ...prev, editEmployeeData: nextEdit };
     });
   };
 
   const handleCancelEdit = () => {
-    setEditEmployeeId(null);
-    setEditEmployeeData({});
-    setEditImageFile(null);
-    setEditImagePreview(null);
+    setUI((prev) => ({
+      ...prev,
+      editEmployeeId: null,
+      editEmployeeData: {},
+    }));
   };
 
   const handleDelete = async (employeeId) => {
-    if (!window.confirm(`Xóa nhân viên ${employees[employeeId]?.name}?`))
-      return;
+    if (!window.confirm(`Xóa nhân viên ${ui.employees[employeeId]?.name}?`)) return;
     try {
       await remove(ref(db, `attendance/${mappedAreaKey}/${employeeId}`));
-      // Ghi log xóa nhân viên
       if (user) {
-        await logUserAction(
-          user.email,
-          "delete_employee",
-          `Xóa nhân viên: ${employeeId}`
-        );
+        await logUserAction(user.email, "delete_employee", `Xóa nhân viên: ${employeeId}`);
       }
-      setEmployees((prev) => {
-        const newEmployees = { ...prev };
+      setUI((prev) => {
+        const newEmployees = { ...prev.employees };
         delete newEmployees[employeeId];
-        return newEmployees;
+        return { ...prev, employees: newEmployees };
       });
-      if (editEmployeeId === employeeId) handleCancelEdit();
+      if (ui.editEmployeeId === employeeId) handleCancelEdit();
     } catch (err) {
       console.error("Xóa thất bại:", err);
     }
   };
 
   const handleSaveEdit = async () => {
-    const updated = { ...editEmployeeData };
-    const employeeId = editEmployeeId;
-    const timePhanCong = `${updated.startTime || ""} - ${
-      updated.endTime || ""
-    }`;
-
-    // Thêm ca mới vào mảng ca làm việc của ngày
-    const prevSchedules = employees[employeeId]?.schedules || {};
+    const updated = { ...ui.editEmployeeData };
+    const employeeId = ui.editEmployeeId;
+    const timePhanCong = `${updated.startTime || ""} - ${updated.endTime || ""}`;
+    const prevSchedules = ui.employees[employeeId]?.schedules || {};
     const prevShifts = Array.isArray(prevSchedules[dateKey])
       ? prevSchedules[dateKey]
       : prevSchedules[dateKey]
@@ -188,27 +184,23 @@ const AttendanceModal = ({
         [dateKey]: newShiftsArr,
       },
     });
-    // Ghi log sửa ca
     if (user) {
-      await logUserAction(
-        user.email,
-        "edit_shift",
-        `Sửa ca: ${employeeId}, ${timePhanCong}`
-      );
+      await logUserAction(user.email, "edit_shift", `Sửa ca: ${employeeId}, ${timePhanCong}`);
     }
-
-    setEmployees((prev) => ({
+    setUI((prev) => ({
       ...prev,
-      [employeeId]: {
-        ...updated,
-        schedules: {
-          ...prev[employeeId]?.schedules,
-          [dateKey]: newShiftsArr,
+      employees: {
+        ...prev.employees,
+        [employeeId]: {
+          ...updated,
+          schedules: {
+            ...prev.employees[employeeId]?.schedules,
+            [dateKey]: newShiftsArr,
+          },
+          shifts: newShiftsArr,
         },
-        shifts: newShiftsArr,
       },
     }));
-
     handleCancelEdit();
   };
 
@@ -216,10 +208,10 @@ const AttendanceModal = ({
   modelList.forEach((model) => (groupedEmployees[model] = []));
   groupedEmployees["Nghỉ phép"] = [];
 
-  Object.entries(employees).forEach(([id, emp]) => {
+  Object.entries(ui.employees).forEach(([id, emp]) => {
     (emp.shifts || []).forEach((shift, idx) => {
-      if (showOnlyLeave && shift.status !== "Nghỉ phép") return;
-      if (filterModel && shift.model !== filterModel) return;
+      if (ui.showOnlyLeave && shift.status !== "Nghỉ phép") return;
+      if (ui.filterModel && shift.model !== ui.filterModel) return;
       if (shift.status === "Nghỉ phép")
         groupedEmployees["Nghỉ phép"].push({
           id,
@@ -237,11 +229,11 @@ const AttendanceModal = ({
     });
   });
   // 📌 Thống kê toàn bộ trước khi lọc
-  const totalCount = Object.keys(employees).length;
-  const countWorking = Object.values(employees).filter(
+  const totalCount = Object.keys(ui.employees).length;
+  const countWorking = Object.values(ui.employees).filter(
     (emp) => emp.status === "Đi làm"
   ).length;
-  const countLeave = Object.values(employees).filter(
+  const countLeave = Object.values(ui.employees).filter(
     (emp) => emp.status === "Nghỉ phép"
   ).length;
   return (
@@ -270,8 +262,8 @@ const AttendanceModal = ({
       </h2>
       <div className="flex flex-wrap gap-3 mb-4 text-sm">
         <select
-          value={filterModel}
-          onChange={(e) => setFilterModel(e.target.value)}
+          value={ui.filterModel}
+          onChange={(e) => setUI((prev) => ({ ...prev, filterModel: e.target.value }))}
           className="border px-3 py-1 rounded"
         >
           <option value="">{t("attendanceModal.allLines")}</option>
@@ -283,27 +275,23 @@ const AttendanceModal = ({
         </select>
         <input
           type="date"
-          value={filterDate}
-          onChange={(e) => setFilterDate(e.target.value)}
+          value={ui.filterDate}
+          onChange={(e) => setUI((prev) => ({ ...prev, filterDate: e.target.value }))}
           className="border px-3 py-1 rounded"
         />
         <label className="flex items-center gap-1">
           <input
             type="checkbox"
-            checked={showOnlyLeave}
-            onChange={(e) => setShowOnlyLeave(e.target.checked)}
+            checked={ui.showOnlyLeave}
+            onChange={(e) => setUI((prev) => ({ ...prev, showOnlyLeave: e.target.checked }))}
           />{" "}
           {t("attendanceModal.filterLeaveOnly")}
         </label>
         <button
-          onClick={() => {
-            setFilterModel("");
-            setFilterDate(selectedDate || "");
-            setShowOnlyLeave(false);
-          }}
+          onClick={() => setUI((prev) => ({ ...prev, filterModel: "", filterDate: selectedDate || "", showOnlyLeave: false }))}
           className="bg-gray-300 px-3 py-1 rounded hover:bg-gray-400"
         >
-          <button>{t("attendanceModal.clearFilters")}</button>
+          {t("attendanceModal.clearFilters")}
         </button>
       </div>
 
@@ -351,8 +339,8 @@ const AttendanceModal = ({
                 <tbody>
                   {emps.map(({ id, shift, shiftIdx, ...emp }) => {
                     const isEditing =
-                      editEmployeeId === id &&
-                      editEmployeeData.shiftIdx === shiftIdx;
+                      ui.editEmployeeId === id &&
+                      ui.editEmployeeData.shiftIdx === shiftIdx;
                     return (
                       <tr
                         key={id + "-" + shiftIdx}
@@ -374,26 +362,16 @@ const AttendanceModal = ({
                             <div className="flex justify-center items-center gap-1">
                               <input
                                 type="time"
-                                value={editEmployeeData.startTime || ""}
-                                onChange={(e) =>
-                                  setEditEmployeeData((prev) => ({
-                                    ...prev,
-                                    startTime: e.target.value,
-                                  }))
-                                }
+                                value={ui.editEmployeeData.startTime || ""}
+                                onChange={(e) => setUI((prev) => ({ ...prev, editEmployeeData: { ...prev.editEmployeeData, startTime: e.target.value } }))}
                                 className="border px-1 py-0.5 w-[80px]"
                                 lang="vi"
                               />
                               <span>-</span>
                               <input
                                 type="time"
-                                value={editEmployeeData.endTime || ""}
-                                onChange={(e) =>
-                                  setEditEmployeeData((prev) => ({
-                                    ...prev,
-                                    endTime: e.target.value,
-                                  }))
-                                }
+                                value={ui.editEmployeeData.endTime || ""}
+                                onChange={(e) => setUI((prev) => ({ ...prev, editEmployeeData: { ...prev.editEmployeeData, endTime: e.target.value } }))}
                                 className="border px-1 py-0.5 w-[80px]"
                                 lang="vi"
                               />
@@ -405,13 +383,8 @@ const AttendanceModal = ({
                         <td className="border px-2 py-1">
                           {isEditing ? (
                             <select
-                              value={editEmployeeData.status || ""}
-                              onChange={(e) =>
-                                setEditEmployeeData((prev) => ({
-                                  ...prev,
-                                  status: e.target.value,
-                                }))
-                              }
+                              value={ui.editEmployeeData.status || ""}
+                              onChange={(e) => setUI((prev) => ({ ...prev, editEmployeeData: { ...prev.editEmployeeData, status: e.target.value } }))}
                               className="w-full border px-1 py-0.5"
                             >
                               <option value="Đi làm">
@@ -430,15 +403,10 @@ const AttendanceModal = ({
                         <td className="border px-2 py-1">
                           {isEditing ? (
                             <select
-                              value={editEmployeeData.model || ""}
-                              onChange={(e) =>
-                                setEditEmployeeData((prev) => ({
-                                  ...prev,
-                                  model: e.target.value,
-                                }))
-                              }
+                              value={ui.editEmployeeData.model || ""}
+                              onChange={(e) => setUI((prev) => ({ ...prev, editEmployeeData: { ...prev.editEmployeeData, model: e.target.value } }))}
                               className="w-full border px-1 py-0.5"
-                              disabled={editEmployeeData.status === "Nghỉ phép"}
+                              disabled={ui.editEmployeeData.status === "Nghỉ phép"}
                             >
                               <option value="">
                                 {t("attendanceModal.selectLine")}
@@ -459,13 +427,8 @@ const AttendanceModal = ({
                           {isEditing ? (
                             <input
                               type="date"
-                              value={editEmployeeData.joinDate || ""}
-                              onChange={(e) =>
-                                setEditEmployeeData((prev) => ({
-                                  ...prev,
-                                  joinDate: e.target.value,
-                                }))
-                              }
+                              value={ui.editEmployeeData.joinDate || ""}
+                              onChange={(e) => setUI((prev) => ({ ...prev, editEmployeeData: { ...prev.editEmployeeData, joinDate: e.target.value } }))}
                               className="border px-1 py-0.5 w-full"
                             />
                           ) : (
@@ -492,22 +455,17 @@ const AttendanceModal = ({
                             ) : (
                               <>
                                 <button
-                                  onClick={() => {
-                                    setEditEmployeeId(id);
-                                    setEditEmployeeData({
+                                  onClick={() => setUI((prev) => ({
+                                    ...prev,
+                                    editEmployeeId: id,
+                                    editEmployeeData: {
                                       ...emp,
                                       ...shift,
                                       shiftIdx,
-                                      startTime:
-                                        (shift.timePhanCong || "").split(
-                                          " - "
-                                        )[0] || "",
-                                      endTime:
-                                        (shift.timePhanCong || "").split(
-                                          " - "
-                                        )[1] || "",
-                                    });
-                                  }}
+                                      startTime: (shift.timePhanCong || "").split(" - ")[0] || "",
+                                      endTime: (shift.timePhanCong || "").split(" - ")[1] || "",
+                                    },
+                                  }))}
                                   className="px-2 py-1 bg-blue-600 text-white rounded"
                                 >
                                   {t("attendanceModal.edit")}

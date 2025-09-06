@@ -15,7 +15,8 @@ import MultiPlanModal from "./MultiPlanModal";
 import { useUser } from "./UserContext";
 Modal.setAppElement("#root");
 
-const timeLabels = [
+
+const TIME_LABELS = [
   "08:00 - 10:00",
   "10:10 - 11:30",
   "12:30 - 15:00",
@@ -23,35 +24,45 @@ const timeLabels = [
   "17:30 - 20:00",
 ];
 
+
+const PAGE_SIZE = 5;
+
+function validateNumber(val) {
+  if (val === "") return true;
+  if (!/^[0-9]+$/.test(val)) return false;
+  if (val.length > 5) return false;
+  return true;
+}
+
 const AreaProductionTableTime = ({ area }) => {
   const { user } = useUser();
-  const [multiPlanModalOpen, setMultiPlanModalOpen] = useState(false);
   const { t } = useTranslation();
   const areaKey = getAreaKey(area);
-  const [draftModelList, setDraftModelList] = useState([]);
-  const [addEmployeeModalOpen, setAddEmployeeModalOpen] = useState(false);
-  const [attendanceModalOpen, setAttendanceModalOpen] = useState(false);
+  // UI state
+  const [ui, setUI] = useState({
+    multiPlanModalOpen: false,
+    addEmployeeModalOpen: false,
+    attendanceModalOpen: false,
+    modalIsOpen: false,
+    modelEditOpen: false,
+    loading: false,
+    modelPage: 1,
+  });
+  // Data state
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [modelList, setModelList] = useState([]);
+  const [draftModelList, setDraftModelList] = useState([]);
+  const [newModelName, setNewModelName] = useState("");
   const [actualData, setActualData] = useState({});
   const [attendanceData, setAttendanceData] = useState({});
   const [productionData, setProductionData] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [modalIsOpen, setModalIsOpen] = useState(false);
-  const [modelList, setModelList] = useState([]);
-  // Chunk load model (pagination)
-  const PAGE_SIZE = 5;
-  const [modelPage, setModelPage] = useState(1);
+
   const totalModelPages = Math.max(1, Math.ceil(modelList.length / PAGE_SIZE));
-  const pagedModelList = modelList.slice(
-    (modelPage - 1) * PAGE_SIZE,
-    modelPage * PAGE_SIZE
-  );
+  const pagedModelList = modelList.slice((ui.modelPage - 1) * PAGE_SIZE, ui.modelPage * PAGE_SIZE);
   const weekNumber = getWeek(selectedDate, { weekStartsOn: 1 });
   const year = getYear(selectedDate);
   const weekKey = `week_${year}_${weekNumber}`;
   const dateKey = format(selectedDate, "yyyy-MM-dd");
-  const [modelEditOpen, setModelEditOpen] = useState(false);
-  const [newModelName, setNewModelName] = useState("");
   const startDateOfWeek = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const timeSlots = Array.from({ length: 6 }, (_, i) => {
     const date = addDays(startDateOfWeek, i);
@@ -63,55 +74,38 @@ const AreaProductionTableTime = ({ area }) => {
     };
   });
   useEffect(() => {
-    if (modelEditOpen) {
-      setDraftModelList(modelList);
-    }
-  }, [modelEditOpen, modelList]);
+    if (ui.modelEditOpen) setDraftModelList(modelList);
+  }, [ui.modelEditOpen, modelList]);
   // Đã có useEffect realtime bên dưới, không cần fetchData nữa
 
   useEffect(() => {
-    // Chunk load: chỉ lắng nghe dữ liệu cho các model đang hiển thị (pagedModelList)
     if (!modelList || modelList.length === 0) {
       setActualData({});
       setProductionData({});
       setAttendanceData({});
       return;
     }
-    setLoading(true);
+    setUI((prev) => ({ ...prev, loading: true }));
     const dateKey = format(selectedDate, "yyyy-MM-dd");
     let ignore = false;
-    // Lắng nghe từng model riêng biệt
     const actualUnsubs = [];
     const productionUnsubs = [];
-    const newActualData = {};
-    const newProductionData = {};
     pagedModelList.forEach((model) => {
       const actualRef = ref(db, `actual/${areaKey}/${dateKey}/${model}`);
       const unsubA = onValue(actualRef, (snapshot) => {
-        if (!ignore) newActualData[model] = snapshot.val() || {};
-        if (!ignore)
-          setActualData((prev) => ({ ...prev, [model]: snapshot.val() || {} }));
+        if (!ignore) setActualData((prev) => ({ ...prev, [model]: snapshot.val() || {} }));
       });
       actualUnsubs.push(unsubA);
-      const productionRef = ref(
-        db,
-        `production/${areaKey}/${dateKey}/${model}`
-      );
+      const productionRef = ref(db, `production/${areaKey}/${dateKey}/${model}`);
       const unsubP = onValue(productionRef, (snapshot) => {
-        if (!ignore) newProductionData[model] = snapshot.val() || {};
-        if (!ignore)
-          setProductionData((prev) => ({
-            ...prev,
-            [model]: snapshot.val() || {},
-          }));
+        if (!ignore) setProductionData((prev) => ({ ...prev, [model]: snapshot.val() || {} }));
       });
       productionUnsubs.push(unsubP);
     });
-    // Attendance vẫn lắng nghe toàn bộ ngày (vì không phân trang theo model)
     const attendanceRef = ref(db, `attendance/${areaKey}/${dateKey}`);
     const unsubAttendance = onValue(attendanceRef, (snapshot) => {
       if (!ignore) setAttendanceData(snapshot.val() || {});
-      if (!ignore) setLoading(false);
+      if (!ignore) setUI((prev) => ({ ...prev, loading: false }));
     });
     return () => {
       ignore = true;
@@ -119,17 +113,11 @@ const AreaProductionTableTime = ({ area }) => {
       productionUnsubs.forEach((fn) => fn());
       unsubAttendance();
     };
-  }, [
-    areaKey,
-    selectedDate,
-    pagedModelList.length,
-    modelList.length,
-    modelPage,
-  ]);
+  }, [areaKey, selectedDate, pagedModelList.length, modelList.length, ui.modelPage]);
 
   // Reset về trang 1 khi đổi area hoặc modelList
   useEffect(() => {
-    setModelPage(1);
+    setUI((prev) => ({ ...prev, modelPage: 1 }));
   }, [areaKey, modelList.length]);
 
   useEffect(() => {
@@ -152,50 +140,34 @@ const AreaProductionTableTime = ({ area }) => {
     fetchModelList();
   }, [areaKey]);
 
+
   const handleDateChange = (e) => {
     const newDate = new Date(e.target.value);
-    if (!isNaN(newDate)) {
-      setSelectedDate(newDate);
-    }
+    if (!isNaN(newDate)) setSelectedDate(newDate);
   };
-
   const changeWeek = (direction) => {
     setSelectedDate((prev) => {
       const currentStart = startOfWeek(prev, { weekStartsOn: 1 });
-      return direction === "prev"
-        ? addDays(currentStart, -7)
-        : addDays(currentStart, 7);
+      return direction === "prev" ? addDays(currentStart, -7) : addDays(currentStart, 7);
     });
   };
 
   // Debounce ghi Firebase
-  const debounceTimers = useRef({});
-  const validateNumber = (val) => {
-    if (val === "") return true;
-    if (!/^[0-9]+$/.test(val)) return false;
-    if (val.length > 5) return false;
-    return true;
-  };
 
+  const debounceTimers = useRef({});
   const handleDataChange = (type, model, slot, e) => {
     const val = e.target.value;
     if (!validateNumber(val)) return;
     const numVal = val === "" ? 0 : Number(val);
-
     if (type === "actual") {
       setActualData((prev) => {
         const newData = { ...prev };
         if (!newData[model]) newData[model] = {};
         newData[model][slot] = numVal;
-        // Tính tổng actual
-        const total = Object.entries(newData[model])
-          .filter(([key]) => key !== "total")
-          .reduce((sum, [, value]) => sum + Number(value || 0), 0);
+        const total = Object.entries(newData[model]).filter(([key]) => key !== "total").reduce((sum, [, value]) => sum + Number(value || 0), 0);
         newData[model]["total"] = total;
-        // Debounce ghi Firebase
         const basePath = `actual/${areaKey}/${dateKey}/${model}`;
-        if (debounceTimers.current[`${type}_${model}_${slot}`])
-          clearTimeout(debounceTimers.current[`${type}_${model}_${slot}`]);
+        if (debounceTimers.current[`${type}_${model}_${slot}`]) clearTimeout(debounceTimers.current[`${type}_${model}_${slot}`]);
         debounceTimers.current[`${type}_${model}_${slot}`] = setTimeout(() => {
           set(ref(db, `${basePath}/${slot}`), numVal);
           set(ref(db, `${basePath}/total`), total);
@@ -207,15 +179,10 @@ const AreaProductionTableTime = ({ area }) => {
         const newData = { ...prev };
         if (!newData[model]) newData[model] = {};
         newData[model][slot] = numVal;
-        // Tính tổng production
-        const total = Object.entries(newData[model])
-          .filter(([key]) => key !== "total")
-          .reduce((sum, [, value]) => sum + Number(value || 0), 0);
+        const total = Object.entries(newData[model]).filter(([key]) => key !== "total").reduce((sum, [, value]) => sum + Number(value || 0), 0);
         newData[model]["total"] = total;
-        // Debounce ghi Firebase
         const basePath = `production/${areaKey}/${dateKey}/${model}`;
-        if (debounceTimers.current[`${type}_${model}_${slot}`])
-          clearTimeout(debounceTimers.current[`${type}_${model}_${slot}`]);
+        if (debounceTimers.current[`${type}_${model}_${slot}`]) clearTimeout(debounceTimers.current[`${type}_${model}_${slot}`]);
         debounceTimers.current[`${type}_${model}_${slot}`] = setTimeout(() => {
           set(ref(db, `${basePath}/${slot}`), numVal);
           set(ref(db, `${basePath}/total`), total);
@@ -245,47 +212,33 @@ const AreaProductionTableTime = ({ area }) => {
     fetchModelList();
   }, [areaKey]);
 
+
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
     const wsData = [
-      [
-        t("areaProduction.model"),
-        "Slot",
-        t("areaProduction.plan"),
-        t("areaProduction.actual"),
-        t("areaProduction.completeRate"),
-      ],
+      [t("areaProduction.model"), "Slot", t("areaProduction.plan"), t("areaProduction.actual"), t("areaProduction.completeRate")],
     ];
     modelList.forEach((model) => {
-      timeLabels.forEach((slot) => {
+      TIME_LABELS.forEach((slot) => {
         const plan = Number(productionData[model]?.[slot] ?? 0);
         const actual = Number(actualData[model]?.[slot] ?? 0);
-        const ratio =
-          plan > 0 ? ((actual / plan) * 100).toFixed(1) + "%" : "0.0%";
+        const ratio = plan > 0 ? ((actual / plan) * 100).toFixed(1) + "%" : "0.0%";
         wsData.push([model, slot, plan, actual, ratio]);
       });
     });
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     XLSX.utils.book_append_sheet(wb, ws, "Theo Giờ");
     const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
-    saveAs(
-      new Blob([wbout], { type: "application/octet-stream" }),
-      `SanLuongGio_${areaKey}_${dateKey}.xlsx`
-    );
+    saveAs(new Blob([wbout], { type: "application/octet-stream" }), `SanLuongGio_${areaKey}_${dateKey}.xlsx`);
   };
 
   const chartData = {};
   modelList.forEach((model) => {
-    chartData[model] = timeLabels.map((slot) => {
+    chartData[model] = TIME_LABELS.map((slot) => {
       const plan = Number(productionData[model]?.[slot] ?? 0);
       const actual = Number(actualData[model]?.[slot] ?? 0);
       const ratio = plan > 0 ? Number(((actual / plan) * 100).toFixed(1)) : 0;
-      return {
-        label: slot,
-        plan,
-        actual,
-        ratio,
-      };
+      return { label: slot, plan, actual, ratio };
     });
   });
   return (
@@ -380,7 +333,7 @@ const AreaProductionTableTime = ({ area }) => {
               <th className="border border-gray-300 px-3 py-2 text-left">
                 {t("areaProduction.type")}
               </th>
-              {timeLabels.map((slot) => (
+              {TIME_LABELS.map((slot) => (
                 <th
                   key={slot}
                   className="border border-gray-300 px-2 py-2 text-center"
@@ -415,7 +368,7 @@ const AreaProductionTableTime = ({ area }) => {
                     <td className="border border-gray-300 px-3 py-2 font-semibold text-blue-800 text-left">
                       {t("areaProduction.plan")}
                     </td>
-                    {timeLabels.map((slot) => (
+                    {TIME_LABELS.map((slot) => (
                       <td
                         key={slot}
                         className="border border-gray-300 px-2 py-1 text-center"
@@ -467,7 +420,7 @@ const AreaProductionTableTime = ({ area }) => {
                     <td className="border border-gray-300 px-3 py-2 font-semibold text-yellow-800 text-left">
                       {t("areaProduction.completeRate")}
                     </td>
-                    {timeLabels.map((slot) => {
+                    {TIME_LABELS.map((slot) => {
                       const plan = Number(productionData[model]?.[slot] ?? 0);
                       const actual = Number(actualData[model]?.[slot] ?? 0);
                       const ratio =
@@ -495,43 +448,34 @@ const AreaProductionTableTime = ({ area }) => {
       {modelList.length > PAGE_SIZE && (
         <div className="flex justify-center items-center mt-2 space-x-2">
           <button
-            onClick={() => setModelPage((p) => Math.max(1, p - 1))}
-            disabled={modelPage === 1}
+            onClick={() => setUI((prev) => ({ ...prev, modelPage: Math.max(1, prev.modelPage - 1) }))}
+            disabled={ui.modelPage === 1}
             className="px-2 py-1 border rounded disabled:opacity-50"
           >
             {t("areaProduction.prevPage")}
           </button>
           <span>
-            {t("areaProduction.page", {
-              current: modelPage,
-              total: totalModelPages,
-            })}
+            {t("areaProduction.page", { current: ui.modelPage, total: totalModelPages })}
           </span>
           <button
-            onClick={() =>
-              setModelPage((p) => Math.min(totalModelPages, p + 1))
-            }
-            disabled={modelPage === totalModelPages}
+            onClick={() => setUI((prev) => ({ ...prev, modelPage: Math.min(totalModelPages, prev.modelPage + 1) }))}
+            disabled={ui.modelPage === totalModelPages}
             className="px-2 py-1 border rounded disabled:opacity-50"
           >
             {t("areaProduction.nextPage")}
           </button>
         </div>
       )}
-      {loading && (
-        <div className="text-center text-gray-500 py-4 text-lg">
-          {t("areaProduction.loading")}
-        </div>
+      {ui.loading && (
+        <div className="text-center text-gray-500 py-4 text-lg">{t("areaProduction.loading")}</div>
       )}
       <Modal
-        isOpen={modelEditOpen}
-        onRequestClose={() => setModelEditOpen(false)}
+        isOpen={ui.modelEditOpen}
+        onRequestClose={() => setUI((prev) => ({ ...prev, modelEditOpen: false }))}
         className="bg-white p-6 max-w-md mx-auto rounded shadow"
         overlayClassName="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50"
       >
-        <h2 className="text-lg font-bold mb-4">
-          {t("areaProduction.manageLine")}
-        </h2>
+        <h2 className="text-lg font-bold mb-4">{t("areaProduction.manageLine")}</h2>
         {user ? (
           <>
             <ul className="space-y-2 max-h-60 overflow-y-auto">
@@ -548,12 +492,8 @@ const AreaProductionTableTime = ({ area }) => {
                   />
                   <button
                     onClick={() => {
-                      if (
-                        window.confirm(t("areaProduction.confirmDeleteModel"))
-                      ) {
-                        setDraftModelList(
-                          draftModelList.filter((_, i) => i !== index)
-                        );
+                      if (window.confirm(t("areaProduction.confirmDeleteModel"))) {
+                        setDraftModelList(draftModelList.filter((_, i) => i !== index));
                       }
                     }}
                   >
@@ -584,21 +524,18 @@ const AreaProductionTableTime = ({ area }) => {
             </div>
             <div className="flex justify-end mt-4 gap-2">
               <button
-                onClick={() => setModelEditOpen(false)}
+                onClick={() => setUI((prev) => ({ ...prev, modelEditOpen: false }))}
                 className="bg-gray-300 px-4 py-1 rounded"
               >
                 {t("areaProduction.close")}
               </button>
               <button
                 onClick={() => {
-                  set(
-                    ref(db, `assignments/${areaKey}/modelList`),
-                    draftModelList
-                  )
+                  set(ref(db, `assignments/${areaKey}/modelList`), draftModelList)
                     .then(() => {
                       showToast(t("areaProduction.updated"));
                       setModelList(draftModelList);
-                      setModelEditOpen(false);
+                      setUI((prev) => ({ ...prev, modelEditOpen: false }));
                     })
                     .catch(() => {
                       showToast(t("areaProduction.errorSaving"));
@@ -611,27 +548,24 @@ const AreaProductionTableTime = ({ area }) => {
             </div>
           </>
         ) : (
-          <div className="text-center text-gray-500 py-8 text-lg">
-            {t("areaProduction.loginToEdit")}
-          </div>
+          <div className="text-center text-gray-500 py-8 text-lg">{t("areaProduction.loginToEdit")}</div>
         )}
       </Modal>
 
       {/* Biểu đồ */}
       <ChartModal
-        isOpen={modalIsOpen}
-        onClose={() => setModalIsOpen(false)}
+        isOpen={ui.modalIsOpen}
+        onClose={() => setUI((prev) => ({ ...prev, modalIsOpen: false }))}
         weekNumber={weekNumber}
         chartData={chartData}
         modelList={modelList}
         area={area}
         selectedDate={format(selectedDate, "yyyy-MM-dd")}
       />
-
       {/* Modal nhân viên */}
       <AttendanceModal
-        isOpen={attendanceModalOpen}
-        onClose={() => setAttendanceModalOpen(false)}
+        isOpen={ui.attendanceModalOpen}
+        onClose={() => setUI((prev) => ({ ...prev, attendanceModalOpen: false }))}
         selectedDate={format(selectedDate, "yyyy-MM-dd")}
         attendanceData={attendanceData}
         timeSlots={timeSlots}
@@ -639,18 +573,17 @@ const AreaProductionTableTime = ({ area }) => {
         modelList={modelList}
         dateKey={dateKey}
       />
-
       <AddEmployeeModal
-        isOpen={addEmployeeModalOpen}
-        onClose={() => setAddEmployeeModalOpen(false)}
+        isOpen={ui.addEmployeeModalOpen}
+        onClose={() => setUI((prev) => ({ ...prev, addEmployeeModalOpen: false }))}
         areaKey={areaKey}
         dateKey={dateKey}
         modelList={modelList}
         selectedDate={format(selectedDate, "yyyy-MM-dd")}
       />
       <MultiPlanModal
-        isOpen={multiPlanModalOpen}
-        onClose={() => setMultiPlanModalOpen(false)}
+        isOpen={ui.multiPlanModalOpen}
+        onClose={() => setUI((prev) => ({ ...prev, multiPlanModalOpen: false }))}
         areaKey={areaKey}
         modelList={modelList}
       />
